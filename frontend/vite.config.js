@@ -15,10 +15,11 @@ export default defineConfig({
     }),
   ],
   server: {
-    port: Number(process.env.VITE_DEV_PORT) || 3002,
+    host: '0.0.0.0',
+    port: Number(process.env.VITE_DEV_PORT) || 3102,
     proxy: {
       '/api': {
-        target: process.env.VITE_API_PROXY_TARGET || 'http://localhost:3001',
+        target: process.env.VITE_API_PROXY_TARGET || 'http://localhost:3101',
         changeOrigin: true,
       }
     }

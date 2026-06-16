@@ -164,3 +164,71 @@
 - `backend/.env.example`
 - `backend/src/app.js`
 - `backend/src/db.js`
+
+## 坑：把角色 code 当成登录账号
+
+触发场景：
+
+- 种子数据里有 `admin` 角色
+- 管理员用户账号却不是 `admin`
+
+症状：
+
+- 使用 `admin / vv123456` 登录返回“用户不存在”
+- 使用旧员工号或中文姓名可以登录
+
+原因：
+
+- 登录接口查的是 `pms_user.employee_no`、`phone`、`real_name`
+- `pms_role.code = admin` 不是登录账号
+
+正确处理：
+
+- 默认管理员用户的 `employee_no` 使用 `admin`
+- README、部署文档和种子数据保持一致
+- 旧库中如存在历史管理员账号，启动时迁移为 `admin / 管理员`
+
+预防规则：
+
+- 默认账号必须同时核对登录接口、种子用户、README 和部署文档
+
+关联文件：
+
+- `backend/src/db.js`
+- `README.md`
+- `deploy/README.md`
+
+## 坑：启动命令覆盖了端口，但 Vite 默认配置仍是旧端口
+
+触发场景：
+
+- 文档或 AGENTS 中使用环境变量指定 `3102 -> 3101`
+- `frontend/vite.config.js` 默认仍保留旧端口组合
+- 同事直接执行 `npm run dev`
+
+症状：
+
+- 前端启动到旧端口
+- API 代理到旧后端
+- 部署或本地运行表现和文档不一致
+
+原因：
+
+- 只统一了启动命令，没有统一代码默认配置
+
+正确处理：
+
+- `frontend/vite.config.js` 默认端口使用 `3102`
+- `frontend/vite.config.js` 默认代理使用 `http://localhost:3101`
+- README 使用 `npm run dev` 即可启动到正确端口
+
+预防规则：
+
+- 端口变更必须同时检查 README、AGENTS、`.env.example`、Vite 配置、PM2 配置和 Nginx 配置
+
+关联文件：
+
+- `frontend/vite.config.js`
+- `README.md`
+- `deploy/pm2.config.js`
+- `deploy/nginx.conf`

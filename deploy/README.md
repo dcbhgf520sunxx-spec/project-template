@@ -142,7 +142,7 @@ curl http://localhost:3101/api/health
 ```bash
 curl http://localhost:3101/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"account":"EMP000","password":"vv123456"}'
+  -d '{"account":"admin","password":"vv123456"}'
 ```
 
 浏览器访问：
@@ -168,4 +168,4 @@ sudo nginx -s reload
 - 不要占用 `3001`、`3002`
 - 每个项目实例必须使用独立 `DB_NAME`
 - `backend/.env` 不得提交
-- 默认账号为 `EMP000 / vv123456`
+- 默认账号为 `admin / vv123456`

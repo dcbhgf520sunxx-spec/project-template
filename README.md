@@ -37,7 +37,7 @@
 ## 默认账号
 
 ```txt
-账号：EMP000
+账号：admin
 密码：vv123456
 ```
 
@@ -57,7 +57,7 @@ npm start
 ```bash
 cd frontend
 npm install
-VITE_DEV_PORT=3102 VITE_API_PROXY_TARGET=http://localhost:3101 npx vite --host 0.0.0.0 --port 3102
+npm run dev
 ```
 
 健康检查：
@@ -97,4 +97,3 @@ AI 进入项目后先读：
 部署说明见：
 
 - [deploy/README.md](./deploy/README.md)
-

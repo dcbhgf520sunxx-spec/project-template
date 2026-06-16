@@ -17,6 +17,7 @@ const pool = mysql.createPool({
 })
 
 const promise = pool.promise()
+const DEFAULT_ADMIN_ACCOUNT = 'admin'
 
 // MySQL wrapper for cleaner syntax
 function prepare(sql) {
@@ -196,14 +197,22 @@ async function init() {
       const hashed = await bcrypt.hash('vv123456', 10)
       await prepare(
         'INSERT INTO pms_user (employee_no, real_name, phone, password, status, first_login, creator_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
-      ).run('EMP000', '管理员', '13800000000', hashed, 1, 0, null, new Date())
+      ).run(DEFAULT_ADMIN_ACCOUNT, '管理员', '13800000000', hashed, 1, 0, null, new Date())
       console.log('Seeded admin user.')
+    }
+
+    const adminUserByAccount = await prepare('SELECT id FROM pms_user WHERE employee_no = ? AND is_deleted = 0').get(DEFAULT_ADMIN_ACCOUNT)
+    if (!adminUserByAccount) {
+      const legacyAdmin = await prepare('SELECT id FROM pms_user WHERE employee_no = ? AND real_name = ? AND is_deleted = 0').get('EMP000', '管理员')
+      if (legacyAdmin) {
+        await prepare('UPDATE pms_user SET employee_no = ?, updated_at = NOW() WHERE id = ?').run(DEFAULT_ADMIN_ACCOUNT, legacyAdmin.id)
+      }
     }
 
     // Seed data: admin role
     const roleCount = await prepare('SELECT COUNT(*) as c FROM pms_role').get()
     if (roleCount.c === 0) {
-      const adminUser = await prepare('SELECT id FROM pms_user WHERE employee_no = ?').get('EMP000')
+      const adminUser = await prepare('SELECT id FROM pms_user WHERE employee_no = ?').get(DEFAULT_ADMIN_ACCOUNT)
       await prepare('INSERT INTO pms_role (code, name, description, creator_id) VALUES (?, ?, ?, ?)')
         .run('admin', '管理员', '系统管理员，拥有所有权限', adminUser.id)
       const adminRole = await prepare('SELECT id FROM pms_role WHERE code = ?').get('admin')
@@ -214,7 +223,7 @@ async function init() {
     // Seed data: menu structure
     const menuCount = await prepare('SELECT COUNT(*) as c FROM pms_menu').get()
     if (menuCount.c === 0) {
-      const adminUser = await prepare('SELECT id FROM pms_user WHERE employee_no = ?').get('EMP000')
+      const adminUser = await prepare('SELECT id FROM pms_user WHERE employee_no = ?').get(DEFAULT_ADMIN_ACCOUNT)
 
       const menus = [
         { parent_id: 0, name: '运维工单', code: 'work_order', type: 2, path: '/work-orders', icon: 'Tools', sort: 1 },
