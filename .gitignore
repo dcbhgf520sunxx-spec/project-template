@@ -1,0 +1,25 @@
+.DS_Store
+node_modules/
+*.lock~
+.~*
+backend/.env
+.env
+.env.*
+!.env.example
+!backend/.env.example
+!frontend/.env.example
+backend/pms.db
+frontend/INSTALL_DRAGGABLE.txt
+
+# IDE
+.idea/
+*.swp
+*.swo
+.vscode/settings.json
+
+# Logs
+*.log
+logs/
+
+# Vite
+.vite/
