@@ -145,7 +145,7 @@
           <div class="form-tip">将作为该类型下档案编码的自动生成前缀，如 TT → TT001</div>
         </el-form-item>
         <el-form-item label="类型名称" prop="name">
-          <el-input v-model="typeForm.name" placeholder="如 任务类型" maxlength="100" />
+          <el-input v-model="typeForm.name" placeholder="如 问题类型" maxlength="100" />
         </el-form-item>
       </el-form>
       <template #footer>

@@ -16,7 +16,7 @@ const { start: startOverdueCron } = require('./services/overdueCron')
 dotenv.config()
 
 const app = express()
-app.use(cors({ origin: process.env.ALLOWED_ORIGIN || 'http://localhost:3002', credentials: true }))
+app.use(cors({ origin: process.env.ALLOWED_ORIGIN || 'http://localhost:3102', credentials: true }))
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
@@ -44,7 +44,7 @@ app.use((err, req, res, next) => {
   res.status(500).json({ code: 500, message: '服务器内部错误', data: null })
 })
 
-const PORT = process.env.PORT || 5000
+const PORT = process.env.PORT || 3101
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`)
   if (process.send) process.send('ready')

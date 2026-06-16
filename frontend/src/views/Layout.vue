@@ -403,7 +403,7 @@ const handleChangePassword = async () => {
   gap: 12px;
 }
 
-/* Bug详情页上下条导航 */
+/* 详情页上下条导航 */
 .neighbors-nav {
   display: flex;
   align-items: center;

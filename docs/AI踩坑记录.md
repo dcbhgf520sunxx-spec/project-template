@@ -129,3 +129,38 @@
 - `backend/.env`
 - `AGENTS.md`
 
+## 坑：`.env.example` 仍保留旧端口或旧库名
+
+触发场景：
+
+- 项目已切换独立端口或独立数据库
+- 只修改了本地 `.env`
+- 忘记同步 `.env.example`
+
+症状：
+
+- 新环境按 example 初始化后连到旧库
+- 后端默认端口和文档端口不一致
+- 前端代理或 CORS 指向旧端口
+
+原因：
+
+- `.env` 被 git ignore，真实运行正常，但模板配置样例过期
+
+正确处理：
+
+- 同步更新 `backend/.env.example`
+- 检查 `PORT`
+- 检查 `DB_NAME`
+- 检查 `ALLOWED_ORIGIN`
+- 检查后端代码默认端口和 CORS fallback
+
+预防规则：
+
+- 修改运行端口或数据库名时，必须同时检查 `.env.example` 和后端 fallback 配置
+
+关联文件：
+
+- `backend/.env.example`
+- `backend/src/app.js`
+- `backend/src/db.js`

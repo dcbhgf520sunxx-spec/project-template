@@ -192,30 +192,10 @@ exports.remove = async (req, res) => {
       return res.status(400).json({ code: 400, message: '该用户已分配角色，无法删除', data: null })
     }
 
-    // 检查是否作为负责人被引用
-    const ownerRefs = [
-      { table: 'pms_product', name: '产品' },
-      { table: 'pms_requirement', name: '需求' },
-      { table: 'pms_project', name: '项目' },
-      { table: 'pms_task', name: '任务' },
-    ]
-    for (const ref of ownerRefs) {
-      const r = await db.prepare(`SELECT COUNT(*) as cnt FROM ${ref.table} WHERE owner_id = ? AND is_deleted = 0`).get(userId)
-      if (r?.cnt > 0) {
-        return res.status(400).json({ code: 400, message: `该用户已被${ref.name}引用为负责人，无法删除`, data: null })
-      }
-    }
-
     // 检查是否作为跟踪人被工单引用
     const woRef = await db.prepare('SELECT COUNT(*) as cnt FROM pms_work_order WHERE follower_id = ? AND is_deleted = 0').get(userId)
     if (woRef?.cnt > 0) {
       return res.status(400).json({ code: 400, message: '该用户已被运维工单引用为跟踪人，无法删除', data: null })
-    }
-
-    // 检查是否作为处理人被Bug引用
-    const bugRef = await db.prepare('SELECT COUNT(*) as cnt FROM pms_bug WHERE assignee_id = ? AND is_deleted = 0').get(userId)
-    if (bugRef?.cnt > 0) {
-      return res.status(400).json({ code: 400, message: '该用户已被Bug引用为处理人，无法删除', data: null })
     }
 
     await db.prepare('UPDATE pms_user SET is_deleted = 1, updater_id = ? WHERE id = ?').run(updater_id || null, userId)

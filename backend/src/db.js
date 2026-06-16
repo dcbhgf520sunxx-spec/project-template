@@ -8,7 +8,7 @@ const pool = mysql.createPool({
   port: process.env.DB_PORT || 3306,
   user: process.env.DB_USER || 'pms',
   password: process.env.DB_PASSWORD || 'pms123456',
-  database: process.env.DB_NAME || 'project_manage',
+  database: process.env.DB_NAME || 'project_template',
   charset: 'utf8mb4',
   waitForConnections: true,
   connectionLimit: 10,
@@ -130,134 +130,6 @@ CREATE TABLE IF NOT EXISTS pms_operation_log (
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='操作日志表';
 
-CREATE TABLE IF NOT EXISTS pms_product (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY,
-  name VARCHAR(100) NOT NULL,
-  description TEXT,
-  owner_id BIGINT NOT NULL,
-  status TINYINT DEFAULT 1,
-  creator_id BIGINT,
-  updater_id BIGINT,
-  is_deleted TINYINT DEFAULT 0,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  UNIQUE KEY (name)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='产品表';
-
-CREATE TABLE IF NOT EXISTS pms_project (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY,
-  name VARCHAR(200) NOT NULL,
-  description TEXT,
-  product_id BIGINT,
-  owner_id BIGINT,
-  member_ids VARCHAR(500),
-  status TINYINT DEFAULT 0,
-  is_overdue TINYINT DEFAULT 0,
-  start_date DATE,
-  expected_end_date DATE,
-  actual_end_date DATE,
-  suspend_date DATE,
-  progress_text TEXT,
-  risk_text TEXT,
-  creator_id BIGINT,
-  updater_id BIGINT,
-  is_deleted TINYINT DEFAULT 0,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  UNIQUE KEY (name)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='项目表';
-
-CREATE TABLE IF NOT EXISTS pms_milestone (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY,
-  project_id BIGINT NOT NULL,
-  name VARCHAR(200) NOT NULL,
-  planned_start DATE,
-  planned_end DATE,
-  actual_start DATE,
-  actual_end DATE,
-  status TINYINT DEFAULT 0,
-  sort_order INT DEFAULT 0,
-  creator_id BIGINT,
-  updater_id BIGINT,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  is_deleted TINYINT DEFAULT 0
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='里程碑表';
-
-CREATE TABLE IF NOT EXISTS pms_task (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY,
-  name VARCHAR(200) NOT NULL,
-  description TEXT,
-  project_id BIGINT,
-  requirement_id BIGINT,
-  source_type TINYINT DEFAULT 1 COMMENT '1项目 2需求',
-  owner_id BIGINT NOT NULL,
-  task_type TINYINT NOT NULL DEFAULT 0,
-  priority TINYINT NOT NULL DEFAULT 1,
-  status TINYINT NOT NULL DEFAULT 0,
-  is_overdue TINYINT NOT NULL DEFAULT 0,
-  start_date DATE,
-  expected_end_date DATE,
-  actual_end_date DATE,
-  suspend_date DATE,
-  submitter_name VARCHAR(50) NOT NULL,
-  submitter_org VARCHAR(100) NOT NULL,
-  submit_date DATE NOT NULL,
-  creator_id BIGINT,
-  updater_id BIGINT,
-  is_deleted TINYINT DEFAULT 0,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='任务表';
-
-CREATE TABLE IF NOT EXISTS pms_bug (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY,
-  project_id BIGINT,
-  requirement_id BIGINT,
-  source_type TINYINT DEFAULT 1 COMMENT '1项目 2需求',
-  title VARCHAR(200) NOT NULL,
-  description TEXT,
-  type TINYINT NOT NULL,
-  severity TINYINT NOT NULL,
-  status TINYINT NOT NULL DEFAULT 0,
-  assignee_id BIGINT NOT NULL,
-  resolution TINYINT,
-  resolved_date DATE,
-  closed_date DATE,
-  creator_id BIGINT,
-  updater_id BIGINT,
-  is_deleted TINYINT DEFAULT 0,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  UNIQUE KEY (title)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Bug表';
-
-CREATE TABLE IF NOT EXISTS pms_requirement (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY,
-  title VARCHAR(200) NOT NULL,
-  description TEXT,
-  product_id BIGINT NOT NULL,
-  owner_id BIGINT NOT NULL,
-  priority TINYINT NOT NULL DEFAULT 1,
-  requirement_type BIGINT NOT NULL,
-  status TINYINT NOT NULL DEFAULT 0,
-  is_overdue TINYINT DEFAULT NULL,
-  submitter_name VARCHAR(50) NOT NULL,
-  submitter_dept VARCHAR(100),
-  submit_date DATE NOT NULL,
-  start_date DATE,
-  expected_end_date DATE,
-  pause_date DATE,
-  actual_end_date DATE,
-  completion_status TEXT,
-  creator_id BIGINT,
-  updater_id BIGINT,
-  is_deleted TINYINT DEFAULT 0,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  UNIQUE KEY (title)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='需求表';
-
 CREATE TABLE IF NOT EXISTS pms_work_order (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
   problem_type TINYINT NOT NULL,
@@ -313,12 +185,10 @@ async function init() {
     await exec(initSQL)
     console.log('Database tables initialized.')
 
-    // Migration: add missing columns to existing tables
+    // Compatibility migrations for existing local databases.
     try { await exec('ALTER TABLE pms_operation_log ADD COLUMN target_name VARCHAR(200) DEFAULT NULL AFTER target_id') } catch (e) {}
-    try { await exec('ALTER TABLE pms_task ADD COLUMN requirement_id BIGINT AFTER project_id') } catch (e) {}
-    try { await exec("ALTER TABLE pms_task ADD COLUMN source_type TINYINT DEFAULT 1 COMMENT '1项目 2需求' AFTER requirement_id") } catch (e) {}
-    try { await exec('ALTER TABLE pms_bug ADD COLUMN source_type TINYINT DEFAULT 1 AFTER requirement_id') } catch (e) {}
     try { await exec('ALTER TABLE pms_work_order DROP COLUMN system_id') } catch (e) {}
+    try { await exec('DROP TABLE IF EXISTS pms_bug, pms_task, pms_milestone, pms_requirement, pms_project, pms_product') } catch (e) {}
 
     // Seed data: admin user
     const userCount = await prepare('SELECT COUNT(*) as c FROM pms_user').get()

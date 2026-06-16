@@ -98,12 +98,6 @@ exports.remove = async (req, res) => {
   try {
     const { updater_id } = req.body
 
-    // 检查是否有任务引用此档案
-    const taskCount = await db.prepare('SELECT COUNT(*) as cnt FROM pms_task WHERE task_type = ? AND is_deleted = 0').get(req.params.id)
-    if (taskCount.cnt > 0) {
-      return res.status(400).json({ code: 400, message: `该档案已被 ${taskCount.cnt} 个任务引用，无法删除`, data: null })
-    }
-
     await db.prepare('UPDATE pms_archive SET is_deleted = 1, updater_id = ? WHERE id = ?').run(updater_id || null, req.params.id)
     if (updater_id) await db.writeLog(updater_id, '删除', '档案', req.params.id, 'is_deleted', '0', '1', req.ip)
     res.json({ code: 0, message: 'success', data: null })
