@@ -1,142 +1,171 @@
-# 项目管理系统 - 正式发布部署指南
+# project-template 部署说明
 
-## 环境要求
+本文档用于部署项目管理系统基建模板。
+
+## 1. 环境要求
 
 - Node.js >= 18
 - MySQL >= 5.7
 - Nginx
-- PM2（`npm install -g pm2`）
+- PM2
 
----
-
-## 部署步骤
-
-### 1. 拉取代码
+安装 PM2：
 
 ```bash
-cd /path/to/deploy
-git clone https://gitee.com/znjs_0/project-manage-system.git
-cd project-manage-system
+npm install -g pm2
 ```
 
-### 2. 安装后端依赖
+## 2. 拉取代码
+
+```bash
+cd /path/to/apps
+git clone https://gitee.com/znjs_0/project-template.git
+cd project-template
+```
+
+## 3. 配置数据库
+
+创建独立数据库：
+
+```bash
+mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS project_template CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+```
+
+配置后端环境变量：
 
 ```bash
 cd backend
-npm install --production
-```
-
-### 3. 配置数据库连接
-
-```bash
 cp .env.example .env
 vi .env
 ```
 
-编辑 `.env` 填入正式数据库信息：
-```
+示例：
+
+```env
+PORT=3101
 DB_HOST=localhost
 DB_PORT=3306
 DB_USER=pms
 DB_PASSWORD=你的密码
-DB_NAME=project_manage
-JWT_SECRET=你的密钥
-PORT=3001
+DB_NAME=project_template
+JWT_SECRET=请替换为随机密钥
+ALLOWED_ORIGIN=http://你的域名或IP
 ```
 
-### 4. 初始化数据库
+后端首次启动时会自动建表并初始化最小种子数据。
+
+## 4. 安装依赖
+
+后端：
 
 ```bash
-# 确保 MySQL 已启动，创建数据库
-mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS project_manage CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-
-# 后端启动时会自动创建所有表并初始化种子数据（admin 用户、角色、菜单）
-# 无需手动执行 SQL
+cd /path/to/apps/project-template/backend
+npm ci --omit=dev
 ```
 
-> 首次启动后端即可自动完成建表和种子数据初始化。
-
-### 5. 构建前端
+前端：
 
 ```bash
-cd ../frontend
-npm install --production
+cd /path/to/apps/project-template/frontend
+npm ci
+```
+
+## 5. 构建前端
+
+```bash
+cd /path/to/apps/project-template/frontend
 npm run build
 ```
 
-构建产物在 `frontend/dist/`。
+构建产物位于：
 
-### 6. 配置 Nginx
-
-```bash
-# 复制配置文件
-sudo cp deploy/nginx.conf /etc/nginx/conf.d/pms.conf
-
-# 编辑配置，修改 server_name 和 root 路径
-sudo vi /etc/nginx/conf.d/pms.conf
-
-# 测试配置
-sudo nginx -t
-
-# 重载 Nginx
-sudo nginx -s reload
+```txt
+frontend/dist
 ```
 
-### 7. 启动后端（PM2）
+## 6. 配置 PM2
+
+确认 `deploy/pm2.config.js` 中端口为 `3101`。
+
+启动后端：
 
 ```bash
-cd backend
-mkdir -p logs
-
-# 首次启动
+cd /path/to/apps/project-template
+mkdir -p backend/logs
 pm2 start deploy/pm2.config.js
-
-# 设置开机自启
-pm2 startup
 pm2 save
 ```
 
-### 8. 验证
+查看状态：
 
 ```bash
-# 查看进程状态
 pm2 status
-
-# 查看日志
-pm2 logs pms-backend
-
-# 测试 API
-curl http://localhost:3001/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"account":"admin","password":"vv123456"}'
+pm2 logs project-template-backend --lines 100
 ```
 
----
+## 7. 配置 Nginx
 
-## 常用命令
+复制配置：
 
 ```bash
-# 查看后端状态
-pm2 status
+sudo cp deploy/nginx.conf /etc/nginx/conf.d/project-template.conf
+```
 
-# 查看日志
-pm2 logs pms-backend --lines 100
+编辑配置：
 
-# 重启后端
-pm2 restart pms-backend
+```bash
+sudo vi /etc/nginx/conf.d/project-template.conf
+```
 
-# 停止后端
-pm2 stop pms-backend
+必须修改：
 
-# 重载 Nginx
+- `server_name`
+- `root`
+
+检查并重载：
+
+```bash
+sudo nginx -t
 sudo nginx -s reload
 ```
 
-## 注意事项
+## 8. 验证
 
-1. **数据库**：正式发布前确认 `backend/.env` 中的数据库连接正确
-2. **首次登录**：admin 默认密码 `vv123456`，新建用户首次登录强制改密
-3. **AI 问数**：确认 SSO 服务地址配置正确（`SSO_PLATFORM_URL` 环境变量）
-4. **定时任务**：逾期刷新任务已内置，每天 00:30 自动执行
-5. **防火墙**：开放 80 端口（Nginx），3001 端口无需对外开放（仅 Nginx 代理）
-6. **HR 同步**：如需 HR 员工同步功能，配置 `HR_API_URL` 环境变量
+健康检查：
+
+```bash
+curl http://localhost:3101/api/health
+```
+
+登录接口：
+
+```bash
+curl http://localhost:3101/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"account":"EMP000","password":"vv123456"}'
+```
+
+浏览器访问：
+
+```txt
+http://你的域名或IP/
+```
+
+## 9. 常用命令
+
+```bash
+pm2 status
+pm2 restart project-template-backend
+pm2 logs project-template-backend --lines 100
+sudo nginx -t
+sudo nginx -s reload
+```
+
+## 10. 注意事项
+
+- 后端端口使用 `3101`
+- 前端生产访问由 Nginx 提供
+- 不要占用 `3001`、`3002`
+- 每个项目实例必须使用独立 `DB_NAME`
+- `backend/.env` 不得提交
+- 默认账号为 `EMP000 / vv123456`
