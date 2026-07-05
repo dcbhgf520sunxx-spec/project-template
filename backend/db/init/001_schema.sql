@@ -225,32 +225,6 @@ VALUES
   ('PT005', '其他', 2, 5, 1, 1)
 ON CONFLICT (code) DO NOTHING;
 
-INSERT INTO pms_work_order (
-  system_id,
-  problem_type,
-  problem_desc,
-  follower_id,
-  urgency,
-  status,
-  expected_resolve_date,
-  submitter_name,
-  submitter_dept,
-  submit_time,
-  creator_id,
-  updater_id
-)
-VALUES
-  (
-    (SELECT id FROM pms_archive WHERE code = 'SYS001'),
-    (SELECT id FROM pms_archive WHERE code = 'PT001'),
-    '新员工账号权限开通', 1, 1, 0, NOW() + INTERVAL '2 days', '张三', '综合部', NOW() - INTERVAL '1 day', 1, 1
-  ),
-  (
-    (SELECT id FROM pms_archive WHERE code = 'SYS001'),
-    (SELECT id FROM pms_archive WHERE code = 'PT002'),
-    '基础档案名称调整', 1, 0, 1, NOW() + INTERVAL '3 days', '李四', '运营部', NOW() - INTERVAL '2 days', 1, 1
-  );
-
 SELECT setval('pms_user_id_seq', COALESCE((SELECT MAX(id) FROM pms_user), 1), true);
 SELECT setval('pms_role_id_seq', COALESCE((SELECT MAX(id) FROM pms_role), 1), true);
 SELECT setval('pms_menu_id_seq', COALESCE((SELECT MAX(id) FROM pms_menu), 1), true);

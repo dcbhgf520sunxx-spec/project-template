@@ -1,5 +1,6 @@
 DELETE FROM pms_work_order
-WHERE problem_desc LIKE '模拟工单%';
+WHERE problem_desc LIKE '模拟工单%'
+   OR problem_desc IN ('新员工账号权限开通', '基础档案名称调整');
 
 DELETE FROM pms_access_log
 WHERE user_id IN (
