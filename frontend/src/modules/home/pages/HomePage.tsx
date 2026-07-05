@@ -1,5 +1,5 @@
 import './HomePage.css';
-import welcomeRobot from '../../../assets/home/welcome-robot.png';
+import skateboardingRobot from '../../../assets/home/skateboarding-robot.mp4';
 
 export function HomePage() {
   return (
@@ -10,7 +10,7 @@ export function HomePage() {
         <p>让日常管理更清晰、更有序。</p>
       </div>
       <div className="home-page__visual" aria-hidden="true">
-        <img className="home-page__image" src={welcomeRobot} alt="" />
+        <video className="home-page__video" src={skateboardingRobot} autoPlay muted loop playsInline preload="auto" />
       </div>
     </section>
   );
