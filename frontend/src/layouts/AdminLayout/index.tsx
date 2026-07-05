@@ -111,7 +111,7 @@ function collectAllowedMenuKeys(items: UserMenuItem[]): Set<string> {
 }
 
 function collectAllowedMenuPaths(items: UserMenuItem[]): Set<string> {
-  const paths = new Set<string>();
+  const paths = new Set<string>(['/home']);
   const collect = (menu: UserMenuItem) => {
     if (menu.path) paths.add(menu.path);
     menu.children?.forEach(collect);

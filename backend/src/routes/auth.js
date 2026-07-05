@@ -107,6 +107,14 @@ router.post('/login', async (req, res) => {
       ORDER BY m.sort_order, m.id
     `).all(row.id)
 
+    const homeMenu = await db.prepare(
+      "SELECT * FROM pms_menu WHERE path = '/home' AND is_deleted = 0 AND status = 1"
+    ).get()
+    if (homeMenu && !menus.some(m => m.id === homeMenu.id)) {
+      menus.push(homeMenu)
+      menus.sort((a, b) => (a.sort_order - b.sort_order) || (a.id - b.id))
+    }
+
     // Auto-include parent menus for tree rendering
     const allMenuIds = new Set(menus.map(r => r.id))
     const allMenus = await db.prepare('SELECT * FROM pms_menu WHERE is_deleted = 0').all()
