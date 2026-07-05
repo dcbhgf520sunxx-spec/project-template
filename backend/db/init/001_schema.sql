@@ -208,8 +208,7 @@ ON CONFLICT (role_id, menu_id) DO NOTHING;
 INSERT INTO pms_archive_type (id, code, code_prefix, name, creator_id, updater_id)
 VALUES
   (1, '001', 'SYS', '系统', 1, 1),
-  (2, '002', 'OPS', '运维分类', 1, 1),
-  (3, '003', 'PT', '问题类型', 1, 1)
+  (2, '002', 'PT', '问题类型', 1, 1)
 ON CONFLICT (code) DO UPDATE SET
   name = EXCLUDED.name,
   code_prefix = EXCLUDED.code_prefix,
@@ -219,13 +218,11 @@ ON CONFLICT (code) DO UPDATE SET
 INSERT INTO pms_archive (code, name, archive_type_id, sort_order, creator_id, updater_id)
 VALUES
   ('SYS001', '后台管理系统', 1, 1, 1, 1),
-  ('OPS001', '账号权限', 2, 1, 1, 1),
-  ('OPS002', '数据修复', 2, 2, 1, 1),
-  ('PT001', '日常操作', 3, 1, 1, 1),
-  ('PT002', '系统优化', 3, 2, 1, 1),
-  ('PT003', '故障报障', 3, 3, 1, 1),
-  ('PT004', '后台维护', 3, 4, 1, 1),
-  ('PT005', '其他', 3, 5, 1, 1)
+  ('PT001', '日常操作', 2, 1, 1, 1),
+  ('PT002', '系统优化', 2, 2, 1, 1),
+  ('PT003', '故障报障', 2, 3, 1, 1),
+  ('PT004', '后台维护', 2, 4, 1, 1),
+  ('PT005', '其他', 2, 5, 1, 1)
 ON CONFLICT (code) DO NOTHING;
 
 INSERT INTO pms_work_order (

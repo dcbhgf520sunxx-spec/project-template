@@ -114,14 +114,4 @@ docker exec -i project-template-postgres psql -U pms -d project_template < backe
 - 档案类型：`系统`，默认档案：`后台管理系统`
 - 档案类型：`问题类型`，默认档案：`日常操作`、`系统优化`、`故障报障`、`后台维护`、`其他`
 
-已有的档案分类不会被覆盖。
-
-## 模拟数据补充
-
-如果本地数据库已经初始化过，需要补充用户、角色、工单、方案分类档案和档案分类档案的模拟数据：
-
-```bash
-docker exec -i project-template-postgres psql -U pms -d project_template < backend/db/migrations/20260704_seed_demo_50_plus.sql
-```
-
-该脚本可重复执行，不会重复追加同一批模拟数据。首次初始化新数据库时，`backend/db/init/002_seed_demo_50_plus.sql` 会自动执行。
+已有基础档案不会被覆盖。
