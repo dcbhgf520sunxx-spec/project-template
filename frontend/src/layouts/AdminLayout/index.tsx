@@ -99,7 +99,7 @@ const adminOnlyMenuItems: AdminMenuItems = [
 const menuItems = [...businessMenuItems, ...adminOnlyMenuItems];
 
 function collectAllowedMenuKeys(items: UserMenuItem[]): Set<string> {
-  const keys = new Set<string>();
+  const keys = new Set<string>(['home', '/home']);
   const collect = (menu: UserMenuItem) => {
     if (menu.code) keys.add(menu.code);
     if (menu.path) keys.add(menu.path);
