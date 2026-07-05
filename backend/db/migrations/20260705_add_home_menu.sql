@@ -1,6 +1,11 @@
 ALTER TABLE pms_user_preference
 ALTER COLUMN default_route SET DEFAULT '/home';
 
+UPDATE pms_user_preference
+SET default_route = '/home',
+    updated_at = NOW()
+WHERE default_route = '/work-orders';
+
 INSERT INTO pms_menu (parent_id, name, code, type, path, icon, sort_order, creator_id, updater_id)
 VALUES (0, '首页', 'home', 2, '/home', 'HomeOutlined', 5, 1, 1)
 ON CONFLICT (code) DO UPDATE SET
