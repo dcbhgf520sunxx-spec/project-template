@@ -290,10 +290,11 @@ export function AdminLayout() {
     const logoutForIdle = async () => {
       if (idleLoggedOutRef.current) return;
       idleLoggedOutRef.current = true;
-      await logoutAccessSession(accessSessionId, { preserveLastActive: true }).catch(() => undefined);
+      const logoutPromise = logoutAccessSession(accessSessionId, { preserveLastActive: true }).catch(() => undefined);
       clearAuth();
       message.warning('长时间未操作，已自动退出');
       navigate('/login', { replace: true });
+      await logoutPromise;
     };
 
     const checkIdle = () => {
@@ -386,6 +387,10 @@ export function AdminLayout() {
     }
   };
 
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
+
   if (shouldRedirectAdminOnlyPage || shouldRedirectUnauthorizedPage) {
     return <Navigate to={fallbackMenuPath} replace />;
   }
@@ -469,9 +474,10 @@ export function AdminLayout() {
                     setAccountDrawer('password');
                   }
                   if (key === 'logout') {
-                    await logoutAccessSession(accessSessionId).catch(() => undefined);
+                    const logoutPromise = logoutAccessSession(accessSessionId).catch(() => undefined);
                     clearAuth();
                     navigate('/login', { replace: true });
+                    await logoutPromise;
                   }
                 }
               }}
