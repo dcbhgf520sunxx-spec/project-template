@@ -1,15 +1,19 @@
 .admin-floating-assistant {
   position: fixed;
-  right: 26px;
-  bottom: 26px;
   z-index: 900;
   width: 78px;
   height: 84px;
   padding: 0;
   border: 0;
   background: transparent;
-  cursor: pointer;
+  cursor: grab;
   isolation: isolate;
+  touch-action: none;
+  user-select: none;
+}
+
+.admin-floating-assistant:active {
+  cursor: grabbing;
 }
 
 .admin-floating-assistant__halo {
@@ -31,14 +35,29 @@
   top: 0;
   width: 72px;
   height: 78px;
-  background-image: url('../../../assets/assistant/minibot-idle-spritesheet.webp');
+  background-image: url('../../../assets/assistant/minibot-floating-spritesheet.webp');
   background-position: 0 0;
   background-repeat: no-repeat;
-  background-size: 432px 78px;
+  background-size: 576px 546px;
   filter: drop-shadow(0 12px 18px rgba(30, 82, 142, 0.18));
   transform: translateX(-50%);
-  animation: admin-floating-assistant-idle 1.2s steps(6) infinite;
   transition: filter 0.2s ease, transform 0.2s ease;
+}
+
+.admin-floating-assistant[data-mood='idle'] .admin-floating-assistant__sprite {
+  animation: admin-floating-assistant-idle 1.15s steps(6) infinite;
+}
+
+.admin-floating-assistant[data-mood='run'] .admin-floating-assistant__sprite {
+  animation: admin-floating-assistant-run 0.8s steps(8) infinite;
+}
+
+.admin-floating-assistant[data-mood='wave'] .admin-floating-assistant__sprite {
+  animation: admin-floating-assistant-wave 0.95s steps(4) infinite;
+}
+
+.admin-floating-assistant[data-mood='sleepy'] .admin-floating-assistant__sprite {
+  animation: admin-floating-assistant-sleepy 1.15s steps(8) infinite;
 }
 
 .admin-floating-assistant:hover .admin-floating-assistant__sprite,
@@ -67,8 +86,38 @@
   }
 }
 
+@keyframes admin-floating-assistant-run {
+  from {
+    background-position: 0 -78px;
+  }
+
+  to {
+    background-position: -576px -78px;
+  }
+}
+
+@keyframes admin-floating-assistant-wave {
+  from {
+    background-position: 0 -234px;
+  }
+
+  to {
+    background-position: -288px -234px;
+  }
+}
+
+@keyframes admin-floating-assistant-sleepy {
+  from {
+    background-position: 0 -390px;
+  }
+
+  to {
+    background-position: -576px -390px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .admin-floating-assistant__sprite {
-    animation: none;
+    animation: none !important;
   }
 }

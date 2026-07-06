@@ -1,17 +1,156 @@
+import { useEffect, useRef, useState, type PointerEvent } from 'react';
 import './index.css';
+
+type AssistantMood = 'idle' | 'run' | 'wave' | 'sleepy';
+
+type Position = {
+  x: number;
+  y: number;
+};
+
+type DragState = {
+  pointerId: number;
+  startX: number;
+  startY: number;
+  originX: number;
+  originY: number;
+  moved: boolean;
+};
 
 type AdminFloatingAssistantProps = {
   onClick?: () => void;
 };
 
+const STORAGE_KEY = 'admin_floating_assistant_position';
+const ASSISTANT_WIDTH = 78;
+const ASSISTANT_HEIGHT = 84;
+const DEFAULT_LEFT = 48;
+const DEFAULT_BOTTOM = 122;
+const EDGE_GAP = 14;
+const MOOD_SEQUENCE: AssistantMood[] = ['idle', 'wave', 'idle', 'run', 'idle', 'sleepy'];
+
+function clampPosition(position: Position) {
+  const maxX = Math.max(EDGE_GAP, window.innerWidth - ASSISTANT_WIDTH - EDGE_GAP);
+  const maxY = Math.max(EDGE_GAP, window.innerHeight - ASSISTANT_HEIGHT - EDGE_GAP);
+  return {
+    x: Math.min(Math.max(position.x, EDGE_GAP), maxX),
+    y: Math.min(Math.max(position.y, EDGE_GAP), maxY)
+  };
+}
+
+function getDefaultPosition(): Position {
+  return clampPosition({
+    x: DEFAULT_LEFT,
+    y: window.innerHeight - ASSISTANT_HEIGHT - DEFAULT_BOTTOM
+  });
+}
+
+function readSavedPosition(): Position {
+  try {
+    const saved = window.localStorage.getItem(STORAGE_KEY);
+    if (!saved) return getDefaultPosition();
+    const parsed = JSON.parse(saved) as Partial<Position>;
+    if (typeof parsed.x !== 'number' || typeof parsed.y !== 'number') return getDefaultPosition();
+    return clampPosition({ x: parsed.x, y: parsed.y });
+  } catch {
+    return getDefaultPosition();
+  }
+}
+
 export function AdminFloatingAssistant({ onClick }: AdminFloatingAssistantProps) {
+  const dragRef = useRef<DragState | null>(null);
+  const suppressClickRef = useRef(false);
+  const [position, setPosition] = useState<Position | null>(null);
+  const [mood, setMood] = useState<AssistantMood>('idle');
+
+  useEffect(() => {
+    setPosition(readSavedPosition());
+  }, []);
+
+  useEffect(() => {
+    let index = 0;
+    const timer = window.setInterval(() => {
+      index = (index + 1) % MOOD_SEQUENCE.length;
+      setMood(MOOD_SEQUENCE[index]);
+    }, 4200);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setPosition((current) => current ? clampPosition(current) : current);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    if (!position) return;
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(position));
+    } catch {
+      // Ignore storage failures; dragging still works for the current page view.
+    }
+  }, [position]);
+
+  const handlePointerDown = (event: PointerEvent<HTMLButtonElement>) => {
+    if (!position) return;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    dragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      originX: position.x,
+      originY: position.y,
+      moved: false
+    };
+  };
+
+  const handlePointerMove = (event: PointerEvent<HTMLButtonElement>) => {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    const deltaX = event.clientX - drag.startX;
+    const deltaY = event.clientY - drag.startY;
+    if (Math.abs(deltaX) > 3 || Math.abs(deltaY) > 3) {
+      drag.moved = true;
+    }
+    setPosition(clampPosition({
+      x: drag.originX + deltaX,
+      y: drag.originY + deltaY
+    }));
+  };
+
+  const handlePointerUp = (event: PointerEvent<HTMLButtonElement>) => {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    event.currentTarget.releasePointerCapture(event.pointerId);
+    suppressClickRef.current = drag.moved;
+    dragRef.current = null;
+  };
+
+  const handleClick = () => {
+    if (suppressClickRef.current) {
+      suppressClickRef.current = false;
+      return;
+    }
+    onClick?.();
+  };
+
+  if (!position) return null;
+
   return (
     <button
       className="admin-floating-assistant"
+      data-mood={mood}
       type="button"
       aria-label="AI 助手入口"
       title="AI 助手入口"
-      onClick={onClick}
+      style={{ left: position.x, top: position.y }}
+      onClick={handleClick}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
     >
       <span className="admin-floating-assistant__halo" />
       <span className="admin-floating-assistant__sprite" aria-hidden="true" />
