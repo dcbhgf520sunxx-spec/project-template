@@ -1,0 +1,74 @@
+.admin-floating-assistant {
+  position: fixed;
+  right: 26px;
+  bottom: 26px;
+  z-index: 900;
+  width: 78px;
+  height: 84px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  isolation: isolate;
+}
+
+.admin-floating-assistant__halo {
+  position: absolute;
+  left: 50%;
+  bottom: 5px;
+  width: 56px;
+  height: 14px;
+  border-radius: 999px;
+  background: rgba(31, 111, 255, 0.16);
+  filter: blur(8px);
+  transform: translateX(-50%);
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.admin-floating-assistant__sprite {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 72px;
+  height: 78px;
+  background-image: url('../../../assets/assistant/minibot-idle-spritesheet.webp');
+  background-position: 0 0;
+  background-repeat: no-repeat;
+  background-size: 432px 78px;
+  filter: drop-shadow(0 12px 18px rgba(30, 82, 142, 0.18));
+  transform: translateX(-50%);
+  animation: admin-floating-assistant-idle 1.2s steps(6) infinite;
+  transition: filter 0.2s ease, transform 0.2s ease;
+}
+
+.admin-floating-assistant:hover .admin-floating-assistant__sprite,
+.admin-floating-assistant:focus-visible .admin-floating-assistant__sprite {
+  filter: drop-shadow(0 14px 22px rgba(31, 111, 255, 0.24));
+  transform: translateX(-50%) translateY(-3px);
+}
+
+.admin-floating-assistant:hover .admin-floating-assistant__halo,
+.admin-floating-assistant:focus-visible .admin-floating-assistant__halo {
+  opacity: 0.85;
+  transform: translateX(-50%) scaleX(1.12);
+}
+
+.admin-floating-assistant:focus-visible {
+  outline: 0;
+}
+
+@keyframes admin-floating-assistant-idle {
+  from {
+    background-position: 0 0;
+  }
+
+  to {
+    background-position: -432px 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-floating-assistant__sprite {
+    animation: none;
+  }
+}

@@ -16,7 +16,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { heartbeatAccessSession, logoutAccessSession } from '../../api/accessLogApi';
 import { getMessages, markAllMessagesRead, markMessageRead, type MessageRecord } from '../../api/messageApi';
-import { AdminMessageCenter } from '../../components/admin';
+import { AdminFloatingAssistant, AdminMessageCenter } from '../../components/admin';
 import { AccountDrawers } from '../../modules/account/components/AccountDrawers';
 import { designCategoryNavItems, isDesignCategory } from '../../modules/design-system/categories';
 import { useAuthStore } from '../../stores/authStore';
@@ -496,6 +496,7 @@ export function AdminLayout() {
           <Outlet />
         </Content>
       </Layout>
+      <AdminFloatingAssistant />
       <AccountDrawers active={accountDrawer} onClose={() => setAccountDrawer(null)} />
     </Layout>
   );

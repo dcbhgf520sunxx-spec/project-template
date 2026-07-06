@@ -55,3 +55,4 @@ export * from './TableActions';
 export * from './OperationColumnActions';
 export * from './DetailLinkCell';
 export * from './AdminMessageCenter';
+export * from './AdminFloatingAssistant';
