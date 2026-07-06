@@ -1,7 +1,16 @@
 import { useEffect, useRef, useState, type PointerEvent } from 'react';
 import './index.css';
 
-type AssistantMood = 'idle' | 'run' | 'wave' | 'sleepy';
+type AssistantMood =
+  | 'idle'
+  | 'run'
+  | 'patrol'
+  | 'wave'
+  | 'sit'
+  | 'sleepy'
+  | 'cheer'
+  | 'think'
+  | 'look';
 
 type Position = {
   x: number;
@@ -27,7 +36,16 @@ const ASSISTANT_HEIGHT = 84;
 const DEFAULT_LEFT = 48;
 const DEFAULT_BOTTOM = 122;
 const EDGE_GAP = 14;
-const MOOD_SEQUENCE: AssistantMood[] = ['idle', 'wave', 'idle', 'run', 'idle', 'sleepy'];
+const AMBIENT_MOODS: AssistantMood[] = [
+  'idle',
+  'patrol',
+  'wave',
+  'sit',
+  'sleepy',
+  'cheer',
+  'think',
+  'look'
+];
 
 function clampPosition(position: Position) {
   const maxX = Math.max(EDGE_GAP, window.innerWidth - ASSISTANT_WIDTH - EDGE_GAP);
@@ -61,17 +79,20 @@ export function AdminFloatingAssistant({ onClick }: AdminFloatingAssistantProps)
   const dragRef = useRef<DragState | null>(null);
   const suppressClickRef = useRef(false);
   const [position, setPosition] = useState<Position | null>(null);
-  const [mood, setMood] = useState<AssistantMood>('idle');
+  const [ambientMood, setAmbientMood] = useState<AssistantMood>('idle');
+  const [isHovering, setIsHovering] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
   useEffect(() => {
     setPosition(readSavedPosition());
   }, []);
 
   useEffect(() => {
-    let index = 0;
     const timer = window.setInterval(() => {
-      index = (index + 1) % MOOD_SEQUENCE.length;
-      setMood(MOOD_SEQUENCE[index]);
+      setAmbientMood((current) => {
+        const candidates = AMBIENT_MOODS.filter((item) => item !== current);
+        return candidates[Math.floor(Math.random() * candidates.length)] || 'idle';
+      });
     }, 4200);
     return () => window.clearInterval(timer);
   }, []);
@@ -96,6 +117,7 @@ export function AdminFloatingAssistant({ onClick }: AdminFloatingAssistantProps)
   const handlePointerDown = (event: PointerEvent<HTMLButtonElement>) => {
     if (!position) return;
     event.currentTarget.setPointerCapture(event.pointerId);
+    setIsDragging(true);
     dragRef.current = {
       pointerId: event.pointerId,
       startX: event.clientX,
@@ -126,6 +148,7 @@ export function AdminFloatingAssistant({ onClick }: AdminFloatingAssistantProps)
     event.currentTarget.releasePointerCapture(event.pointerId);
     suppressClickRef.current = drag.moved;
     dragRef.current = null;
+    setIsDragging(false);
   };
 
   const handleClick = () => {
@@ -137,6 +160,8 @@ export function AdminFloatingAssistant({ onClick }: AdminFloatingAssistantProps)
   };
 
   if (!position) return null;
+
+  const mood: AssistantMood = isDragging ? 'run' : isHovering ? 'wave' : ambientMood;
 
   return (
     <button
@@ -151,6 +176,8 @@ export function AdminFloatingAssistant({ onClick }: AdminFloatingAssistantProps)
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerUp}
+      onPointerEnter={() => setIsHovering(true)}
+      onPointerLeave={() => setIsHovering(false)}
     >
       <span className="admin-floating-assistant__halo" />
       <span className="admin-floating-assistant__sprite" aria-hidden="true" />

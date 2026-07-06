@@ -38,7 +38,7 @@
   background-image: url('../../../assets/assistant/minibot-floating-spritesheet.webp');
   background-position: 0 0;
   background-repeat: no-repeat;
-  background-size: 576px 546px;
+  background-size: 576px 702px;
   filter: drop-shadow(0 12px 18px rgba(30, 82, 142, 0.18));
   transform: translateX(-50%);
   transition: filter 0.2s ease, transform 0.2s ease;
@@ -52,12 +52,32 @@
   animation: admin-floating-assistant-run 0.8s steps(8) infinite;
 }
 
+.admin-floating-assistant[data-mood='patrol'] .admin-floating-assistant__sprite {
+  animation: admin-floating-assistant-patrol 0.8s steps(8) infinite;
+}
+
 .admin-floating-assistant[data-mood='wave'] .admin-floating-assistant__sprite {
   animation: admin-floating-assistant-wave 0.95s steps(4) infinite;
 }
 
+.admin-floating-assistant[data-mood='sit'] .admin-floating-assistant__sprite {
+  animation: admin-floating-assistant-sit 1s steps(5) infinite;
+}
+
 .admin-floating-assistant[data-mood='sleepy'] .admin-floating-assistant__sprite {
   animation: admin-floating-assistant-sleepy 1.15s steps(8) infinite;
+}
+
+.admin-floating-assistant[data-mood='cheer'] .admin-floating-assistant__sprite {
+  animation: admin-floating-assistant-cheer 1s steps(6) infinite;
+}
+
+.admin-floating-assistant[data-mood='think'] .admin-floating-assistant__sprite {
+  animation: admin-floating-assistant-think 1.1s steps(6) infinite;
+}
+
+.admin-floating-assistant[data-mood='look'] .admin-floating-assistant__sprite {
+  animation: admin-floating-assistant-look 1.1s steps(6) infinite;
 }
 
 .admin-floating-assistant:hover .admin-floating-assistant__sprite,
@@ -106,6 +126,26 @@
   }
 }
 
+@keyframes admin-floating-assistant-patrol {
+  from {
+    background-position: 0 -156px;
+  }
+
+  to {
+    background-position: -576px -156px;
+  }
+}
+
+@keyframes admin-floating-assistant-sit {
+  from {
+    background-position: 0 -312px;
+  }
+
+  to {
+    background-position: -360px -312px;
+  }
+}
+
 @keyframes admin-floating-assistant-sleepy {
   from {
     background-position: 0 -390px;
@@ -113,6 +153,36 @@
 
   to {
     background-position: -576px -390px;
+  }
+}
+
+@keyframes admin-floating-assistant-cheer {
+  from {
+    background-position: 0 -468px;
+  }
+
+  to {
+    background-position: -432px -468px;
+  }
+}
+
+@keyframes admin-floating-assistant-think {
+  from {
+    background-position: 0 -546px;
+  }
+
+  to {
+    background-position: -432px -546px;
+  }
+}
+
+@keyframes admin-floating-assistant-look {
+  from {
+    background-position: 0 -624px;
+  }
+
+  to {
+    background-position: -432px -624px;
   }
 }
 
