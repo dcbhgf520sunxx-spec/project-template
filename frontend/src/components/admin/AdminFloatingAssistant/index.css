@@ -64,10 +64,6 @@
   animation: admin-floating-assistant-sit 1s steps(5) infinite;
 }
 
-.admin-floating-assistant[data-mood='sleepy'] .admin-floating-assistant__sprite {
-  animation: admin-floating-assistant-sleepy 1.15s steps(8) infinite;
-}
-
 .admin-floating-assistant[data-mood='cheer'] .admin-floating-assistant__sprite {
   animation: admin-floating-assistant-cheer 1s steps(6) infinite;
 }
@@ -143,16 +139,6 @@
 
   to {
     background-position: -360px -312px;
-  }
-}
-
-@keyframes admin-floating-assistant-sleepy {
-  from {
-    background-position: 0 -390px;
-  }
-
-  to {
-    background-position: -576px -390px;
   }
 }
 

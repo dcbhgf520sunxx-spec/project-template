@@ -7,7 +7,6 @@ type AssistantMood =
   | 'patrol'
   | 'wave'
   | 'sit'
-  | 'sleepy'
   | 'cheer'
   | 'think'
   | 'look';
@@ -41,7 +40,6 @@ const AMBIENT_MOODS: AssistantMood[] = [
   'patrol',
   'wave',
   'sit',
-  'sleepy',
   'cheer',
   'think',
   'look'
