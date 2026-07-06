@@ -13,6 +13,7 @@ import {
 } from '@ant-design/icons';
 import { derivePermissions, getUserPreference, login } from '../../../api/authApi';
 import { useAuthStore } from '../../../stores/authStore';
+import robotMini from '../../../assets/login/robot-mini.png';
 import './LoginPage.css';
 
 type FocusedField = 'account' | 'password' | null;
@@ -95,9 +96,14 @@ export function LoginPage() {
   return (
     <section className="login-page">
       <div className="login-intro" aria-hidden="true">
-        <Typography.Title className="login-hero-title" level={1}>
-          让 AI 参与业务运行的每一个关键环节
-        </Typography.Title>
+        <div className="login-hero-headline">
+          <div className="login-hero-robot">
+            <img src={robotMini} alt="" />
+          </div>
+          <Typography.Title className="login-hero-title" level={1}>
+            让 AI 参与业务运行的每一个关键环节
+          </Typography.Title>
+        </div>
         <p className="login-hero-copy">
           小安智能管理平台连接业务数据、智能体能力与人工决策，将 AI 的执行过程、交互记录与处理结果统一沉淀，让业务从单点操作走向可协同、可追踪、可持续优化。
         </p>

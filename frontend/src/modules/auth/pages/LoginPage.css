@@ -15,6 +15,71 @@
   padding: 0 0 8px;
 }
 
+.login-hero-headline {
+  display: grid;
+  grid-template-columns: 128px minmax(0, 1fr);
+  align-items: center;
+  gap: 20px;
+}
+
+.login-hero-robot {
+  position: relative;
+  width: 128px;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border: 1px solid rgba(213, 232, 255, 0.6);
+  border-radius: 24px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.8), rgba(223, 242, 255, 0.44)),
+    rgba(255, 255, 255, 0.34);
+  box-shadow:
+    0 22px 44px rgba(43, 111, 242, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(16px) saturate(1.08);
+  -webkit-backdrop-filter: blur(16px) saturate(1.08);
+}
+
+.login-hero-robot::before,
+.login-hero-robot::after {
+  position: absolute;
+  content: "";
+  pointer-events: none;
+}
+
+.login-hero-robot::before {
+  inset: 0;
+  z-index: 2;
+  background:
+    radial-gradient(circle at 72% 28%, rgba(255, 255, 255, 0.42), transparent 34%),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.5), transparent 42%);
+  mix-blend-mode: screen;
+}
+
+.login-hero-robot::after {
+  inset: -1px;
+  z-index: 3;
+  border-radius: inherit;
+  box-shadow: inset 0 0 28px rgba(246, 251, 255, 0.9);
+}
+
+.login-hero-robot img {
+  position: absolute;
+  inset: -12%;
+  width: 124%;
+  height: 124%;
+  object-fit: cover;
+  object-position: 50% 42%;
+  filter: saturate(1.06) contrast(1.02);
+  mask-image:
+    linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.7) 14%, #000 30%, #000 82%, transparent 100%),
+    linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.78) 12%, #000 28%, #000 78%, transparent 100%);
+  mask-composite: intersect;
+  -webkit-mask-image:
+    linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.7) 14%, #000 30%, #000 82%, transparent 100%),
+    linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.78) 12%, #000 28%, #000 78%, transparent 100%);
+  -webkit-mask-composite: source-in;
+}
+
 .login-hero-title.ant-typography {
   max-width: 620px;
   margin: 0;
@@ -252,6 +317,18 @@
 
   .login-intro {
     display: none;
+  }
+}
+
+@media (max-width: 1180px) {
+  .login-hero-headline {
+    grid-template-columns: 112px minmax(0, 1fr);
+    gap: 16px;
+  }
+
+  .login-hero-robot {
+    width: 112px;
+    border-radius: 22px;
   }
 }
 
