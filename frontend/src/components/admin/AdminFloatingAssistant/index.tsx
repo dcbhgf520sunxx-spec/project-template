@@ -20,6 +20,7 @@ type DragState = {
   pointerId: number;
   startX: number;
   startY: number;
+  lastX: number;
   originX: number;
   originY: number;
   moved: boolean;
@@ -38,7 +39,7 @@ const ASSISTANT_HEIGHT = 84;
 const DEFAULT_LEFT = 48;
 const DEFAULT_BOTTOM = 122;
 const EDGE_GAP = 14;
-const RUN_DIRECTION_THRESHOLD = 4;
+const RUN_DIRECTION_THRESHOLD = 2;
 const AMBIENT_MOODS: AssistantMood[] = [
   'idle',
   'wave',
@@ -124,6 +125,7 @@ export function AdminFloatingAssistant({ onClick, storageKey = DEFAULT_STORAGE_K
       pointerId: event.pointerId,
       startX: event.clientX,
       startY: event.clientY,
+      lastX: event.clientX,
       originX: position.x,
       originY: position.y,
       moved: false
@@ -138,8 +140,10 @@ export function AdminFloatingAssistant({ onClick, storageKey = DEFAULT_STORAGE_K
     if (Math.abs(deltaX) > 3 || Math.abs(deltaY) > 3) {
       drag.moved = true;
     }
-    if (Math.abs(deltaX) > RUN_DIRECTION_THRESHOLD) {
-      setRunDirection(deltaX < 0 ? 'left' : 'right');
+    const movementX = event.clientX - drag.lastX;
+    if (Math.abs(movementX) > RUN_DIRECTION_THRESHOLD) {
+      setRunDirection(movementX < 0 ? 'left' : 'right');
+      drag.lastX = event.clientX;
     }
     setPosition(clampPosition({
       x: drag.originX + deltaX,
