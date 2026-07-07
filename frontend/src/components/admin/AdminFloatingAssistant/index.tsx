@@ -38,7 +38,7 @@ const ASSISTANT_HEIGHT = 84;
 const DEFAULT_LEFT = 48;
 const DEFAULT_BOTTOM = 122;
 const EDGE_GAP = 14;
-const RUN_DIRECTION_THRESHOLD = 8;
+const RUN_DIRECTION_THRESHOLD = 4;
 const AMBIENT_MOODS: AssistantMood[] = [
   'idle',
   'wave',
