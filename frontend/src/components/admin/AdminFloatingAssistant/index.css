@@ -50,8 +50,8 @@
 
 .admin-floating-assistant[data-mood='run'] .admin-floating-assistant__sprite {
   background-image: url('../../../assets/assistant/minibot-run-spritesheet.webp');
-  background-size: 1152px 78px;
-  animation: admin-floating-assistant-run 1s steps(16) infinite;
+  background-size: 576px 78px;
+  animation: admin-floating-assistant-run 0.75s steps(8) infinite;
 }
 
 .admin-floating-assistant[data-mood='patrol'] .admin-floating-assistant__sprite {
@@ -85,11 +85,11 @@
 }
 
 .admin-floating-assistant[data-mood='run'][data-run-direction='right'] .admin-floating-assistant__sprite {
-  transform: translateX(-50%);
+  transform: translateX(-50%) scaleX(-1);
 }
 
 .admin-floating-assistant[data-mood='run'][data-run-direction='left'] .admin-floating-assistant__sprite {
-  transform: translateX(-50%) scaleX(-1);
+  transform: translateX(-50%);
 }
 
 .admin-floating-assistant:hover .admin-floating-assistant__halo,
@@ -118,7 +118,7 @@
   }
 
   to {
-    background-position: -1152px 0;
+    background-position: -576px 0;
   }
 }
 

@@ -38,6 +38,7 @@ const ASSISTANT_HEIGHT = 84;
 const DEFAULT_LEFT = 48;
 const DEFAULT_BOTTOM = 122;
 const EDGE_GAP = 14;
+const RUN_DIRECTION_THRESHOLD = 8;
 const AMBIENT_MOODS: AssistantMood[] = [
   'idle',
   'wave',
@@ -137,7 +138,7 @@ export function AdminFloatingAssistant({ onClick, storageKey = DEFAULT_STORAGE_K
     if (Math.abs(deltaX) > 3 || Math.abs(deltaY) > 3) {
       drag.moved = true;
     }
-    if (Math.abs(deltaX) > 2) {
+    if (Math.abs(deltaX) > RUN_DIRECTION_THRESHOLD) {
       setRunDirection(deltaX < 0 ? 'left' : 'right');
     }
     setPosition(clampPosition({
