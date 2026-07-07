@@ -25,6 +25,8 @@ type DragState = {
   moved: boolean;
 };
 
+type RunDirection = 'left' | 'right';
+
 type AdminFloatingAssistantProps = {
   onClick?: () => void;
   storageKey?: string;
@@ -80,6 +82,7 @@ export function AdminFloatingAssistant({ onClick, storageKey = DEFAULT_STORAGE_K
   const [ambientMood, setAmbientMood] = useState<AssistantMood>('idle');
   const [isHovering, setIsHovering] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [runDirection, setRunDirection] = useState<RunDirection>('right');
 
   useEffect(() => {
     setPosition(readSavedPosition(storageKey));
@@ -134,6 +137,9 @@ export function AdminFloatingAssistant({ onClick, storageKey = DEFAULT_STORAGE_K
     if (Math.abs(deltaX) > 3 || Math.abs(deltaY) > 3) {
       drag.moved = true;
     }
+    if (Math.abs(deltaX) > 2) {
+      setRunDirection(deltaX < 0 ? 'left' : 'right');
+    }
     setPosition(clampPosition({
       x: drag.originX + deltaX,
       y: drag.originY + deltaY
@@ -165,6 +171,7 @@ export function AdminFloatingAssistant({ onClick, storageKey = DEFAULT_STORAGE_K
     <button
       className="admin-floating-assistant"
       data-mood={mood}
+      data-run-direction={runDirection}
       type="button"
       aria-label="AI 助手入口"
       title="AI 助手入口"

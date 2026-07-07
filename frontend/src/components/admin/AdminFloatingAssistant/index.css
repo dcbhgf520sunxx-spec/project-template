@@ -49,7 +49,9 @@
 }
 
 .admin-floating-assistant[data-mood='run'] .admin-floating-assistant__sprite {
-  animation: admin-floating-assistant-run 0.8s steps(8) infinite;
+  background-image: url('../../../assets/assistant/minibot-run-spritesheet.webp');
+  background-size: 1152px 78px;
+  animation: admin-floating-assistant-run 1s steps(16) infinite;
 }
 
 .admin-floating-assistant[data-mood='patrol'] .admin-floating-assistant__sprite {
@@ -82,6 +84,14 @@
   transform: translateX(-50%) translateY(-3px);
 }
 
+.admin-floating-assistant[data-mood='run'][data-run-direction='right'] .admin-floating-assistant__sprite {
+  transform: translateX(-50%);
+}
+
+.admin-floating-assistant[data-mood='run'][data-run-direction='left'] .admin-floating-assistant__sprite {
+  transform: translateX(-50%) scaleX(-1);
+}
+
 .admin-floating-assistant:hover .admin-floating-assistant__halo,
 .admin-floating-assistant:focus-visible .admin-floating-assistant__halo {
   opacity: 0.85;
@@ -104,11 +114,11 @@
 
 @keyframes admin-floating-assistant-run {
   from {
-    background-position: 0 -78px;
+    background-position: 0 0;
   }
 
   to {
-    background-position: -576px -78px;
+    background-position: -1152px 0;
   }
 }
 
