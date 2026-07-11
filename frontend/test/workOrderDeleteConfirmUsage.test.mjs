@@ -18,7 +18,8 @@ test('运维工单列表单条删除必须走 DeleteConfirmAction', () => {
   assert.doesNotMatch(listSource, /title="确认删除"[\s\S]*okButtonProps=\{\{ danger: true \}\}/, '列表单条删除不应直接用 AdminModal + danger 按钮');
   assert.match(columnsSource, /DeleteConfirmAction/, '列表操作列应使用 DeleteConfirmAction');
   assert.match(columnsSource, /entityName="工单"/);
-  assert.match(columnsSource, /targetName=\{record\.problemDesc\}/);
+  assert.match(columnsSource, /targetName=\{record\.code\}/);
+  assert.doesNotMatch(columnsSource, /targetName=\{record\.problemDesc\}/, '删除弹窗不得直接展示富文本问题描述');
 });
 
 test('运维工单批量删除使用 DeleteConfirmAction 默认危险内容结构', () => {
@@ -36,5 +37,6 @@ test('运维工单详情删除必须走 DeleteConfirmAction', () => {
   assert.match(source, /DeleteConfirmAction/, '详情页应导入并使用 DeleteConfirmAction');
   assert.doesNotMatch(source, /<ConfirmAction\s+danger/, '详情删除不应只走通用 ConfirmAction danger');
   assert.match(source, /entityName="工单"/);
-  assert.match(source, /targetName=\{detail\.problemDesc\}/);
+  assert.match(source, /targetName=\{detail\.code\}/);
+  assert.doesNotMatch(source, /targetName=\{detail\.problemDesc\}/, '删除弹窗不得直接展示富文本问题描述');
 });

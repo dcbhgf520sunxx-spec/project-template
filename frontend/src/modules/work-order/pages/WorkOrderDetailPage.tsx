@@ -140,7 +140,7 @@ export function WorkOrderDetailPage() {
           <AdminButton onClick={() => navigate(`/work-orders/${detail.id}/copy`)}>复制</AdminButton>
           <DeleteConfirmAction
             entityName="工单"
-            targetName={detail.problemDesc}
+            targetName={detail.code}
             onConfirm={async () => {
               await deleteWorkOrder(detail.id);
               message.success('工单已删除');

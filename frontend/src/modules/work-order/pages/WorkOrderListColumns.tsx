@@ -216,7 +216,7 @@ export function createWorkOrderColumns({
           <DeleteConfirmAction
             variant="text"
             entityName="工单"
-            targetName={record.problemDesc}
+            targetName={record.code}
             onConfirm={() => onDelete(record)}
             successMessage={false}
           >
