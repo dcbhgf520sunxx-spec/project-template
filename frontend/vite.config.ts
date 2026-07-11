@@ -8,6 +8,74 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
+    build: {
+      // Three.js is isolated behind the lazy AI 3D route (about 850 KB raw / 225 KB gzip).
+      chunkSizeWarningLimit: 900,
+      rolldownOptions: {
+        output: {
+          strictExecutionOrder: true,
+          codeSplitting: {
+            groups: [
+              {
+                name: 'react-vendor',
+                test: /node_modules[\\/](?:react|react-dom|react-router|react-router-dom|scheduler)[\\/]/,
+                priority: 100
+              },
+              {
+                name: 'pro-core-vendor',
+                test: /node_modules[\\/]@ant-design[\\/]pro-(?:field|provider|utils)[\\/]/,
+                priority: 80
+              },
+              {
+                name: 'pro-form-vendor',
+                test: /node_modules[\\/]@ant-design[\\/]pro-form[\\/]/,
+                priority: 60
+              },
+              {
+                name: 'pro-table-vendor',
+                test: /node_modules[\\/]@ant-design[\\/]pro-table[\\/]/,
+                priority: 70
+              },
+              {
+                name: 'pro-layout-vendor',
+                test: /node_modules[\\/]@ant-design[\\/]pro-layout[\\/]/,
+                priority: 70
+              },
+              {
+                name: 'pro-support-vendor',
+                test: /node_modules[\\/]@ant-design[\\/]pro-(?:card|list|descriptions|skeleton)[\\/]/,
+                priority: 70
+              },
+              {
+                name: 'antd-vendor',
+                test: /node_modules[\\/]antd[\\/]/,
+                priority: 90
+              },
+              {
+                name: 'ant-design-vendor',
+                test: /node_modules[\\/]@ant-design[\\/](?!pro-)[^\\/]+[\\/]/,
+                priority: 95
+              },
+              {
+                name: 'rc-vendor',
+                test: /node_modules[\\/](?:@rc-component[\\/][^\\/]+|rc-[^\\/]+)[\\/]/,
+                priority: 95
+              },
+              {
+                name: 'charts-vendor',
+                test: /node_modules[\\/](?:echarts|zrender)[\\/]/,
+                priority: 50
+              },
+              {
+                name: 'three-vendor',
+                test: /node_modules[\\/](?:three|@react-three[\\/][^\\/]+)[\\/]/,
+                priority: 50
+              }
+            ]
+          }
+        }
+      }
+    },
     server: {
       host: '0.0.0.0',
       port,
