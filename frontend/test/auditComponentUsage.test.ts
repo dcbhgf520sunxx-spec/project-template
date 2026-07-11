@@ -203,6 +203,23 @@ test('组件审计允许完整的通用详情语义结构', () => {
   assert.equal(result.status, 0, result.stdout);
 });
 
+test('组件审计阻断普通内容冒充详情状态语义', () => {
+  const result = runStrictAudit(
+    'export function CustomerDetailPage() { return <TemplateDetailPage statusSection={{ items: [] }} titleTags={<span>启用</span>} statusAction={<AdminButton>状态</AdminButton>} />; }'
+  );
+  assert.equal(result.status, 1);
+  assert.match(result.stdout, /StatusTag/);
+  assert.match(result.stdout, /状态动作/);
+});
+
+test('组件审计阻断状态动作页面遗漏状态区', () => {
+  const result = runStrictAudit(
+    'export function CustomerDetailPage() { return <TemplateDetailPage titleTags={<StatusTag />} statusAction={<StatusConfirmAction action="disable" />} />; }'
+  );
+  assert.equal(result.status, 1);
+  assert.match(result.stdout, /statusSection/);
+});
+
 test('组件审计允许基于标准状态动作扩展的业务状态动作', () => {
   const result = runStrictAudit(
     'export function CustomerPage() { return <OperationColumnActions><CustomerStatusChangeAction variant="text" /></OperationColumnActions>; }',

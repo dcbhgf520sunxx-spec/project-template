@@ -202,12 +202,31 @@ function collectSemanticViolations(files) {
           violations.push(finding(file, sourceFile, node, 'StatusFlowAction 已废弃，必须使用 StatusChangeAction'));
         }
         if (name === 'OperationColumnActions') inspectOperationChildren(node);
-        if (name === 'TemplateDetailPage' && attribute(node, 'statusSection')) {
-          if (!attribute(node, 'titleTags')) {
+        if (name === 'TemplateDetailPage') {
+          const statusSection = attribute(node, 'statusSection');
+          const titleTags = attribute(node, 'titleTags');
+          const statusAction = attribute(node, 'statusAction');
+          const titleTagsSource = attributeText(node, 'titleTags', sourceFile);
+          const statusActionSource = attributeText(node, 'statusAction', sourceFile);
+          const hasStatusTag = /(?:\w*StatusTag|render\w*Status)\b/.test(titleTagsSource);
+          const hasStatusAction = /\w*Status(?:Confirm|Change)Action\b/.test(statusActionSource);
+
+          if ((titleTags && hasStatusTag) || statusAction) {
+            if (!statusSection) {
+              violations.push(finding(file, sourceFile, node, '详情包含状态标签或状态动作时必须声明 statusSection'));
+            }
+          }
+          if (statusSection && !titleTags) {
             violations.push(finding(file, sourceFile, node, '有状态详情必须通过 TemplateDetailPage.titleTags 展示标题状态标签'));
           }
-          if (!attribute(node, 'statusAction')) {
+          if (statusSection && titleTags && !hasStatusTag) {
+            violations.push(finding(file, sourceFile, node, '有状态详情的 titleTags 必须包含 StatusTag 或统一状态标签封装'));
+          }
+          if (statusSection && !statusAction) {
             violations.push(finding(file, sourceFile, node, '有状态详情必须通过 TemplateDetailPage.statusAction 承接状态操作'));
+          }
+          if (statusSection && statusAction && !hasStatusAction) {
+            violations.push(finding(file, sourceFile, node, '有状态详情的 statusAction 必须使用统一状态动作组件'));
           }
           const actionsSource = attributeText(node, 'actions', sourceFile);
           if (/Status(?:Confirm|Change)Action|StatusFlowModal/.test(actionsSource)) {
