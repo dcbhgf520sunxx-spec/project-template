@@ -146,12 +146,15 @@ export function LoginPage() {
         <Typography.Title className="login-title" level={3}>
           小安智能管理平台
         </Typography.Title>
-        <form className="login-form" onSubmit={handleSubmit}>
+        <form autoComplete="on" className="login-form" onSubmit={handleSubmit}>
           <label
             className={`login-field ${focusedField === 'account' ? 'is-focused' : ''}`}
+            htmlFor="login-username"
           >
             <Input
               autoComplete="username"
+              id="login-username"
+              name="username"
               onBlur={() => setFocusedField(null)}
               onChange={(event) => setAccount(event.target.value)}
               onFocus={() => setFocusedField('account')}
@@ -162,9 +165,12 @@ export function LoginPage() {
           </label>
           <label
             className={`login-field ${focusedField === 'password' ? 'is-focused' : ''}`}
+            htmlFor="login-password"
           >
             <Input.Password
               autoComplete="current-password"
+              id="login-password"
+              name="password"
               onBlur={() => setFocusedField(null)}
               onChange={(event) => setPassword(event.target.value)}
               onFocus={() => setFocusedField('password')}
