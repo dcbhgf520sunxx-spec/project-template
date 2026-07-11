@@ -5,6 +5,9 @@ import {
   AdminRangePicker,
   AdminSelect,
   CompactFilterBar,
+  createListFilterItems,
+  createListSorters,
+  listSorters,
   StatusTag,
   TemplateListPage,
   useCommittedFilters,
@@ -25,19 +28,19 @@ const defaultFilters: AccessLogFilters = {
   accessTimeRange: []
 };
 
-const accessLogSorters: Record<string, (a: AccessLogRecord, b: AccessLogRecord) => number> = {
-  employeeNo: (a, b) => a.employeeNo.localeCompare(b.employeeNo),
-  account: (a, b) => a.account.localeCompare(b.account),
-  realName: (a, b) => a.realName.localeCompare(b.realName),
-  result: (a, b) => a.result.localeCompare(b.result),
-  failReason: (a, b) => a.failReason.localeCompare(b.failReason),
-  loginAt: (a, b) => a.loginAt.localeCompare(b.loginAt),
-  logoutAt: (a, b) => a.logoutAt.localeCompare(b.logoutAt),
-  lastActiveAt: (a, b) => a.lastActiveAt.localeCompare(b.lastActiveAt),
-  durationSeconds: (a, b) => a.durationSeconds - b.durationSeconds,
-  ip: (a, b) => a.ip.localeCompare(b.ip),
-  createdAt: (a, b) => a.createdAt.localeCompare(b.createdAt)
-};
+const accessLogSorters = createListSorters<AccessLogRecord>({
+  employeeNo: listSorters.text((row) => row.employeeNo),
+  account: listSorters.text((row) => row.account),
+  realName: listSorters.text((row) => row.realName),
+  result: listSorters.text((row) => row.result),
+  failReason: listSorters.text((row) => row.failReason),
+  loginAt: listSorters.date((row) => row.loginAt),
+  logoutAt: listSorters.date((row) => row.logoutAt),
+  lastActiveAt: listSorters.date((row) => row.lastActiveAt),
+  durationSeconds: listSorters.number((row) => row.durationSeconds),
+  ip: listSorters.text((row) => row.ip),
+  createdAt: listSorters.date((row) => row.createdAt)
+});
 
 function getResultText(result: AccessLogRecord['result']) {
   if (result === 'success') return '成功';
@@ -51,13 +54,8 @@ function toDateRange(value: unknown): DateLike[] {
 
 export function AccessLogListPage() {
   const [rows, setRows] = useState<AccessLogRecord[]>([]);
-  const { draftFilters, appliedFilters, setDraftFilters, commitFilters, resetFilters } = useCommittedFilters(defaultFilters);
-
-  useEffect(() => {
-    getAccessLogList(appliedFilters).then((result) => {
-      setRows(result.list);
-    });
-  }, [appliedFilters]);
+  const [serverTotal, setServerTotal] = useState(0);
+  const { draftFilters, appliedFilters, revision: filterRevision, setDraftFilters, commitFilters, resetFilters } = useCommittedFilters(defaultFilters);
 
   const {
     currentPage,
@@ -65,13 +63,25 @@ export function AccessLogListPage() {
     pagedRows,
     sortState,
     total,
-    setCurrentPage,
-    setPageSize,
+    pagination,
     handleTableChange,
     renderIndex
-  } = useTemplateListPageData({ rows, sorters: accessLogSorters });
+  } = useTemplateListPageData({ rows, sorters: accessLogSorters, resetOn: [filterRevision], total: serverTotal, serverPaging: true });
 
-  const filterItems = useMemo(() => [
+  useEffect(() => {
+    getAccessLogList({
+      ...appliedFilters,
+      current: currentPage,
+      pageSize,
+      sortField: sortState.field,
+      sortOrder: sortState.order || undefined
+    }).then((result) => {
+      setRows(result.list);
+      setServerTotal(result.total);
+    });
+  }, [appliedFilters, currentPage, pageSize, sortState.field, sortState.order]);
+
+  const filterItems = useMemo(() => createListFilterItems([
     {
       key: 'employeeNo',
       label: '工号',
@@ -83,7 +93,6 @@ export function AccessLogListPage() {
           onChange={(event) => setDraftFilters((prev) => ({ ...prev, employeeNo: event.target.value }))}
           onPressEnter={() => {
             commitFilters();
-            setCurrentPage(1);
           }}
         />
       )
@@ -99,7 +108,6 @@ export function AccessLogListPage() {
           onChange={(event) => setDraftFilters((prev) => ({ ...prev, account: event.target.value }))}
           onPressEnter={() => {
             commitFilters();
-            setCurrentPage(1);
           }}
         />
       )
@@ -115,7 +123,6 @@ export function AccessLogListPage() {
           onChange={(event) => setDraftFilters((prev) => ({ ...prev, realName: event.target.value }))}
           onPressEnter={() => {
             commitFilters();
-            setCurrentPage(1);
           }}
         />
       )
@@ -166,7 +173,6 @@ export function AccessLogListPage() {
           onChange={(event) => setDraftFilters((prev) => ({ ...prev, ip: event.target.value }))}
           onPressEnter={() => {
             commitFilters();
-            setCurrentPage(1);
           }}
         />
       )
@@ -184,7 +190,7 @@ export function AccessLogListPage() {
         />
       )
     }
-  ], [commitFilters, draftFilters, setCurrentPage, setDraftFilters]);
+  ]), [commitFilters, draftFilters, setDraftFilters]);
 
   const columns: ProColumns<AccessLogRecord>[] = [
     {
@@ -296,11 +302,9 @@ export function AccessLogListPage() {
           visibleCount={4}
           onSearch={() => {
             commitFilters();
-            setCurrentPage(1);
           }}
           onReset={() => {
             resetFilters();
-            setCurrentPage(1);
           }}
         />
       )}
@@ -313,20 +317,7 @@ export function AccessLogListPage() {
         tableAlertRender: false,
         scroll: { x: 1900 }
       }}
-      scrollYDeps={[total, currentPage, pageSize, pagedRows.length]}
-      pagination={{
-        current: currentPage,
-        pageSize,
-        total,
-        onChange: (page, size) => {
-          setCurrentPage(page);
-          setPageSize(size);
-        },
-        onShowSizeChange: (_, size) => {
-          setCurrentPage(1);
-          setPageSize(size);
-        }
-      }}
+      pagination={pagination}
     />
   );
 }

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
-export function useDataListScrollY(deps: unknown[]) {
+export function useDataListScrollY() {
+  const filterRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [scrollY, setScrollY] = useState(520);
 
@@ -30,6 +31,7 @@ export function useDataListScrollY(deps: unknown[]) {
 
     const tableHost = container.querySelector('.admin-data-list-page__table-body');
     if (tableHost) resizeObserver.observe(tableHost);
+    if (filterRef.current) resizeObserver.observe(filterRef.current);
 
     window.addEventListener('resize', scheduleMeasure);
 
@@ -38,8 +40,7 @@ export function useDataListScrollY(deps: unknown[]) {
       resizeObserver.disconnect();
       window.removeEventListener('resize', scheduleMeasure);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, deps);
+  }, []);
 
-  return { containerRef, scrollY };
+  return { containerRef, filterRef, scrollY };
 }

@@ -1,21 +1,25 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { Key } from 'react';
-import { Button, Typography } from 'antd';
 import type { ProColumns } from '@ant-design/pro-components';
 import { useNavigate } from 'react-router-dom';
 import {
   ActionBar,
   AdminActionDropdown,
+  AdminButton,
   AdminInput,
   AdminRangePicker,
   AdminSelect,
   AdminSearchDropdown,
+  AdminText,
   AdminTextAction,
   AdminModal,
   CompactFilterBar,
   ConfirmAction,
+  createListFilterItems,
+  createListSorters,
   DetailLinkCell,
   InfoGrid,
+  listSorters,
   OperationColumnActions,
   TemplateListPage,
   useCommittedFilters,
@@ -63,18 +67,18 @@ const defaultFilters: WorkOrderFilters = {
   expectedResolveDateRange: []
 };
 
-const workOrderTemplateSorters: Record<string, (a: WorkOrderRecord, b: WorkOrderRecord) => number> = {
-  problemDesc: (a, b) => a.problemDesc.localeCompare(b.problemDesc),
-  problemType: (a, b) => problemTypeText(a.problemType).localeCompare(problemTypeText(b.problemType)),
-  followerName: (a, b) => (a.followerName || '').localeCompare(b.followerName || ''),
-  urgency: (a, b) => a.urgency - b.urgency,
-  status: (a, b) => a.status - b.status,
-  submitterName: (a, b) => a.submitterName.localeCompare(b.submitterName),
-  submitTime: (a, b) => a.submitTime.localeCompare(b.submitTime),
-  expectedResolveDate: (a, b) => a.expectedResolveDate.localeCompare(b.expectedResolveDate),
-  creatorName: (a, b) => a.creatorName.localeCompare(b.creatorName),
-  createdAt: (a, b) => a.createdAt.localeCompare(b.createdAt)
-};
+const workOrderTemplateSorters = createListSorters<WorkOrderRecord>({
+  problemDesc: listSorters.text((row) => row.problemDesc),
+  problemType: listSorters.text((row) => problemTypeText(row.problemType)),
+  followerName: listSorters.text((row) => row.followerName),
+  urgency: listSorters.number((row) => row.urgency),
+  status: listSorters.number((row) => row.status),
+  submitterName: listSorters.text((row) => row.submitterName),
+  submitTime: listSorters.date((row) => row.submitTime),
+  expectedResolveDate: listSorters.date((row) => row.expectedResolveDate),
+  creatorName: listSorters.text((row) => row.creatorName),
+  createdAt: listSorters.date((row) => row.createdAt)
+});
 
 function toDateText(value: unknown) {
   if (!value) return '';
@@ -95,8 +99,7 @@ function inDateRange(value: string, range: unknown[]) {
 export function WorkOrderTemplatePage() {
   const navigate = useNavigate();
   const [viewKey, setViewKey] = useState<ViewKey>('all');
-  const { draftFilters, appliedFilters, setDraftFilters, commitFilters, resetFilters } = useCommittedFilters(defaultFilters);
-  const [filterExpanded, setFilterExpanded] = useState(false);
+  const { draftFilters, appliedFilters, revision: filterRevision, setDraftFilters, commitFilters, resetFilters } = useCommittedFilters(defaultFilters);
   const [selectedRowKeys, setSelectedRowKeys] = useState<Key[]>([]);
   const [selectedRows, setSelectedRows] = useState<WorkOrderRecord[]>([]);
   const [activeOrder, setActiveOrder] = useState<WorkOrderRecord | null>(null);
@@ -140,14 +143,13 @@ export function WorkOrderTemplatePage() {
     pagedRows,
     sortState,
     total,
-    setCurrentPage,
-    setPageSize,
+    pagination,
     handleTableChange,
     renderIndex
-  } = useTemplateListPageData({ rows: filteredRows, sorters: workOrderTemplateSorters });
+  } = useTemplateListPageData({ rows: filteredRows, sorters: workOrderTemplateSorters, resetOn: [filterRevision, viewKey] });
 
   const filterItems = useMemo(() => {
-    const items = [
+    return createListFilterItems([
       {
         key: 'problemDesc',
         label: '问题描述',
@@ -277,8 +279,7 @@ export function WorkOrderTemplatePage() {
           />
         )
       }
-    ];
-    return items.filter((item) => !('hidden' in item && item.hidden));
+    ]);
   }, [draftFilters, viewKey]);
 
   const columns = useMemo<ProColumns<WorkOrderRecord>[]>(() => [
@@ -430,26 +431,22 @@ export function WorkOrderTemplatePage() {
       }
       actions={
         <ActionBar>
-          <Button type="primary" onClick={() => navigate('/samples/work-order/new')}>新增工单</Button>
+          <AdminButton type="primary" onClick={() => navigate('/samples/work-order/new')}>新增工单</AdminButton>
         </ActionBar>
       }
       filter={(
         <CompactFilterBar
           items={filterItems}
-          expanded={filterExpanded}
           visibleCount={4}
-          onExpandChange={setFilterExpanded}
           onSearch={() => {
             commitFilters();
             setSelectedRowKeys([]);
             setSelectedRows([]);
-            setCurrentPage(1);
           }}
           onReset={() => {
             resetFilters();
             setSelectedRowKeys([]);
             setSelectedRows([]);
-            setCurrentPage(1);
           }}
         />
       )}
@@ -469,7 +466,6 @@ export function WorkOrderTemplatePage() {
         tableAlertRender: false,
         scroll: { x: 1580 }
       }}
-      scrollYDeps={[filterExpanded, viewKey, total, currentPage, pageSize, pagedRows.length]}
       batch={{
         selectedCount: selectedRows.length,
         actions: (
@@ -489,9 +485,9 @@ export function WorkOrderTemplatePage() {
             >
               批量指派
             </AdminSearchDropdown>
-            <Button size="small" disabled={selectedRows.length === 0} onClick={() => setBatchStatusOpen(true)}>
+            <AdminButton size="small" disabled={selectedRows.length === 0} onClick={() => setBatchStatusOpen(true)}>
               批量状态变更
-            </Button>
+            </AdminButton>
             <ConfirmAction
               danger
               size="small"
@@ -509,19 +505,7 @@ export function WorkOrderTemplatePage() {
           </>
         )
       }}
-      pagination={{
-        current: currentPage,
-        pageSize,
-        total,
-        onChange: (page, size) => {
-          setCurrentPage(page);
-          setPageSize(size);
-        },
-        onShowSizeChange: (_, size) => {
-          setCurrentPage(1);
-          setPageSize(size);
-        }
-      }}
+      pagination={pagination}
     />
 
       <AdminModal
@@ -543,7 +527,7 @@ export function WorkOrderTemplatePage() {
             ]}
           />
         ) : (
-          <Typography.Text type="warning">选中的工单状态不一致，无法批量变更。</Typography.Text>
+          <AdminText type="warning">选中的工单状态不一致，无法批量变更。</AdminText>
         )}
       </AdminModal>
 

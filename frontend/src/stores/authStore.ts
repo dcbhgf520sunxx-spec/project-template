@@ -8,6 +8,7 @@ export type UserInfo = {
   real_name: string;
   phone?: string;
   avatar_url?: string;
+  roles?: string[];
 };
 
 export type UserPreference = {

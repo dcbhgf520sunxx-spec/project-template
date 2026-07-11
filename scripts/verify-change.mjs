@@ -1,0 +1,83 @@
+import { execFileSync, spawnSync } from 'node:child_process';
+import { existsSync, readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+import { checkDeliveryContract } from './check-delivery-contract.mjs';
+import { getNpmCommandEnv, shouldUseArm64Node } from './npm-command-env.mjs';
+
+const rootDir = dirname(dirname(fileURLToPath(import.meta.url)));
+const macosUniversalNode = '/usr/local/bin/node';
+const runningUnderRosetta = (() => {
+  try {
+    return execFileSync('sysctl', ['-in', 'sysctl.proc_translated'], { encoding: 'utf8' }).trim() === '1';
+  } catch {
+    return false;
+  }
+})();
+
+if (shouldUseArm64Node({
+  platform: process.platform,
+  arch: process.arch,
+  translated: runningUnderRosetta,
+  nodeExists: existsSync(macosUniversalNode)
+})) {
+  const result = spawnSync('arch', ['-arm64', macosUniversalNode, fileURLToPath(import.meta.url)], {
+    cwd: rootDir,
+    env: { ...process.env, VERIFY_CHANGE_ARM64: '1' },
+    stdio: 'inherit'
+  });
+  process.exit(result.status ?? 1);
+}
+
+const npmNodeExecutable = process.platform === 'darwin' && existsSync(macosUniversalNode)
+  ? macosUniversalNode
+  : process.execPath;
+const npmCommandEnv = getNpmCommandEnv(process.env, npmNodeExecutable);
+const commands = [
+  { cwd: '.', command: 'node', args: ['--test', 'scripts/check-delivery-contract.test.mjs'] },
+  { cwd: 'frontend', command: 'node', args: ['--experimental-strip-types', '--test', 'test/auditComponentUsage.test.ts', 'test/responseContract.test.ts', 'test/workOrderApi.test.ts', 'test/listHelpers.test.ts', 'test/detailNeighbors.test.ts', 'test/detailNeighborNavCompact.test.mjs', 'test/workOrderDetailNeighborPlacement.test.mjs', 'test/designSystemDetailNeighborUsage.test.mjs', 'test/detailReturnLabel.test.mjs', 'test/templatePageState.test.mjs', 'test/templateDrawerTable.test.mjs', 'test/overlayTemplateDemo.test.mjs', 'test/routerFutureFlag.test.mjs'] },
+  { cwd: 'frontend', command: 'npm', args: ['run', 'audit:components'] },
+  { cwd: 'frontend', command: 'npm', args: ['run', 'audit:components:strict'] },
+  { cwd: 'frontend', command: 'npm', args: ['run', 'build'] },
+  { cwd: 'backend', command: 'npm', args: ['test'] }
+];
+
+function gitOutput(args) {
+  try {
+    return execFileSync('git', args, { cwd: rootDir, encoding: 'utf8' });
+  } catch {
+    return '';
+  }
+}
+
+function routeRoots(source) {
+  return new Set([...source.matchAll(/path:\s*'([^/'][^']*)'/g)]
+    .map((match) => match[1])
+    .filter((route) => !route.startsWith('samples/') && !route.startsWith('system/'))
+    .map((route) => `/${route.split('/')[0]}`));
+}
+
+const currentRoutes = readFileSync(join(rootDir, 'frontend/src/app/routes.tsx'), 'utf8');
+const baseRoutes = gitOutput(['show', 'HEAD:frontend/src/app/routes.tsx']);
+const beforeRouteRoots = routeRoots(baseRoutes);
+const changedRouteRoots = [...routeRoots(currentRoutes)].filter((route) => !beforeRouteRoots.has(route));
+const changedFiles = gitOutput(['status', '--porcelain'])
+  .split('\n')
+  .filter(Boolean)
+  .map((line) => line.slice(3));
+const errors = checkDeliveryContract(rootDir, { changedFiles, changedRouteRoots });
+if (errors.length) {
+  console.error(`交付结构检查失败：\n- ${errors.join('\n- ')}`);
+  process.exit(1);
+}
+
+for (const { cwd, command, args } of commands) {
+  const result = spawnSync(command, args, {
+    cwd: join(rootDir, cwd),
+    stdio: 'inherit',
+    env: command === 'npm' ? npmCommandEnv : process.env
+  });
+  if (result.status !== 0) process.exit(result.status || 1);
+}
+
+console.log('自动门禁通过；数据库迁移与发布仍需人工确认后执行。');

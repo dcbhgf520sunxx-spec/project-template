@@ -1,4 +1,5 @@
-import { lazy } from 'react';
+import { lazy, Suspense, type ReactNode } from 'react';
+import { Spin } from 'antd';
 import type { RouteObject } from 'react-router-dom';
 import { Navigate } from 'react-router-dom';
 import { AdminLayout } from '../layouts/AdminLayout';
@@ -9,6 +10,14 @@ import { useAuthStore } from '../stores/authStore';
 function DefaultEntryRedirect() {
   const defaultRoute = useAuthStore((state) => state.preference.default_route);
   return <Navigate to={defaultRoute || '/home'} replace />;
+}
+
+function withRouteSuspense(element: ReactNode) {
+  return (
+    <Suspense fallback={<div className="app-route-loading"><Spin /></div>}>
+      {element}
+    </Suspense>
+  );
 }
 
 const HomePage = lazy(() =>
@@ -100,7 +109,7 @@ const AiAssistant3DPage = lazy(() =>
 export const routes: RouteObject[] = [
   {
     path: '/ai-assistant-3d',
-    element: <AiAssistant3DPage />
+    element: withRouteSuspense(<AiAssistant3DPage />)
   },
   {
     path: '/login',
@@ -112,28 +121,28 @@ export const routes: RouteObject[] = [
     element: <AdminLayout />,
     children: [
       { index: true, element: <DefaultEntryRedirect /> },
-      { path: 'home', element: <HomePage /> },
-      { path: 'roles', element: <RoleListPage /> },
-      { path: 'roles/new', element: <RoleFormPage mode="create" /> },
-      { path: 'roles/:id/edit', element: <RoleFormPage mode="edit" /> },
-      { path: 'roles/:id', element: <RoleDetailPage /> },
-      { path: 'archive', element: <ArchivePage /> },
-      { path: 'access-logs', element: <AccessLogListPage /> },
-      { path: 'work-orders', element: <WorkOrderListPage /> },
-      { path: 'work-orders/new', element: <WorkOrderFormPage mode="create" /> },
-      { path: 'work-orders/:id/copy', element: <WorkOrderFormPage mode="copy" /> },
-      { path: 'work-orders/:id/edit', element: <WorkOrderFormPage mode="edit" /> },
-      { path: 'work-orders/:id', element: <WorkOrderDetailPage /> },
-      { path: 'samples/work-order', element: <WorkOrderTemplatePage /> },
-      { path: 'samples/work-order/new', element: <WorkOrderTemplateFormPage mode="create" /> },
-      { path: 'samples/work-order/:id/copy', element: <WorkOrderTemplateFormPage mode="copy" /> },
-      { path: 'samples/work-order/:id/edit', element: <WorkOrderTemplateFormPage mode="edit" /> },
-      { path: 'samples/work-order/:id', element: <WorkOrderTemplateDetailPage /> },
-      { path: 'system/design-system', element: <DesignSystemPage /> },
-      { path: 'users', element: <UserListPage /> },
-      { path: 'users/new', element: <UserFormPage mode="create" /> },
-      { path: 'users/:id/edit', element: <UserFormPage mode="edit" /> },
-      { path: 'users/:id', element: <UserDetailPage /> }
+      { path: 'home', element: withRouteSuspense(<HomePage />) },
+      { path: 'roles', element: withRouteSuspense(<RoleListPage />) },
+      { path: 'roles/new', element: withRouteSuspense(<RoleFormPage mode="create" />) },
+      { path: 'roles/:id/edit', element: withRouteSuspense(<RoleFormPage mode="edit" />) },
+      { path: 'roles/:id', element: withRouteSuspense(<RoleDetailPage />) },
+      { path: 'archive', element: withRouteSuspense(<ArchivePage />) },
+      { path: 'access-logs', element: withRouteSuspense(<AccessLogListPage />) },
+      { path: 'work-orders', element: withRouteSuspense(<WorkOrderListPage />) },
+      { path: 'work-orders/new', element: withRouteSuspense(<WorkOrderFormPage mode="create" />) },
+      { path: 'work-orders/:id/copy', element: withRouteSuspense(<WorkOrderFormPage mode="copy" />) },
+      { path: 'work-orders/:id/edit', element: withRouteSuspense(<WorkOrderFormPage mode="edit" />) },
+      { path: 'work-orders/:id', element: withRouteSuspense(<WorkOrderDetailPage />) },
+      { path: 'samples/work-order', element: withRouteSuspense(<WorkOrderTemplatePage />) },
+      { path: 'samples/work-order/new', element: withRouteSuspense(<WorkOrderTemplateFormPage mode="create" />) },
+      { path: 'samples/work-order/:id/copy', element: withRouteSuspense(<WorkOrderTemplateFormPage mode="copy" />) },
+      { path: 'samples/work-order/:id/edit', element: withRouteSuspense(<WorkOrderTemplateFormPage mode="edit" />) },
+      { path: 'samples/work-order/:id', element: withRouteSuspense(<WorkOrderTemplateDetailPage />) },
+      { path: 'system/design-system', element: withRouteSuspense(<DesignSystemPage />) },
+      { path: 'users', element: withRouteSuspense(<UserListPage />) },
+      { path: 'users/new', element: withRouteSuspense(<UserFormPage mode="create" />) },
+      { path: 'users/:id/edit', element: withRouteSuspense(<UserFormPage mode="edit" />) },
+      { path: 'users/:id', element: withRouteSuspense(<UserDetailPage />) }
     ]
   }
 ];

@@ -37,9 +37,15 @@ export function UserFormPage({ mode }: UserFormPageProps) {
   const [roleOptions, setRoleOptions] = useState<Array<{ label: string; value: string }>>([]);
   const [currentRoleOptions, setCurrentRoleOptions] = useState<Array<{ label: string; value: string }>>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const [notFound, setNotFound] = useState(false);
+  const [reloadRevision, setReloadRevision] = useState(0);
   const [form] = ProForm.useForm<UserFormValues>();
 
   useEffect(() => {
+    setLoading(true);
+    setLoadError('');
+    setNotFound(false);
     Promise.all([
       getRoleOptions().then(setRoleOptions),
       mode === 'edit' && params.id ? getUser(params.id).then((user) => {
@@ -51,8 +57,12 @@ export function UserFormPage({ mode }: UserFormPageProps) {
           roleIds: user.roleIds || []
         });
       }) : Promise.resolve()
-    ]).finally(() => setLoading(false));
-  }, [mode, params.id]);
+    ]).catch((error) => {
+      const messageText = error instanceof Error ? error.message : '用户表单加载失败';
+      if (messageText.includes('不存在')) setNotFound(true);
+      else setLoadError(messageText);
+    }).finally(() => setLoading(false));
+  }, [mode, params.id, reloadRevision]);
 
   const mergedRoleOptions = mergeRoleOptions(roleOptions, currentRoleOptions);
 
@@ -62,6 +72,9 @@ export function UserFormPage({ mode }: UserFormPageProps) {
       formId="user-form"
       form={form}
       loading={loading}
+      error={loadError}
+      notFound={notFound}
+      onRetry={() => setReloadRevision((value) => value + 1)}
       initialValues={initialValues}
       onCancel={() => navigate('/users')}
       onSubmit={async (values) => {

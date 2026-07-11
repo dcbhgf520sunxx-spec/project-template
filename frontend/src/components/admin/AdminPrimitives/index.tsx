@@ -48,6 +48,10 @@ export function AdminParagraph(props: ComponentProps<typeof Typography.Paragraph
   return <Typography.Paragraph {...props} />;
 }
 
+export function AdminText(props: ComponentProps<typeof Typography.Text>) {
+  return <Typography.Text {...props} />;
+}
+
 export function AdminFormItem(props: ComponentProps<typeof Form.Item>) {
   return <Form.Item {...props} />;
 }

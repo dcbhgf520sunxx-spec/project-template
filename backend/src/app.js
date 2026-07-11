@@ -1,8 +1,11 @@
 const express = require('express')
 const cors = require('cors')
-const dotenv = require('dotenv')
+require('./config/loadEnv')
 const path = require('path')
 const db = require('./db')
+const { validateRuntimeConfig } = require('./config/runtimeConfig')
+const { attachResponseHelpers, ok, fail } = require('./utils/response')
+const { requestContext } = require('./middleware/requestContext')
 const { verifyToken } = require('./middleware/auth')
 const { checkPermission } = require('./middleware/checkPermission')
 const userRoutes = require('./routes/user')
@@ -19,10 +22,11 @@ const accessLogRoutes = require('./routes/accessLog')
 const messageRoutes = require('./routes/message')
 const { start: startOverdueCron } = require('./services/overdueCron')
 
-dotenv.config()
-
 const app = express()
-app.use(cors({ origin: process.env.ALLOWED_ORIGIN || 'http://localhost:3102', credentials: true }))
+const { allowedOrigin } = validateRuntimeConfig()
+app.use(requestContext)
+app.use(attachResponseHelpers)
+app.use(cors({ origin: allowedOrigin, credentials: true }))
 app.use(express.json({ limit: '8mb' }))
 app.use(express.urlencoded({ extended: true }))
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')))
@@ -32,9 +36,9 @@ app.use('/api/auth', authRoutes)
 app.get('/api/health', async (req, res) => {
   try {
     await db.prepare('SELECT 1 as ok').get()
-    res.json({ code: 0, message: 'ok', data: { status: 'healthy', db: 'connected' } })
+    ok(res, { status: 'healthy', db: 'connected' }, 'ok')
   } catch (e) {
-    res.status(503).json({ code: 503, message: 'unhealthy', data: { status: 'error', db: 'disconnected' } })
+    fail(res, 503, 503, 'unhealthy', { status: 'error', db: 'disconnected' })
   }
 })
 
@@ -52,8 +56,8 @@ app.use('/api/work-orders', verifyToken, checkPermission('/work-orders'), workOr
 app.use('/api/access-logs', verifyToken, checkPermission('/access-logs'), accessLogRoutes)
 
 app.use((err, req, res, next) => {
-  console.error(err.stack)
-  res.status(500).json({ code: 500, message: '服务器内部错误', data: null })
+  console.error(`[${req.requestId || 'unknown'}]`, err.stack)
+  fail(res, 500, 500, '服务器内部错误')
 })
 
 const PORT = process.env.PORT || 3101

@@ -29,13 +29,27 @@ function renderTitle(action: StatusConfirmActionProps['action'], entityName?: st
 
 function renderDescription(action: StatusConfirmActionProps['action'], entityName?: string, targetName?: ReactNode) {
   const actionText = getActionText(action);
-  const suffix = action === 'enable' ? '将恢复可用。' : '将暂不可用。';
+
+  if (action === 'disable') {
+    return (
+      <div className="admin-confirm-action__danger-content">
+        <div>
+          {targetName ? `将${actionText}${entityName || '记录'} ` : `将${actionText}该记录。`}
+          {targetName ? <strong>{targetName}</strong> : null}
+          {targetName ? '。' : null}
+        </div>
+        <div className="admin-confirm-action__danger-risk">
+          停用后将暂不可用，请谨慎操作。
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
       {targetName ? `${actionText}后，${entityName || '记录'} ` : ''}
       {targetName ? <strong>{targetName}</strong> : null}
-      {targetName ? ` ${suffix}` : `${actionText}后，该记录${suffix}`}
+      {targetName ? ' 将恢复可用。' : '启用后，该记录将恢复可用。'}
     </>
   );
 }
@@ -47,6 +61,7 @@ export function StatusConfirmAction({
   title,
   description,
   children,
+  danger,
   ...props
 }: StatusConfirmActionProps) {
   const actionText = getActionText(action);
@@ -54,6 +69,7 @@ export function StatusConfirmAction({
   return (
     <ConfirmAction
       {...props}
+      danger={danger ?? action === 'disable'}
       okText={actionText}
       title={title || renderTitle(action, entityName)}
       description={description || renderDescription(action, entityName, targetName)}

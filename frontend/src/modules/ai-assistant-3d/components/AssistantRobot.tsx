@@ -132,7 +132,7 @@ export function AssistantRobot({ skin, startOffset = 0 }: AssistantRobotProps) {
         </mesh>
         <mesh position={[0, 0.12, 0.65]}>
           <boxGeometry args={[0.54, 0.025, 0.012]} />
-          <meshBasicMaterial color="#ffffff" transparent opacity={0.18} />
+          <meshBasicMaterial color="var(--app-surface)" transparent opacity={0.18} />
         </mesh>
 
         <mesh ref={leftEyeRef} position={[-0.2, 0.035, 0.665]} rotation={[0, 0, Math.PI / 2]}>

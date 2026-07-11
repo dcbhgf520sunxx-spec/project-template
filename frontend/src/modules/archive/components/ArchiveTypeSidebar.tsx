@@ -2,10 +2,11 @@ import {
   PlusOutlined,
   SearchOutlined,
 } from '@ant-design/icons';
-import { Button, Typography } from 'antd';
 import {
+  AdminButton,
   AdminEmptyState,
   AdminInput,
+  AdminText,
   AdminDeleteIconAction,
   AdminEditIconAction,
   AdminToggleStatusIconAction
@@ -38,7 +39,7 @@ export function ArchiveTypeSidebar({
   return (
     <aside className="archive-page__sidebar">
       <div className="archive-page__sidebar-header">
-        <Typography.Text strong>档案类型</Typography.Text>
+        <AdminText strong>档案类型</AdminText>
       </div>
       <div className="archive-page__sidebar-search">
         <AdminInput
@@ -97,9 +98,9 @@ export function ArchiveTypeSidebar({
         ) : null}
       </div>
       <div className="archive-page__sidebar-footer">
-        <Button block size="small" type="primary" icon={<PlusOutlined />} onClick={onCreate}>
+        <AdminButton block size="small" type="primary" icon={<PlusOutlined />} onClick={onCreate}>
           新增类型
-        </Button>
+        </AdminButton>
       </div>
     </aside>
   );

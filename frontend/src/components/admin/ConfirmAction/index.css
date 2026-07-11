@@ -1,7 +1,76 @@
 .admin-confirm-action__description {
-  color: #475569;
+  color: var(--app-steel);
   font-size: 13px;
   line-height: 22px;
+}
+
+.admin-confirm-action__description.is-danger {
+  color: var(--app-steel);
+}
+
+.admin-confirm-action-modal.is-danger .ant-modal-content {
+  padding: 22px 28px 24px;
+  border-color: #b7c7df;
+  border-radius: 12px;
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.18);
+}
+
+.admin-confirm-action-modal.is-danger .ant-modal-header {
+  margin-bottom: 18px;
+}
+
+.admin-confirm-action-modal.is-danger .ant-modal-title {
+  color: var(--app-text-strong);
+  font-size: 16px;
+  font-weight: 650;
+  line-height: 24px;
+}
+
+.admin-confirm-action-modal.is-danger .admin-modal__title,
+.admin-confirm-action-modal.is-danger .admin-delete-confirm-action__title,
+.admin-confirm-action-modal.is-danger .admin-status-confirm-action__title.is-disable {
+  gap: 10px;
+}
+
+.admin-confirm-action-modal.is-danger .admin-modal__title.is-danger .anticon,
+.admin-confirm-action-modal.is-danger .admin-delete-confirm-action__title .anticon,
+.admin-confirm-action-modal.is-danger .admin-status-confirm-action__title.is-disable .anticon {
+  color: var(--app-danger);
+  font-size: 20px;
+}
+
+.admin-confirm-action__danger-content {
+  display: grid;
+  gap: 14px;
+}
+
+.admin-confirm-action__danger-content strong {
+  color: var(--app-text-strong);
+  font-weight: 700;
+}
+
+.admin-confirm-action__danger-risk {
+  padding: 10px 12px;
+  color: var(--app-danger);
+  font-weight: 400;
+  background: rgba(220, 38, 38, 0.06);
+  border: 1px solid rgba(220, 38, 38, 0.34);
+  border-radius: 6px;
+}
+
+.admin-confirm-action-modal.is-danger .ant-modal-footer {
+  margin-top: 18px;
+}
+
+.admin-confirm-action-modal.is-danger .ant-modal-footer .ant-btn-primary.ant-btn-dangerous {
+  color: #fff;
+  background: var(--app-danger);
+  border-color: var(--app-danger);
+}
+
+.admin-confirm-action-modal.is-danger .ant-modal-footer .ant-btn-primary.ant-btn-dangerous:hover {
+  background: var(--app-danger-strong);
+  border-color: var(--app-danger-strong);
 }
 
 .admin-confirm-action__error {

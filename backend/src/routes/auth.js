@@ -3,12 +3,11 @@ const router = express.Router()
 const db = require('../db')
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
-const dotenv = require('dotenv')
 const { requestTicket } = require('../services/ssoService')
 const { verifyToken } = require('../middleware/auth')
 const accessLogService = require('../services/accessLogService')
 const accountService = require('../services/accountService')
-dotenv.config()
+const { ok, fail } = require('../utils/response')
 
 // Simple in-memory rate limiter for login
 const loginAttempts = new Map()
@@ -70,7 +69,7 @@ router.post('/login', async (req, res) => {
       attempts.lastAttempt = Date.now()
       loginAttempts.set(clientIp, attempts)
       await safeRecordLoginFailure({ account, failReason: '用户不存在', req })
-      return res.status(401).json({ code: 401, message: '用户不存在', data: null })
+      return fail(res, 401, 401, '账号或密码错误')
     }
 
     const valid = await bcrypt.compare(password, row.password)
@@ -79,7 +78,7 @@ router.post('/login', async (req, res) => {
       attempts.lastAttempt = Date.now()
       loginAttempts.set(clientIp, attempts)
       await safeRecordLoginFailure({ account, failReason: '密码错误', req, user: row })
-      return res.status(401).json({ code: 401, message: '密码错误', data: null })
+      return fail(res, 401, 401, '账号或密码错误')
     }
 
     if (row.status !== 1) {
@@ -89,13 +88,6 @@ router.post('/login', async (req, res) => {
 
     // Reset attempts on successful login
     loginAttempts.delete(clientIp)
-
-    // Generate JWT token (expires in 24 hours)
-    const token = jwt.sign(
-      { userId: row.id, employeeNo: row.employee_no },
-      process.env.JWT_SECRET,
-      { expiresIn: '24h' }
-    )
 
     // Get user menus (auto-include parent dirs for tree rendering)
     const menus = await db.prepare(`
@@ -136,8 +128,19 @@ router.post('/login', async (req, res) => {
     }
 
     const accessSessionId = await safeRecordLoginSuccess({ user: row, account, req })
+    if (!accessSessionId) throw new Error('登录会话创建失败')
+    const roles = await db.prepare(`
+      SELECT r.code FROM pms_user_role ur
+      INNER JOIN pms_role r ON r.id = ur.role_id
+      WHERE ur.user_id = ? AND r.is_deleted = 0
+    `).all(row.id)
+    const token = jwt.sign(
+      { userId: row.id, employeeNo: row.employee_no, sessionId: accessSessionId },
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' }
+    )
 
-    res.json({ code: 0, message: '登录成功', data: { token, first_login: row.first_login, access_session_id: accessSessionId, user: { id: row.id, employee_no: row.employee_no, real_name: row.real_name, phone: row.phone, avatar_url: row.avatar_url }, menus } })
+    ok(res, { token, first_login: row.first_login, access_session_id: accessSessionId, user: { id: row.id, employee_no: row.employee_no, real_name: row.real_name, phone: row.phone, avatar_url: row.avatar_url, roles: roles.map(item => item.code) }, menus }, '登录成功')
   } catch (err) {
     console.error(err)
     res.status(500).json({ code: 500, message: '登录失败', data: null })

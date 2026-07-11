@@ -21,8 +21,18 @@
   gap: 8px;
 }
 
-.admin-modal__title .anticon {
-  color: #2b6ff6;
+.admin-modal__title.is-normal .anticon {
+  color: var(--app-primary);
+  font-size: 17px;
+}
+
+.admin-modal__title.is-positive .anticon {
+  color: var(--app-success);
+  font-size: 17px;
+}
+
+.admin-modal__title.is-danger .anticon {
+  color: var(--app-danger);
   font-size: 17px;
 }
 

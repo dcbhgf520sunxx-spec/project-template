@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { App, Button, Form, Space } from 'antd';
+import { App, Form, Space } from 'antd';
 import { CameraOutlined } from '@ant-design/icons';
 import {
   AdminButton,
@@ -330,8 +330,8 @@ export function AccountDrawers({ active, onClose }: AccountDrawersProps) {
         onClose={onClose}
         footer={(
           <Space>
-            <Button onClick={onClose}>取消</Button>
-            <Button type="primary" loading={savingPreference} onClick={handleSavePreference}>保存</Button>
+            <AdminButton onClick={onClose}>取消</AdminButton>
+            <AdminButton type="primary" loading={savingPreference} onClick={handleSavePreference}>保存</AdminButton>
           </Space>
         )}
       >

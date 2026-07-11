@@ -1,6 +1,7 @@
 import type { PageResult } from '../types/api';
 import type { HrPerson, UserFormValues, UserRecord } from '../modules/user/types';
 import { request, unwrap } from './requestClient';
+import { arrayContract, objectContract } from './responseContract';
 
 type UserListParams = {
   employeeNo?: string;
@@ -10,6 +11,8 @@ type UserListParams = {
   roleIds?: string[];
   current?: number;
   pageSize?: number;
+  sortField?: string;
+  sortOrder?: 'ascend' | 'descend';
 };
 
 type UserResponse = {
@@ -26,6 +29,12 @@ type UserResponse = {
   updated_at?: string;
 };
 
+const userContract = objectContract<UserResponse>(['id', 'employee_no', 'real_name', 'status']);
+const userListContract = objectContract<{ list: UserResponse[]; total: number; page: number; pageSize: number }>(
+  ['list', 'total', 'page', 'pageSize'],
+  { list: arrayContract(userContract) }
+);
+
 function formatDate(value?: string) {
   return String(value || '').slice(0, 19).replace('T', ' ');
 }
@@ -37,6 +46,18 @@ function toStatus(status: number): UserRecord['status'] {
 function toApiStatus(status?: UserRecord['status']) {
   if (!status) return undefined;
   return status === 'enabled' ? 1 : 0;
+}
+
+function toUserSortField(field?: string) {
+  const sortMap: Record<string, string> = {
+    employeeNo: 'employee_no',
+    realName: 'real_name',
+    phone: 'phone',
+    status: 'status',
+    creatorName: 'creator_name',
+    createdAt: 'created_at'
+  };
+  return field ? sortMap[field] || field : undefined;
 }
 
 function toUserRecord(row: UserResponse): UserRecord {
@@ -57,29 +78,27 @@ function toUserRecord(row: UserResponse): UserRecord {
 }
 
 export async function getUserList(params: UserListParams): Promise<PageResult<UserRecord>> {
-  const rows = await unwrap<UserResponse[]>(request.get('/users', {
+  const result = await unwrap<{ list: UserResponse[]; total: number; page: number; pageSize: number }>(request.get('/users', {
     params: {
       employee_no: params.employeeNo,
       real_name: params.realName,
       phone: params.phone,
       role_ids: params.roleIds?.length ? params.roleIds.join(',') : undefined,
-      status: params.status ? toApiStatus(params.status as UserRecord['status']) : undefined
+      status: params.status ? toApiStatus(params.status as UserRecord['status']) : undefined,
+      page: params.current,
+      pageSize: params.pageSize,
+      sort_field: toUserSortField(params.sortField),
+      sort_order: params.sortOrder
     }
-  }));
-  const page = Number(params.current || 1);
-  const pageSize = Number(params.pageSize || 20);
-  const start = (page - 1) * pageSize;
+  }), userListContract);
 
   return {
-    list: rows.map(toUserRecord).slice(start, start + pageSize),
-    total: rows.length,
-    page,
-    pageSize
+    list: result.list.map(toUserRecord), total: result.total, page: result.page, pageSize: result.pageSize
   };
 }
 
 export async function getUser(id: string) {
-  const row = await unwrap<UserResponse>(request.get(`/users/${id}`));
+  const row = await unwrap<UserResponse>(request.get(`/users/${id}`), userContract);
   return toUserRecord(row);
 }
 

@@ -10,6 +10,8 @@ backend/uploads/
 !backend/.env.example
 !frontend/.env.example
 backend/pms.db
+*.sqlite
+*.sqlite-journal
 frontend/INSTALL_DRAGGABLE.txt
 
 # IDE

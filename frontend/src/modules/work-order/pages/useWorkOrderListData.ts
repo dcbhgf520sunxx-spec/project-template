@@ -1,0 +1,89 @@
+import { useCallback, useEffect, useState } from 'react';
+import { getArchiveOptionsByTypeName } from '../../../api/archiveApi';
+import { getUserOptions } from '../../../api/userApi';
+import { getWorkOrderList } from '../../../api/workOrderApi';
+import { useTemplateListPageData } from '../../../components/admin';
+import type { WorkOrderRecord } from '../types';
+import type { WorkOrderListFilters, WorkOrderViewKey } from './workOrderList.types';
+import { toDateText, workOrderSorters } from './workOrderList.constants';
+
+type Option = { label: string; value: string };
+
+type UseWorkOrderListDataParams = {
+  appliedFilters: WorkOrderListFilters;
+  currentFollowerId: string;
+  filterRevision: number;
+  viewKey: WorkOrderViewKey;
+};
+
+export function useWorkOrderListData({
+  appliedFilters,
+  currentFollowerId,
+  filterRevision,
+  viewKey
+}: UseWorkOrderListDataParams) {
+  const [workOrders, setWorkOrders] = useState<WorkOrderRecord[]>([]);
+  const [serverTotal, setServerTotal] = useState(0);
+  const [viewCounts, setViewCounts] = useState({ all: 0, mine: 0 });
+  const [userOptions, setUserOptions] = useState<Option[]>([]);
+  const [systemOptions, setSystemOptions] = useState<Option[]>([]);
+  const [problemTypeOptions, setProblemTypeOptions] = useState<Option[]>([]);
+  const listData = useTemplateListPageData({
+    rows: workOrders,
+    sorters: workOrderSorters,
+    resetOn: [filterRevision, viewKey],
+    total: serverTotal,
+    serverPaging: true
+  });
+
+  const loadWorkOrders = useCallback(async () => {
+    const submitTimeRange = appliedFilters.submitTimeRange || [];
+    const expectedRange = appliedFilters.expectedResolveDateRange || [];
+    const result = await getWorkOrderList({
+      problemDesc: appliedFilters.problemDesc || undefined,
+      systemId: appliedFilters.systemId || undefined,
+      problemType: appliedFilters.problemTypes,
+      urgency: appliedFilters.urgency,
+      status: appliedFilters.status,
+      isOverdue: appliedFilters.isOverdue,
+      followerId: viewKey === 'mine' ? currentFollowerId : appliedFilters.followerId || undefined,
+      currentUserId: currentFollowerId || undefined,
+      submitterName: appliedFilters.submitterName || undefined,
+      submitTimeFrom: toDateText(submitTimeRange[0]),
+      submitTimeTo: toDateText(submitTimeRange[1]),
+      expectedResolveDateFrom: toDateText(expectedRange[0]),
+      expectedResolveDateTo: toDateText(expectedRange[1]),
+      current: listData.currentPage,
+      pageSize: listData.pageSize,
+      sortField: listData.sortState.field,
+      sortOrder: listData.sortState.order
+    });
+    setWorkOrders(result.list);
+    setServerTotal(result.total);
+    setViewCounts({
+      all: result.viewCounts?.all ?? (viewKey === 'all' ? result.total : 0),
+      mine: result.viewCounts?.mine ?? (viewKey === 'mine' ? result.total : 0)
+    });
+  }, [appliedFilters, currentFollowerId, listData.currentPage, listData.pageSize, listData.sortState.field, listData.sortState.order, viewKey]);
+
+  useEffect(() => {
+    loadWorkOrders();
+  }, [loadWorkOrders]);
+
+  useEffect(() => {
+    getUserOptions().then(setUserOptions);
+    getArchiveOptionsByTypeName('系统').then(setSystemOptions);
+    getArchiveOptionsByTypeName('问题类型').then(setProblemTypeOptions);
+  }, []);
+
+  return {
+    workOrders,
+    serverTotal,
+    viewCounts,
+    listData,
+    userOptions,
+    systemOptions,
+    problemTypeOptions,
+    reload: loadWorkOrders
+  };
+}

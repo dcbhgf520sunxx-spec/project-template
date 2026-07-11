@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
+import type { ComponentProps } from 'react';
 import { Button, message, Space, Tooltip } from 'antd';
 import { BoldOutlined, ItalicOutlined, OrderedListOutlined, UnorderedListOutlined } from '@ant-design/icons';
+import { ProForm } from '@ant-design/pro-components';
 import { sanitizeRichText } from '../../../utils/richText';
 import './index.css';
 
@@ -187,5 +189,24 @@ export function RichDescriptionEditor({
       </div>
       <div className="admin-rich-description__tip">{tip}</div>
     </div>
+  );
+}
+
+type AdminProFormRichDescriptionProps = ComponentProps<typeof ProForm.Item> & {
+  placeholder?: string;
+  tip?: string;
+};
+
+export function AdminProFormRichDescription({
+  className,
+  placeholder,
+  tip,
+  children,
+  ...props
+}: AdminProFormRichDescriptionProps) {
+  return (
+    <ProForm.Item {...props} className={className}>
+      {children ?? <RichDescriptionEditor placeholder={placeholder} tip={tip} />}
+    </ProForm.Item>
   );
 }

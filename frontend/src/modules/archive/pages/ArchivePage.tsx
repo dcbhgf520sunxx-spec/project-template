@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { PlusOutlined } from '@ant-design/icons';
-import { App, Button, Form, Typography } from 'antd';
-import { AdminEmptyState, PageShell } from '../../../components/admin';
+import { App, Form } from 'antd';
+import { AdminButton, AdminEmptyState, AdminText, PageShell, useTemplateListPageData } from '../../../components/admin';
 import {
   batchUpdateArchiveSort,
   createArchive,
@@ -39,8 +39,7 @@ export function ArchivePage() {
   const [selectedTypeId, setSelectedTypeId] = useState<string>();
   const [typeKeyword, setTypeKeyword] = useState('');
   const [archiveFilters, setArchiveFilters] = useState<ArchiveRecordFilters>({ code: '', name: '', status: undefined });
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const [filterRevision, setFilterRevision] = useState(0);
   const [, setLoadingTypes] = useState(false);
   const [loadingArchives, setLoadingArchives] = useState(false);
   const [typeModalOpen, setTypeModalOpen] = useState(false);
@@ -70,10 +69,14 @@ export function ArchivePage() {
     [typeList]
   );
 
-  const pagedArchiveRows = useMemo(() => {
-    const start = (page - 1) * pageSize;
-    return archiveRows.slice(start, start + pageSize);
-  }, [archiveRows, page, pageSize]);
+  const {
+    pagedRows: pagedArchiveRows,
+    pagination,
+    renderIndex
+  } = useTemplateListPageData({
+    rows: archiveRows,
+    resetOn: [selectedTypeId, filterRevision]
+  });
 
   const loadTypes = async (preferredTypeId?: string) => {
     setLoadingTypes(true);
@@ -92,7 +95,7 @@ export function ArchivePage() {
     }
   };
 
-  const loadArchives = async (archiveTypeId?: string) => {
+  const loadArchives = async (archiveTypeId?: string, filters = archiveFilters) => {
     if (!archiveTypeId) {
       setArchiveRows([]);
       return;
@@ -103,9 +106,9 @@ export function ArchivePage() {
       const result = await getArchives({
         pageSize: 10000,
         archiveTypeId,
-        code: archiveFilters.code || undefined,
-        name: archiveFilters.name || undefined,
-        status: archiveFilters.status
+        code: filters.code || undefined,
+        name: filters.name || undefined,
+        status: filters.status
       });
       setArchiveRows([...result.list].sort((a, b) => a.sortOrder - b.sortOrder));
     } catch (error) {
@@ -120,19 +123,19 @@ export function ArchivePage() {
   }, []);
 
   useEffect(() => {
-    setPage(1);
     void loadArchives(selectedTypeId);
   }, [selectedTypeId]);
 
   const handleSearchArchives = () => {
-    setPage(1);
+    setFilterRevision((value) => value + 1);
     void loadArchives(selectedTypeId);
   };
 
   const handleResetArchives = () => {
-    setArchiveFilters({ code: '', name: '', status: undefined });
-    setPage(1);
-    setTimeout(() => void loadArchives(selectedTypeId));
+    const resetFilters = { code: '', name: '', status: undefined };
+    setArchiveFilters(resetFilters);
+    setFilterRevision((value) => value + 1);
+    void loadArchives(selectedTypeId, resetFilters);
   };
 
   const openTypeModal = (record?: ArchiveTypeRecord) => {
@@ -316,14 +319,14 @@ export function ArchivePage() {
         <section className="archive-page__main">
           <div className="archive-page__main-header">
             <div className="archive-page__main-title">
-              <Typography.Text strong>{selectedType ? selectedType.name : '档案明细'}</Typography.Text>
+              <AdminText strong>{selectedType ? selectedType.name : '档案明细'}</AdminText>
               {selectedType ? (
                 <span className="archive-page__main-prefix">编码前缀：{selectedType.codePrefix}</span>
               ) : (
                 <span className="archive-page__main-prefix">请先选择或新增档案类型</span>
               )}
             </div>
-            <Button
+            <AdminButton
               size="small"
               type="primary"
               icon={<PlusOutlined />}
@@ -331,31 +334,23 @@ export function ArchivePage() {
               onClick={() => openArchiveModal()}
             >
               新增档案
-            </Button>
+            </AdminButton>
           </div>
-
-          <ArchiveRecordFilter
-            filters={archiveFilters}
-            onChange={setArchiveFilters}
-            onSearch={handleSearchArchives}
-            onReset={handleResetArchives}
-          />
 
           {selectedType ? (
             <ArchiveRecordTable
-              rows={archiveRows}
-              pagedRows={pagedArchiveRows}
-              page={page}
-              pageSize={pageSize}
+              rows={pagedArchiveRows}
+              filter={(
+                <ArchiveRecordFilter
+                  filters={archiveFilters}
+                  onChange={setArchiveFilters}
+                  onSearch={handleSearchArchives}
+                  onReset={handleResetArchives}
+                />
+              )}
+              pagination={pagination}
+              renderIndex={renderIndex}
               loading={loadingArchives}
-              onPageChange={(nextPage, nextPageSize) => {
-                setPage(nextPage);
-                setPageSize(nextPageSize);
-              }}
-              onPageSizeChange={(nextPageSize) => {
-                setPage(1);
-                setPageSize(nextPageSize);
-              }}
               onEdit={openArchiveModal}
               onToggleStatus={handleArchiveStatusChange}
               onDelete={handleDeleteArchive}

@@ -27,7 +27,7 @@ export type CurrentUserResult = {
   phone?: string;
   avatar_url?: string;
   status: number;
-  roles?: Array<{ id: number; name: string }>;
+  roles?: string[];
   last_login_at?: string;
 };
 

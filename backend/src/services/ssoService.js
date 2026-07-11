@@ -1,12 +1,10 @@
 const crypto = require('crypto')
 
-// RSA 公钥（来自 AI 问数平台）
-const PUBLIC_KEY_PEM = `-----BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA6LZ3VRVXXGvQi+HHrjkJfPHLNhqx/LJfIqdtKNopxgrpyBmR/Z4FR9MyAWmvF6sTJ0PiEFl+EePK4BogeNfYCWkUh8jU2wYixDr3NXUfksRj8BXCwAAPdtb2ByDl+7V2RMLdsHKTTAXFfViFGAUYadBOh7jtgtG0bflV6wnRjsKYVTiMeDFUD8dkMgeBJH/Dub13rRs1A1Wej45ryj8UTsDCcf9YMzTcZIiBBwLO4NcwiVZbuNSLz/aIpSwyc2JVKaQ2w8fSGFiCQXsvgtiTTb3N5yuRa8S4AWE+MUYBUsPpEHQP7929Z0WIkfAyrBX89rN0oYYUdns93F/PA0OO0QIDAQAB
------END PUBLIC KEY-----`
-
-// AI 问数平台地址
-const AI_PLATFORM_URL = process.env.SSO_PLATFORM_URL || 'http://183.129.242.90:3100'
+function requireSsoConfig(name) {
+  const value = process.env[name]?.trim()
+  if (!value) throw new Error(`未配置 ${name}`)
+  return value
+}
 
 /**
  * RSA/ECB/PKCS1Padding 加密
@@ -14,10 +12,10 @@ const AI_PLATFORM_URL = process.env.SSO_PLATFORM_URL || 'http://183.129.242.90:3
  * @param {string} plaintext - 明文字符串
  * @returns {string} Base64 编码的密文
  */
-function rsaEncrypt(plaintext) {
+function rsaEncrypt(plaintext, publicKeyPem) {
   const encrypted = crypto.publicEncrypt(
     {
-      key: PUBLIC_KEY_PEM,
+      key: publicKeyPem,
       padding: crypto.constants.RSA_PKCS1_PADDING
     },
     Buffer.from(plaintext, 'utf8')
@@ -31,18 +29,21 @@ function rsaEncrypt(plaintext) {
  * @returns {Promise<string>} ticket
  */
 async function requestTicket(employeeNo) {
+  const platformUrl = requireSsoConfig('SSO_PLATFORM_URL')
+  const clientId = requireSsoConfig('SSO_CLIENT_ID')
+  const publicKeyPem = requireSsoConfig('SSO_PUBLIC_KEY_PEM').replace(/\\n/g, '\n')
   const payload = JSON.stringify({
     username: employeeNo,
     timestamp: Date.now()
   })
 
-  const encryptedData = rsaEncrypt(payload)
+  const encryptedData = rsaEncrypt(payload, publicKeyPem)
 
-  const res = await fetch(`${AI_PLATFORM_URL}/api/auth/sso/ticket`, {
+  const res = await fetch(`${platformUrl}/api/auth/sso/ticket`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      clientId: process.env.SSO_CLIENT_ID || 'xmgl',
+      clientId,
       encryptedData
     })
   })

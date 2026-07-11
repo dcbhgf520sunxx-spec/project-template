@@ -5,7 +5,7 @@
 ## 1. 环境要求
 
 - Node.js >= 18
-- MySQL >= 5.7
+- PostgreSQL 16
 - Nginx
 - PM2
 
@@ -25,13 +25,7 @@ cd project-template
 
 ## 3. 配置数据库
 
-创建独立数据库：
-
-```bash
-mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS project_template CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-```
-
-配置后端环境变量：
+生产数据库使用 PostgreSQL。配置后端环境变量：
 
 ```bash
 cd backend
@@ -44,7 +38,7 @@ vi .env
 ```env
 PORT=3101
 DB_HOST=localhost
-DB_PORT=3306
+DB_PORT=5432
 DB_USER=pms
 DB_PASSWORD=你的密码
 DB_NAME=project_template
@@ -52,7 +46,13 @@ JWT_SECRET=请替换为随机密钥
 ALLOWED_ORIGIN=http://你的域名或IP
 ```
 
-后端首次启动时会自动建表并初始化最小种子数据。
+新环境可通过 Docker Compose 初始化 PostgreSQL；已有数据库在用户确认表结构后执行迁移：
+
+```bash
+cd backend
+npm run db:migrate -- --check
+npm run db:migrate
+```
 
 ## 4. 安装依赖
 
@@ -70,7 +70,7 @@ cd /path/to/apps/project-template/frontend
 npm ci
 ```
 
-## 5. 构建前端
+## 5. 构建 React 前端
 
 ```bash
 cd /path/to/apps/project-template/frontend
@@ -85,7 +85,7 @@ frontend/dist
 
 ## 6. 配置 PM2
 
-确认 `deploy/pm2.config.js` 中端口为 `3101`。
+确认 `deploy/pm2.config.js` 中端口为 `3101`，并确认 `backend/.env` 指向 PostgreSQL。
 
 启动后端：
 
@@ -151,6 +151,8 @@ curl http://localhost:3101/api/auth/login \
 http://你的域名或IP/
 ```
 
+React 使用 history 路由，Nginx 必须保留 `try_files $uri $uri/ /index.html;`，否则刷新业务页面会返回 404。
+
 ## 9. 常用命令
 
 ```bash
@@ -165,6 +167,7 @@ sudo nginx -s reload
 
 - 后端端口使用 `3101`
 - 前端生产访问由 Nginx 提供
+- 数据库为 PostgreSQL，不使用 MySQL
 - 不要占用 `3001`、`3002`
 - 每个项目实例必须使用独立 `DB_NAME`
 - `backend/.env` 不得提交

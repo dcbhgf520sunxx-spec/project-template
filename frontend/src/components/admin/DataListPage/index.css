@@ -26,7 +26,7 @@
   min-height: 100vh !important;
   padding: 12px;
   overflow: hidden !important;
-  background: #fff;
+  background: var(--app-surface);
 }
 
 .ant-pro-table.admin-data-list-page__table-card:fullscreen {
@@ -94,7 +94,7 @@
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  background: #fff;
+  background: var(--app-surface);
 }
 
 .admin-data-list-page__table-frame > .admin-table-footer-bar {

@@ -1,6 +1,9 @@
 import { request, unwrap } from './requestClient';
+import { arrayContract, objectContract } from './responseContract';
 import type { PageResult } from '../types/api';
 import type { WorkOrderHistoryItem, WorkOrderRecord, WorkOrderStatus } from '../modules/work-order/types';
+import { mapPageResult, type PageResponse } from './pageResult';
+import { buildWorkOrderQueryParams, type WorkOrderListParams } from './workOrderQueryParams';
 
 type WorkOrderResponse = {
   id: number;
@@ -27,22 +30,22 @@ type WorkOrderResponse = {
   updated_at?: string;
 };
 
-type WorkOrderListParams = {
-  problemDesc?: string;
-  systemId?: string;
-  problemType?: string;
-  urgency?: number;
-  status?: number;
-  isOverdue?: boolean;
-  followerId?: string;
-  submitterName?: string;
-  submitTimeFrom?: string;
-  submitTimeTo?: string;
-  expectedResolveDateFrom?: string;
-  expectedResolveDateTo?: string;
-  current?: number;
-  pageSize?: number;
+const workOrderContract = objectContract<WorkOrderResponse>([
+  'id', 'problem_type', 'problem_desc', 'follower_id', 'urgency', 'status',
+  'is_overdue', 'submitter_name', 'submitter_dept', 'submit_time'
+]);
+const workOrderListContract = arrayContract(workOrderContract);
+
+const workOrderPageContract = (value: unknown): value is PageResponse<WorkOrderResponse> => {
+  if (!value || typeof value !== 'object') return false;
+  const page = value as PageResponse<WorkOrderResponse>;
+  return workOrderListContract(page.list)
+    && typeof page.total === 'number'
+    && typeof page.page === 'number'
+    && typeof page.pageSize === 'number';
 };
+
+export type { WorkOrderListParams };
 
 export type WorkOrderFormPayload = {
   systemId: string;
@@ -96,36 +99,43 @@ export function toWorkOrderRecord(row: WorkOrderResponse): WorkOrderRecord {
 }
 
 export async function getWorkOrderList(params: WorkOrderListParams = {}): Promise<PageResult<WorkOrderRecord>> {
-  const rows = await unwrap<WorkOrderResponse[]>(request.get('/work-orders', {
+  const response = await unwrap<PageResponse<WorkOrderResponse>>(request.get('/work-orders', {
+    params: buildWorkOrderQueryParams(params)
+  }), workOrderPageContract);
+
+  return mapPageResult(response, toWorkOrderRecord);
+}
+
+const workOrderNeighborsContract = objectContract<{
+  prevId: number | null;
+  nextId: number | null;
+  ordinal?: number;
+  total?: number;
+}>(['prevId', 'nextId']);
+
+export async function getWorkOrderNeighbors(id: string, params: Record<string, unknown> = {}) {
+  const result = await unwrap<{
+    prevId: number | null;
+    nextId: number | null;
+    ordinal?: number;
+    total?: number;
+  }>(request.get('/work-orders/neighbors', {
     params: {
-      problem_desc: params.problemDesc,
-      system_id: params.systemId,
-      problem_type: params.problemType,
-      urgency: params.urgency,
-      status: params.status,
-      is_overdue: params.isOverdue === undefined ? undefined : Number(params.isOverdue),
-      follower_id: params.followerId,
-      submitter_name: params.submitterName,
-      submit_time_from: params.submitTimeFrom,
-      submit_time_to: params.submitTimeTo,
-      expected_resolve_date_from: params.expectedResolveDateFrom,
-      expected_resolve_date_to: params.expectedResolveDateTo
+      ...params,
+      id
     }
-  }));
-  const page = Number(params.current || 1);
-  const pageSize = Number(params.pageSize || 20);
-  const start = (page - 1) * pageSize;
+  }), workOrderNeighborsContract);
 
   return {
-    list: rows.map(toWorkOrderRecord).slice(start, start + pageSize),
-    total: rows.length,
-    page,
-    pageSize
+    prevId: result.prevId === null ? null : String(result.prevId),
+    nextId: result.nextId === null ? null : String(result.nextId),
+    ordinal: result.ordinal,
+    total: result.total
   };
 }
 
 export async function getWorkOrder(id: string) {
-  const row = await unwrap<WorkOrderResponse>(request.get(`/work-orders/${id}`));
+  const row = await unwrap<WorkOrderResponse>(request.get(`/work-orders/${id}`), workOrderContract);
   return toWorkOrderRecord(row);
 }
 

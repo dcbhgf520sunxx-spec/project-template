@@ -49,7 +49,7 @@
   z-index: 2;
   width: 12px;
   height: 12px;
-  border: 2px solid #fff;
+  border: 2px solid var(--app-surface);
   border-radius: 3px;
   background: var(--app-primary);
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.18);

@@ -1,4 +1,23 @@
 const db = require('../db')
+const { fail, ok } = require('../utils/response')
+const { validateBody } = require('../utils/validation')
+
+function requireValidBody(res, body, schema) {
+  const result = validateBody(body, schema)
+  if (result.ok) return true
+  fail(res, 400, 400, result.message)
+  return false
+}
+
+const archiveCreateSchema = {
+  archive_type_id: { required: true, type: 'number', label: '档案类型' },
+  name: { required: true, label: '档案名称' }
+}
+
+const archiveUpdateSchema = {
+  name: { required: true, label: '档案名称' },
+  sort_order: { type: 'number', label: '排序值' }
+}
 
 function withJoins(sql) {
   return `SELECT ${sql}, at.name as archive_type_name, at.code_prefix, u1.real_name as creator_name, u2.real_name as updater_name
@@ -59,9 +78,10 @@ exports.list = async (req, res) => {
 
 exports.create = async (req, res) => {
   try {
+    if (!requireValidBody(res, req.body, archiveCreateSchema)) return
     const { archive_type_id, name, creator_id } = req.body
     const code = await generateCode(archive_type_id)
-    if (!code) return res.status(400).json({ code: 400, message: '档案类型不存在', data: null })
+    if (!code) return fail(res, 400, 400, '档案类型不存在')
 
     // Auto-calculate sort_order: max existing sort_order + 1 for this type
     const maxSort = await db.prepare('SELECT MAX(sort_order) as max_so FROM pms_archive WHERE archive_type_id = ? AND is_deleted = 0').get(archive_type_id)
@@ -71,16 +91,17 @@ exports.create = async (req, res) => {
       'INSERT INTO pms_archive (code, name, archive_type_id, sort_order, status, creator_id, updater_id) VALUES (?, ?, ?, ?, 1, ?, ?)'
     ).run(code, name, archive_type_id, sort_order, creator_id || null, creator_id || null)
     await db.writeLog(creator_id, '新增', '档案', result.lastInsertRowid, null, null, JSON.stringify({ code, name, archive_type_id }), req.ip)
-    res.json({ code: 0, message: 'success', data: { id: result.lastInsertRowid, code } })
+    ok(res, { id: result.lastInsertRowid, code })
   } catch (err) {
     console.error(err)
-    if (err.code === 'ER_DUP_ENTRY' || err.code === '23505') return res.status(400).json({ code: 400, message: '档案编码已存在', data: null })
-    res.status(500).json({ code: 500, message: '创建失败', data: null })
+    if (err.code === 'ER_DUP_ENTRY' || err.code === '23505') return fail(res, 400, 400, '档案编码已存在')
+    fail(res, 500, 500, '创建失败')
   }
 }
 
 exports.update = async (req, res) => {
   try {
+    if (!requireValidBody(res, req.body, archiveUpdateSchema)) return
     const { name, sort_order, updater_id } = req.body
     const old = await db.prepare('SELECT name, sort_order, archive_type_id FROM pms_archive WHERE id = ?').get(req.params.id)
     const changes = []
@@ -94,55 +115,69 @@ exports.update = async (req, res) => {
         await db.writeLog(updater_id, '编辑', '档案', req.params.id, ch.field, ch.oldVal ?? null, ch.newVal ?? null, req.ip)
       }
     }
-    res.json({ code: 0, message: 'success', data: null })
+    ok(res, null)
   } catch (err) {
     console.error(err)
-    res.status(500).json({ code: 500, message: '更新失败', data: null })
+    fail(res, 500, 500, '更新失败')
   }
 }
 
 exports.toggleStatus = async (req, res) => {
   try {
+    if (!requireValidBody(res, req.body, { status: { required: true, type: 'enum', values: [0, 1], label: '状态' }, updater_id: { type: 'number', label: '更新人' } })) return
     const { status, updater_id } = req.body
     const oldStatus = await db.prepare('SELECT status FROM pms_archive WHERE id = ?').get(req.params.id)
     await db.prepare('UPDATE pms_archive SET status = ?, updater_id = ? WHERE id = ?').run(status, updater_id || null, req.params.id)
     if (updater_id) await db.writeLog(updater_id, '状态变更', '档案', req.params.id, 'status', String(oldStatus?.status ?? ''), String(status), req.ip)
-    res.json({ code: 0, message: 'success', data: null })
+    ok(res, null)
   } catch (err) {
     console.error(err)
-    res.status(500).json({ code: 500, message: '操作失败', data: null })
+    fail(res, 500, 500, '操作失败')
   }
 }
 
 exports.remove = async (req, res) => {
   try {
+    if (!requireValidBody(res, req.body, { updater_id: { type: 'number', label: '更新人' } })) return
     const { updater_id } = req.body
     const archiveId = Number(req.params.id)
     const archive = await db.prepare('SELECT id FROM pms_archive WHERE id = ? AND is_deleted = 0').get(archiveId)
-    if (!archive) return res.status(404).json({ code: 404, message: '档案不存在或已删除', data: null })
+    if (!archive) return fail(res, 404, 404, '档案不存在或已删除')
 
     const referenceMessage = await getArchiveReferenceMessage(archiveId)
-    if (referenceMessage) return res.status(400).json({ code: 400, message: referenceMessage, data: null })
+    if (referenceMessage) return fail(res, 400, 400, referenceMessage)
 
     await db.prepare('UPDATE pms_archive SET is_deleted = 1, updater_id = ? WHERE id = ?').run(updater_id || null, archiveId)
     if (updater_id) await db.writeLog(updater_id, '删除', '档案', archiveId, 'is_deleted', '0', '1', req.ip)
-    res.json({ code: 0, message: 'success', data: null })
+    ok(res, null)
   } catch (err) {
     console.error(err)
-    res.status(500).json({ code: 500, message: '删除失败', data: null })
+    fail(res, 500, 500, '删除失败')
   }
 }
 
 /** Update sort orders in batch (for drag-and-drop reorder) */
 exports.batchUpdateSort = async (req, res) => {
   try {
+    if (!requireValidBody(res, req.body, {
+      items: {
+        required: true,
+        type: 'array',
+        label: '排序数据',
+        itemSchema: {
+          id: { required: true, type: 'number', label: '档案ID' },
+          sort_order: { required: true, type: 'number', label: '排序值' }
+        }
+      },
+      updater_id: { type: 'number', label: '更新人' }
+    })) return
     const { items, updater_id } = req.body // [{ id, sort_order }, ...]
     if (!Array.isArray(items) || items.length === 0) {
-      return res.status(400).json({ code: 400, message: '缺少排序数据', data: null })
+      return fail(res, 400, 400, '缺少排序数据')
     }
     const ids = items.map((item) => Number(item.id)).filter(Boolean)
     if (ids.length === 0) {
-      return res.status(400).json({ code: 400, message: '排序数据无效', data: null })
+      return fail(res, 400, 400, '排序数据无效')
     }
 
     await db.transaction(async (conn) => {
@@ -165,10 +200,10 @@ exports.batchUpdateSort = async (req, res) => {
         }
       }
     })
-    res.json({ code: 0, message: 'success', data: null })
+    ok(res, null)
   } catch (err) {
     console.error(err)
-    res.status(500).json({ code: 500, message: '排序更新失败', data: null })
+    fail(res, 500, 500, '排序更新失败')
   }
 }
 

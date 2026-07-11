@@ -1,4 +1,7 @@
 import type { ReactNode } from 'react';
+import { ActionBar } from '../ActionBar';
+import { AdminEmptyState } from '../AdminEmptyState';
+import { AdminButton } from '../AdminPrimitives';
 import type { DetailMetaItem } from '../DetailMetaList';
 import { DetailMetaList } from '../DetailMetaList';
 import { PageShell } from '../PageShell';
@@ -15,7 +18,13 @@ type TemplateDetailSideSection = {
 type TemplateDetailPageProps = {
   title: string;
   loading?: boolean;
+  error?: ReactNode;
+  notFound?: boolean;
+  onRetry?: () => void;
+  onBack?: () => void;
+  backText?: string;
   titleExtra?: ReactNode;
+  titleCenter?: ReactNode;
   actions?: ReactNode;
   statusSection?: TemplateDetailSideSection | null;
   documentSection?: TemplateDetailSideSection | null;
@@ -32,13 +41,20 @@ type TemplateDetailSectionProps = {
 export function TemplateDetailPage({
   title,
   loading,
+  error,
+  notFound,
+  onRetry,
+  onBack,
+  backText = '返回列表',
   titleExtra,
+  titleCenter,
   actions,
   statusSection,
   documentSection,
   aside,
   children
 }: TemplateDetailPageProps) {
+  const isUnavailable = Boolean(error) || Boolean(notFound);
   const standardAside = statusSection || documentSection ? (
     <>
       {statusSection ? <TemplateDetailSideSection section={statusSection} defaultTitle="当前状态" /> : null}
@@ -46,15 +62,29 @@ export function TemplateDetailPage({
       {aside}
     </>
   ) : aside;
+  const headerActions = onBack || actions ? (
+    <ActionBar>
+      {onBack ? <AdminButton onClick={onBack}>{backText}</AdminButton> : null}
+      {!isUnavailable ? actions : null}
+    </ActionBar>
+  ) : null;
 
   return (
-    <PageShell title={title} compact titleExtra={titleExtra} actions={actions} loading={loading}>
-      <div className={standardAside ? 'admin-template-detail-page' : 'admin-template-detail-page is-single'}>
-        <div className="admin-template-detail-page__main">
-          {children}
+    <PageShell title={title} compact titleExtra={titleExtra} titleCenter={titleCenter} actions={headerActions} loading={loading}>
+      {isUnavailable ? (
+        <div className="admin-template-detail-page__state">
+          <AdminEmptyState description={notFound ? '记录不存在或已被删除' : error}>
+            {onRetry ? <AdminButton type="primary" onClick={onRetry}>重新加载</AdminButton> : null}
+          </AdminEmptyState>
         </div>
-        {standardAside ? <aside className="admin-template-detail-page__aside">{standardAside}</aside> : null}
-      </div>
+      ) : (
+        <div className={standardAside ? 'admin-template-detail-page' : 'admin-template-detail-page is-single'}>
+          <div className="admin-template-detail-page__main">
+            {children}
+          </div>
+          {standardAside ? <aside className="admin-template-detail-page__aside">{standardAside}</aside> : null}
+        </div>
+      )}
     </PageShell>
   );
 }

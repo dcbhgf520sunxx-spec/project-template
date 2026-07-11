@@ -34,19 +34,21 @@ test('accepts 10 as preference page size', () => {
 })
 
 test('validates avatar upload payload', () => {
-  const content = Buffer.from('avatar').toString('base64')
+  const content = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a]).toString('base64')
   assert.deepEqual(validateAvatarPayload({
     fileName: 'me.png',
     mimeType: 'image/png',
     contentBase64: content
   }), {
     extension: '.png',
-    buffer: Buffer.from('avatar')
+    buffer: Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a])
   })
 })
 
 test('allows avatar payload up to 5MB', () => {
-  const content = Buffer.alloc(5 * 1024 * 1024).toString('base64')
+  const buffer = Buffer.alloc(5 * 1024 * 1024)
+  Buffer.from([0x89, 0x50, 0x4e, 0x47]).copy(buffer)
+  const content = buffer.toString('base64')
   const result = validateAvatarPayload({
     fileName: 'me.png',
     mimeType: 'image/png',
@@ -75,6 +77,16 @@ test('rejects unsupported avatar type', () => {
       contentBase64: Buffer.from('avatar').toString('base64')
     }),
     /头像仅支持/
+  )
+})
+
+test('rejects a payload whose MIME type does not match the file signature', () => {
+  assert.throws(
+    () => validateAvatarPayload({
+      mimeType: 'image/png',
+      contentBase64: Buffer.from('not-a-png').toString('base64')
+    }),
+    /内容与声明类型不一致/
   )
 })
 

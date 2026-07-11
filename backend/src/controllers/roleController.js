@@ -1,4 +1,19 @@
 const db = require('../db')
+const { getSortDirection, parsePagination } = require('../utils/pagination')
+const { fail, ok } = require('../utils/response')
+const { validateBody } = require('../utils/validation')
+
+function requireValidBody(res, body, schema) {
+  const result = validateBody(body, schema)
+  if (result.ok) return true
+  fail(res, 400, 400, result.message)
+  return false
+}
+
+const roleFormSchema = {
+  code: { required: true, label: '角色编码' },
+  name: { required: true, label: '角色名称' }
+}
 
 function resolveRolePermissions(allMenus, roleMenuRows) {
   const normalizedMenus = allMenus.map((menu) => ({
@@ -23,7 +38,8 @@ function resolveRolePermissions(allMenus, roleMenuRows) {
 exports.list = async (req, res) => {
   try {
     const { code, name } = req.query
-    let sql = `SELECT r.*, u1.real_name as creator_name, u2.real_name as updater_name
+    const { page, pageSize, offset } = parsePagination(req.query)
+    let sql = `SELECT r.*, COUNT(*) OVER() as total, u1.real_name as creator_name, u2.real_name as updater_name
       FROM pms_role r
       LEFT JOIN pms_user u1 ON r.creator_id = u1.id
       LEFT JOIN pms_user u2 ON r.updater_id = u2.id
@@ -33,7 +49,11 @@ exports.list = async (req, res) => {
     if (code) { sql += ' AND r.code LIKE ?'; params.push(`%${code}%`) }
     if (name) { sql += ' AND r.name LIKE ?'; params.push(`%${name}%`) }
 
-    sql += ' ORDER BY r.created_at DESC'
+    const sortMap = { code: 'r.code', name: 'r.name', creator_name: 'creator_name', created_at: 'r.created_at' }
+    const sortField = sortMap[req.query.sort_field] || 'r.created_at'
+    const sortDirection = getSortDirection(req.query.sort_order)
+    sql += ` ORDER BY ${sortField} ${sortDirection}, r.id ${sortDirection} LIMIT ? OFFSET ?`
+    params.push(pageSize, offset)
 
     const rows = await db.prepare(sql).all(...params)
 
@@ -45,7 +65,7 @@ exports.list = async (req, res) => {
       row.permissions = resolveRolePermissions(allMenus, menuRows)
     }
 
-    res.json({ code: 0, message: 'success', data: rows })
+    res.json({ code: 0, message: 'success', data: { list: rows, total: Number(rows[0]?.total || 0), page, pageSize } })
   } catch (err) {
     console.error(err)
     res.status(500).json({ code: 500, message: '查询失败', data: null })
@@ -93,20 +113,22 @@ exports.getById = async (req, res) => {
 
 exports.create = async (req, res) => {
   try {
+    if (!requireValidBody(res, req.body, roleFormSchema)) return
     const { code, name, description, creator_id } = req.body
     const result = await db.prepare(
       'INSERT INTO pms_role (code, name, description, creator_id, updater_id) VALUES (?, ?, ?, ?, ?)'
     ).run(code, name, description || null, creator_id || null, creator_id || null)
     await db.writeLog(creator_id, '新增', '角色', result.lastInsertRowid, null, null, JSON.stringify({ code, name, description }), req.ip)
-    res.json({ code: 0, message: 'success', data: { id: result.lastInsertRowid } })
+    ok(res, { id: result.lastInsertRowid })
   } catch (err) {
     console.error(err)
-    res.status(500).json({ code: 500, message: '创建失败', data: null })
+    fail(res, 500, 500, '创建失败')
   }
 }
 
 exports.update = async (req, res) => {
   try {
+    if (!requireValidBody(res, req.body, roleFormSchema)) return
     const { code, name, description, updater_id } = req.body
     const old = await db.prepare('SELECT code, name, description FROM pms_role WHERE id = ?').get(req.params.id)
 
@@ -134,30 +156,31 @@ exports.update = async (req, res) => {
       }
     }
 
-    res.json({ code: 0, message: 'success', data: null })
+    ok(res, null)
   } catch (err) {
     console.error(err)
-    res.status(500).json({ code: 500, message: '更新失败', data: null })
+    fail(res, 500, 500, '更新失败')
   }
 }
 
 exports.remove = async (req, res) => {
   try {
+    if (!requireValidBody(res, req.body, { updater_id: { type: 'number', label: '更新人' } })) return
     const { updater_id } = req.body
     const roleId = req.params.id
 
     // 检查是否有用户关联此角色
     const userCount = await db.prepare('SELECT COUNT(*) as c FROM pms_user_role WHERE role_id = ?').get(roleId)
     if (userCount.c > 0) {
-      return res.status(400).json({ code: 400, message: '该角色下有用户关联，无法删除', data: null })
+      return fail(res, 400, 400, '该角色下有用户关联，无法删除')
     }
 
     await db.prepare('UPDATE pms_role SET is_deleted = 1, updater_id = ? WHERE id = ?').run(updater_id || null, roleId)
     if (updater_id) await db.writeLog(updater_id, '删除', '角色', roleId, 'is_deleted', '0', '1', req.ip)
-    res.json({ code: 0, message: 'success', data: null })
+    ok(res, null)
   } catch (err) {
     console.error(err)
-    res.status(500).json({ code: 500, message: '删除失败', data: null })
+    fail(res, 500, 500, '删除失败')
   }
 }
 

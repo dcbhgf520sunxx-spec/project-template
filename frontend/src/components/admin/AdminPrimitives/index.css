@@ -12,7 +12,7 @@
   padding: 0 10px;
   border-color: #c7d7ee;
   color: #24538f;
-  background: #ffffff;
+  background: var(--app-surface);
   font-size: 12px;
 }
 
@@ -46,17 +46,17 @@
 
 .admin-segmented.is-filter.ant-segmented .ant-segmented-item {
   border-radius: 6px;
-  color: #64748b;
+  color: var(--app-muted);
   font-weight: 600;
 }
 
 .admin-segmented.is-filter.ant-segmented .ant-segmented-item-selected {
   color: var(--app-primary);
-  background: #ffffff;
+  background: var(--app-surface);
   box-shadow: 0 1px 4px rgba(31, 111, 255, 0.16);
 }
 
 .admin-color-picker.ant-color-picker-trigger {
-  border-color: #dce8f7;
+  border-color: var(--app-border);
   border-radius: 6px;
 }

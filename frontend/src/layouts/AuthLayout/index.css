@@ -8,7 +8,7 @@
   background:
     radial-gradient(circle at 18% 18%, rgba(31, 111, 255, 0.13), transparent 30%),
     radial-gradient(circle at 82% 74%, rgba(14, 165, 233, 0.12), transparent 32%),
-    linear-gradient(135deg, #f7fbff 0%, #eef5ff 48%, #f8fbff 100%);
+    linear-gradient(135deg, #f7fbff 0%, #eef5ff 48%, var(--app-surface-tech) 100%);
   background-size:
     120% 120%,
     130% 130%,

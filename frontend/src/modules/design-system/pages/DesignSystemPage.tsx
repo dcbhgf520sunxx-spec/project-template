@@ -40,9 +40,12 @@ import {
   BubbleConfirmAction,
   ConfirmAction,
   CompactFilterBar,
+  createListFilterItems,
+  createListSorters,
   DeleteConfirmAction,
   DetailMetaList,
   HistoryTimeline,
+  listSorters,
   MetricCard,
   OperationColumnActions,
   PageShell,
@@ -52,7 +55,9 @@ import {
   StatusTag,
   TableFooterBar,
   TablePagination,
-  TemplateListPage
+  TemplateDrawerTable,
+  TemplateListPage,
+  useTemplateListPageData
 } from '../../../components/admin';
 import { useAdminFeedback } from '../../../components/admin';
 import { DesignCategory, isDesignCategory } from '../categories';
@@ -62,8 +67,8 @@ import { InputSection } from './sections/InputSection';
 import { OverviewSection } from './sections/OverviewSection';
 import { DetailTemplateDemo } from './demos/DetailTemplateDemo';
 import { FormTemplateDemo } from './demos/FormTemplateDemo';
+import { OverlayTemplateDemo } from './demos/OverlayTemplateDemo';
 import { ComponentEntry } from './components/ComponentEntry';
-import { useDrawerTableScrollY } from './hooks/useDrawerTableScrollY';
 import { mockWorkOrderHistory, mockWorkOrders, workOrderUsers } from '../../work-order/mock';
 import type { WorkOrderRecord, WorkOrderStatus } from '../../work-order/types';
 import {
@@ -109,6 +114,17 @@ const defaultDrawerTableFilters: DrawerTableFilters = {
   submitTimeRange: [],
   expectedResolveDateRange: []
 };
+
+const listTemplateSorters = createListSorters<WorkOrderRecord>({
+  problemDesc: listSorters.text((row) => row.problemDesc),
+  problemType: listSorters.text((row) => problemTypeText(row.problemType)),
+  followerName: listSorters.text((row) => row.followerName),
+  urgency: listSorters.number((row) => row.urgency),
+  status: listSorters.number((row) => row.status),
+  submitterName: listSorters.text((row) => row.submitterName),
+  submitTime: listSorters.date((row) => row.submitTime),
+  expectedResolveDate: listSorters.date((row) => row.expectedResolveDate)
+});
 
 function toDateText(value: unknown) {
   if (!value) return '';
@@ -465,15 +481,12 @@ export function DesignSystemPage() {
   const [listTemplateFilterExpanded, setListTemplateFilterExpanded] = useState(false);
   const [listTemplateSelectedRowKeys, setListTemplateSelectedRowKeys] = useState<Key[]>([]);
   const [listTemplateSelectedRows, setListTemplateSelectedRows] = useState<WorkOrderRecord[]>([]);
-  const [listTemplateCurrentPage, setListTemplateCurrentPage] = useState(1);
-  const [listTemplatePageSize, setListTemplatePageSize] = useState(20);
+  const [listTemplateFilterRevision, setListTemplateFilterRevision] = useState(0);
   const [tableDrawerFilterExpanded, setTableDrawerFilterExpanded] = useState(false);
   const [tableDrawerDraftFilters, setTableDrawerDraftFilters] = useState<DrawerTableFilters>(defaultDrawerTableFilters);
   const [tableDrawerAppliedFilters, setTableDrawerAppliedFilters] = useState<DrawerTableFilters>(defaultDrawerTableFilters);
   const [tableDrawerSelectedRowKeys, setTableDrawerSelectedRowKeys] = useState<Key[]>([]);
   const [tableDrawerSelectedRows, setTableDrawerSelectedRows] = useState<DrawerTableRecord[]>([]);
-  const [tableDrawerCurrentPage, setTableDrawerCurrentPage] = useState(1);
-  const [tableDrawerPageSize, setTableDrawerPageSize] = useState(20);
   const [displayTablePage, setDisplayTablePage] = useState(1);
   const [displayTablePageSize, setDisplayTablePageSize] = useState(20);
   const [displayHistoryExpandedKeys, setDisplayHistoryExpandedKeys] = useState<string[]>(['h1']);
@@ -529,22 +542,35 @@ export function DesignSystemPage() {
       && matchExpectedTime;
   }), [tableDrawerAppliedFilters]);
 
-  useEffect(() => {
-    const maxPage = Math.max(1, Math.ceil(tableDrawerFilteredRows.length / tableDrawerPageSize));
-    if (tableDrawerCurrentPage > maxPage) {
-      setTableDrawerCurrentPage(maxPage);
+  const {
+    pagedRows: tableDrawerRows,
+    pagination: tableDrawerPagination,
+    handleTableChange: handleTableDrawerTableChange,
+    renderIndex: renderTableDrawerIndex,
+    setCurrentPage: setTableDrawerCurrentPage
+  } = useTemplateListPageData({
+    rows: tableDrawerFilteredRows,
+    sorters: listTemplateSorters,
+    resetOn: [tableDrawerAppliedFilters]
+  });
+
+  const tableDrawerDisplayColumns = drawerTableColumns.map((column, index) => index === 0
+    ? {
+      ...column,
+      valueType: undefined,
+      render: (_: unknown, __: DrawerTableRecord, rowIndex: number) => renderTableDrawerIndex(rowIndex)
     }
-  }, [tableDrawerCurrentPage, tableDrawerFilteredRows.length, tableDrawerPageSize]);
+    : column);
 
-  const tableDrawerRows = useMemo(() => {
-    const start = (tableDrawerCurrentPage - 1) * tableDrawerPageSize;
-    return tableDrawerFilteredRows.slice(start, start + tableDrawerPageSize);
-  }, [tableDrawerCurrentPage, tableDrawerFilteredRows, tableDrawerPageSize]);
-
-  const listTemplateRows = useMemo(() => {
-    const start = (listTemplateCurrentPage - 1) * listTemplatePageSize;
-    return mockWorkOrders.slice(start, start + listTemplatePageSize);
-  }, [listTemplateCurrentPage, listTemplatePageSize]);
+  const {
+    pagedRows: listTemplateRows,
+    pagination: listTemplatePagination,
+    handleTableChange: handleListTemplateTableChange
+  } = useTemplateListPageData({
+    rows: mockWorkOrders,
+    sorters: listTemplateSorters,
+    resetOn: [listTemplateFilterRevision]
+  });
 
   useEffect(() => {
     if (listTemplateMode === 'standard') {
@@ -553,7 +579,7 @@ export function DesignSystemPage() {
     }
   }, [listTemplateMode]);
 
-  const listTemplateFilterItems = useMemo(() => [
+  const listTemplateFilterItems = useMemo(() => createListFilterItems([
     {
       key: 'problemDesc',
       label: '问题描述',
@@ -617,18 +643,9 @@ export function DesignSystemPage() {
       label: '提出人',
       node: <AdminInput size="small" placeholder="请输入" />
     }
-  ], []);
+  ]), []);
 
-  const { containerRef: tableDrawerContainerRef, scrollY: tableDrawerScrollY } = useDrawerTableScrollY([
-    tableDrawerOpen,
-    tableDrawerFilterExpanded,
-    tableDrawerFilteredRows.length,
-    tableDrawerCurrentPage,
-    tableDrawerPageSize,
-    tableDrawerRows.length
-  ]);
-
-  const tableDrawerFilterItems = useMemo(() => [
+  const tableDrawerFilterItems = useMemo(() => createListFilterItems([
     {
       key: 'problemDesc',
       label: '问题描述',
@@ -771,7 +788,7 @@ export function DesignSystemPage() {
         />
       )
     }
-  ], [tableDrawerDraftFilters]);
+  ]), [tableDrawerDraftFilters]);
 
   const displayTableColumns = useMemo<ProColumns<WorkOrderRecord>[]>(() => [
     {
@@ -871,12 +888,12 @@ export function DesignSystemPage() {
       visibleCount={4}
       onExpandChange={setListTemplateFilterExpanded}
       onReset={() => {
-        setListTemplateCurrentPage(1);
+        setListTemplateFilterRevision((value) => value + 1);
         setListTemplateSelectedRowKeys([]);
         setListTemplateSelectedRows([]);
       }}
       onSearch={() => {
-        setListTemplateCurrentPage(1);
+        setListTemplateFilterRevision((value) => value + 1);
         setListTemplateSelectedRowKeys([]);
         setListTemplateSelectedRows([]);
       }}
@@ -889,30 +906,8 @@ export function DesignSystemPage() {
     pagination: false as const,
     search: false as const,
     scroll: { x: 1180 },
-    tableAlertRender: false as const
-  };
-  const listTemplateScrollYDeps = [
-    listTemplateMode,
-    listTemplateFilterExpanded,
-    listTemplateRows.length,
-    listTemplateCurrentPage,
-    listTemplatePageSize,
-    listTemplateSelectedRowKeys.length
-  ];
-  const listTemplatePagination = {
-    current: listTemplateCurrentPage,
-    pageSize: listTemplatePageSize,
-    total: mockWorkOrders.length,
-    onChange: (page: number, pageSize: number) => {
-      setListTemplateCurrentPage(page);
-      setListTemplatePageSize(pageSize);
-    },
-    onShowSizeChange: (_: number, pageSize: number) => {
-      setListTemplateCurrentPage(1);
-      setListTemplatePageSize(pageSize);
-      setListTemplateSelectedRowKeys([]);
-      setListTemplateSelectedRows([]);
-    }
+    tableAlertRender: false as const,
+    onChange: handleListTemplateTableChange
   };
 
   const listPageTemplateDemo = (
@@ -954,14 +949,13 @@ export function DesignSystemPage() {
                 }
               }
             }}
-            scrollYDeps={listTemplateScrollYDeps}
             batch={{
               selectedCount: listTemplateSelectedRows.length,
               actions: (
                 <>
                   <AdminButton size="small" disabled={listTemplateSelectedRows.length === 0}>批量指派</AdminButton>
                   <AdminButton size="small" disabled={listTemplateSelectedRows.length === 0}>批量状态变更</AdminButton>
-                  <AdminButton size="small" disabled={listTemplateSelectedRows.length === 0}>批量删除</AdminButton>
+                  <AdminButton danger size="small" disabled={listTemplateSelectedRows.length === 0}>批量删除</AdminButton>
                 </>
               )
             }}
@@ -974,7 +968,6 @@ export function DesignSystemPage() {
             actions={<AdminButton type="primary">新增工单</AdminButton>}
             filter={listTemplateFilter}
             table={listTemplateTableBase}
-            scrollYDeps={listTemplateScrollYDeps}
             pagination={listTemplatePagination}
           />
         )}
@@ -986,6 +979,7 @@ export function DesignSystemPage() {
     if (title === '列表页') return listPageTemplateDemo;
     if (title === '新增 / 编辑页') return <FormTemplateDemo />;
     if (title === '详情页') return <DetailTemplateDemo />;
+    if (title === '弹窗 / 抽屉') return <OverlayTemplateDemo />;
     return null;
   };
 
@@ -1099,7 +1093,7 @@ export function DesignSystemPage() {
                         <AdminSpace size={8}>
                           <AdminButton size="small">批量指派</AdminButton>
                           <AdminButton size="small" disabled>批量状态变更</AdminButton>
-                          <AdminButton size="small" disabled>批量删除</AdminButton>
+                          <AdminButton danger size="small" disabled>批量删除</AdminButton>
                         </AdminSpace>
                       )}
                       extra={(
@@ -1212,7 +1206,7 @@ export function DesignSystemPage() {
                       <AdminAvatar style={{ backgroundColor: 'var(--app-primary)' }}>张</AdminAvatar>
                       <AdminAvatar style={{ backgroundColor: 'var(--app-cyan)' }}>李</AdminAvatar>
                       <AdminAvatar style={{ backgroundColor: 'var(--app-purple)' }}>王</AdminAvatar>
-                      <AdminAvatar style={{ backgroundColor: '#f59e0b' }}>赵</AdminAvatar>
+                      <AdminAvatar style={{ backgroundColor: 'var(--app-warning-strong)' }}>赵</AdminAvatar>
                       <AdminAvatarGroup max={{ count: 3 }}>
                         <AdminAvatar style={{ backgroundColor: 'var(--app-primary)' }}>运</AdminAvatar>
                         <AdminAvatar style={{ backgroundColor: 'var(--app-steel)' }}>审</AdminAvatar>
@@ -1599,7 +1593,7 @@ export function DesignSystemPage() {
                 <section className="design-system-page__input-panel">
                   <div className="design-system-page__input-panel-head">
                     <h3>弹窗与抽屉</h3>
-                    <ComponentEntry name="AdminModal / AdminDrawer / StatusFlowModal" />
+                    <ComponentEntry name="AdminModal / AdminDrawer / TemplateDrawerTable / StatusFlowModal" />
                     <p>弹窗用于短流程，抽屉用于侧向补充。通用按钮统一使用取消和确认。</p>
                   </div>
                   <div className="design-system-page__input-demo-list">
@@ -1817,70 +1811,64 @@ export function DesignSystemPage() {
         </div>
       </AdminDrawer>
 
-      <AdminDrawer
+      <TemplateDrawerTable<DrawerTableRecord>
         title="表格抽屉"
         width="calc(100vw - 180px)"
         open={tableDrawerOpen}
-        rootClassName="design-system-page__table-drawer-root"
-        className="design-system-page__table-drawer"
         onClose={() => setTableDrawerOpen(false)}
-      >
-        <AdminParagraph>
-          表格抽屉用于在不离开当前页面的情况下查看关联数据，必须包含查询、表格、页码和操作。
-        </AdminParagraph>
-        <div ref={tableDrawerContainerRef} className="design-system-page__drawer-table">
-          <CompactFilterBar
-            items={tableDrawerFilterItems}
-            expanded={tableDrawerFilterExpanded}
-            visibleCount={4}
-            onExpandChange={setTableDrawerFilterExpanded}
-            onSearch={() => {
-              setTableDrawerAppliedFilters(tableDrawerDraftFilters);
-              setTableDrawerCurrentPage(1);
-              setTableDrawerSelectedRowKeys([]);
-              setTableDrawerSelectedRows([]);
-            }}
-            onReset={() => {
-              setTableDrawerDraftFilters(defaultDrawerTableFilters);
-              setTableDrawerAppliedFilters(defaultDrawerTableFilters);
-              setTableDrawerCurrentPage(1);
-              setTableDrawerSelectedRowKeys([]);
-              setTableDrawerSelectedRows([]);
-            }}
-          />
-
-          <div className="design-system-page__drawer-table-body">
-            <SearchTable<DrawerTableRecord>
-              className="design-system-page__drawer-search-table"
-              columns={drawerTableColumns}
-              dataSource={tableDrawerRows}
-              options={false}
-              pagination={false}
-              rowSelection={{
-                selectedRowKeys: tableDrawerSelectedRowKeys,
-                onChange: (keys, rows) => {
-                  setTableDrawerSelectedRowKeys(keys);
-                  setTableDrawerSelectedRows(rows);
-                }
+        description="表格抽屉用于在不离开当前页面的情况下查看关联数据，必须包含查询、表格、页码和操作。"
+        list={{
+          mode: 'batch',
+          filter: (
+            <CompactFilterBar
+              items={tableDrawerFilterItems}
+              expanded={tableDrawerFilterExpanded}
+              visibleCount={4}
+              onExpandChange={setTableDrawerFilterExpanded}
+              onSearch={() => {
+                setTableDrawerAppliedFilters(tableDrawerDraftFilters);
+                setTableDrawerCurrentPage(1);
+                setTableDrawerSelectedRowKeys([]);
+                setTableDrawerSelectedRows([]);
               }}
-              search={false}
-              scroll={{ x: 1600, y: tableDrawerScrollY }}
-              tableAlertRender={false}
+              onReset={() => {
+                setTableDrawerDraftFilters(defaultDrawerTableFilters);
+                setTableDrawerAppliedFilters(defaultDrawerTableFilters);
+                setTableDrawerCurrentPage(1);
+                setTableDrawerSelectedRowKeys([]);
+                setTableDrawerSelectedRows([]);
+              }}
             />
-          </div>
-
-          <TableFooterBar
-            selectedCount={tableDrawerSelectedRowKeys.length}
-            actions={(
+          ),
+          table: {
+            columns: tableDrawerDisplayColumns,
+            dataSource: tableDrawerRows,
+            preferenceKey: 'design-system:drawer-table',
+            pagination: false,
+            rowSelection: {
+              selectedRowKeys: tableDrawerSelectedRowKeys,
+              onChange: (keys, rows) => {
+                setTableDrawerSelectedRowKeys(keys);
+                setTableDrawerSelectedRows(rows);
+              }
+            },
+            search: false,
+            scroll: { x: 1600 },
+            tableAlertRender: false,
+            onChange: handleTableDrawerTableChange
+          },
+          batch: {
+            selectedCount: tableDrawerSelectedRowKeys.length,
+            actions: (
               <AdminSpace size={8}>
                 <AdminButton size="small">批量指派</AdminButton>
                 <AdminButton size="small" disabled={tableDrawerSelectedRows.length === 0}>批量状态变更</AdminButton>
-                <ConfirmAction
-                  danger
+                <DeleteConfirmAction
                   size="small"
                   disabled={tableDrawerSelectedRows.length === 0}
-                  title="确认批量删除"
-                  description={`删除后选中的 ${tableDrawerSelectedRows.length} 项工单将无法恢复，确认删除？`}
+                  entityName="选中的"
+                  targetName={`${tableDrawerSelectedRows.length} 项工单`}
+                  title="确认批量删除工单"
                   successMessage={`已删除 ${tableDrawerSelectedRows.length} 项工单`}
                   onConfirm={() => {
                     setTableDrawerSelectedRowKeys([]);
@@ -1888,32 +1876,25 @@ export function DesignSystemPage() {
                   }}
                 >
                   批量删除
-                </ConfirmAction>
+                </DeleteConfirmAction>
               </AdminSpace>
-            )}
-            extra={(
-              <TablePagination
-                current={tableDrawerCurrentPage}
-                pageSize={tableDrawerPageSize}
-                getPopupContainer={() => document.body}
-                total={tableDrawerFilteredRows.length}
-                onChange={(page, pageSize) => {
-                  setTableDrawerCurrentPage(page);
-                  setTableDrawerPageSize(pageSize);
-                  setTableDrawerSelectedRowKeys([]);
-                  setTableDrawerSelectedRows([]);
-                }}
-                onShowSizeChange={(_, pageSize) => {
-                  setTableDrawerCurrentPage(1);
-                  setTableDrawerPageSize(pageSize);
-                  setTableDrawerSelectedRowKeys([]);
-                  setTableDrawerSelectedRows([]);
-                }}
-              />
-            )}
-          />
-        </div>
-      </AdminDrawer>
+            )
+          },
+          pagination: {
+            ...tableDrawerPagination,
+            onChange: (page, pageSize) => {
+              tableDrawerPagination.onChange(page, pageSize);
+              setTableDrawerSelectedRowKeys([]);
+              setTableDrawerSelectedRows([]);
+            },
+            onShowSizeChange: (page, pageSize) => {
+              tableDrawerPagination.onShowSizeChange(page, pageSize);
+              setTableDrawerSelectedRowKeys([]);
+              setTableDrawerSelectedRows([]);
+            }
+          }
+        }}
+      />
     </div>
   );
 }

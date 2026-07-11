@@ -1,6 +1,7 @@
 import axios from 'axios';
 import type { ApiResponse } from '../types/api';
 import { useAuthStore } from '../stores/authStore';
+import type { ResponseContract } from './responseContract';
 
 export const request = axios.create({
   baseURL: '/api',
@@ -29,7 +30,17 @@ request.interceptors.response.use(
   }
 );
 
-export async function unwrap<T>(promise: Promise<{ data: ApiResponse<T> }>): Promise<T> {
+export async function unwrap<T>(
+  promise: Promise<{ data: ApiResponse<T> }>,
+  contract?: ResponseContract<T>
+): Promise<T> {
   const response = await promise;
-  return response.data.data;
+  const payload = response.data;
+  if (!payload || typeof payload.code !== 'number' || !Object.hasOwn(payload, 'data')) {
+    throw new Error('接口返回格式不正确');
+  }
+  if (contract && !contract(payload.data)) {
+    throw new Error('接口数据字段不符合约定');
+  }
+  return payload.data;
 }

@@ -12,6 +12,13 @@
   grid-template-columns: minmax(0, 1fr);
 }
 
+.admin-template-detail-page__state {
+  height: 100%;
+  min-height: 280px;
+  display: grid;
+  place-items: center;
+}
+
 .admin-template-detail-page__main,
 .admin-template-detail-page__aside {
   min-height: 0;
@@ -40,7 +47,7 @@
 }
 
 .admin-template-detail-page__code {
-  color: #64748b;
+  color: var(--app-muted);
   font-size: 12px;
 }
 

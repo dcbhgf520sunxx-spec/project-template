@@ -6,6 +6,7 @@ type PageShellProps = {
   title: string;
   description?: string;
   titleExtra?: ReactNode;
+  titleCenter?: ReactNode;
   actions?: ReactNode;
   loading?: boolean;
   compact?: boolean;
@@ -16,6 +17,7 @@ export function PageShell({
   title,
   description,
   titleExtra,
+  titleCenter,
   actions,
   loading,
   compact = false,
@@ -32,6 +34,7 @@ export function PageShell({
           </div>
           {description ? <p>{description}</p> : null}
         </div>
+        {titleCenter ? <div className="page-shell__title-center">{titleCenter}</div> : null}
         {actions ? <div className="page-shell__actions">{actions}</div> : null}
       </header>
       <div className="page-shell__body">

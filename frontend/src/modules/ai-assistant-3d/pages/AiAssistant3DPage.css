@@ -5,8 +5,8 @@
   background:
     radial-gradient(circle at 18% 10%, rgba(34, 211, 238, 0.18), transparent 30%),
     radial-gradient(circle at 86% 16%, rgba(99, 102, 241, 0.14), transparent 34%),
-    linear-gradient(180deg, #f8fbff 0%, #eaf1fa 100%);
-  color: #0f172a;
+    linear-gradient(180deg, var(--app-surface-tech) 0%, #eaf1fa 100%);
+  color: var(--app-text-strong);
 }
 
 .ai-assistant-page__header {
@@ -20,7 +20,7 @@
 
 .ai-assistant-page__eyebrow {
   margin: 0 0 8px;
-  color: #2563eb;
+  color: var(--app-primary-hover);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0;
@@ -29,7 +29,7 @@
 
 .ai-assistant-page__header h1 {
   margin: 0;
-  color: #0f172a;
+  color: var(--app-text-strong);
   font-size: 34px;
   font-weight: 760;
   line-height: 1.18;
@@ -39,7 +39,7 @@
 .ai-assistant-page__header p:last-child {
   max-width: 520px;
   margin: 0;
-  color: #475569;
+  color: var(--app-steel);
   font-size: 14px;
   line-height: 1.8;
 }
@@ -106,7 +106,7 @@
   border: 1px solid rgba(148, 163, 184, 0.22);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.78);
-  color: #0f172a;
+  color: var(--app-text-strong);
   backdrop-filter: blur(16px);
 }
 
@@ -122,7 +122,7 @@
 }
 
 .ai-assistant-stage__label span {
-  color: #64748b;
+  color: var(--app-muted);
   font-size: 12px;
 }
 

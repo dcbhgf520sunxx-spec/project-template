@@ -12,6 +12,7 @@ export type SearchTableProps<
   P extends Record<string, unknown> = Record<string, unknown>
 > = ProTableProps<T, P> & {
   columns: ProColumns<T>[];
+  preferenceKey?: string;
 };
 
 type ResizeHeaderCellProps = React.ThHTMLAttributes<HTMLTableCellElement> & {
@@ -120,12 +121,12 @@ export function SearchTable<
   T extends Record<string, unknown>,
   P extends Record<string, unknown> = Record<string, unknown>
 >(props: SearchTableProps<T, P>) {
-  const { className, columns, components, locale, pagination, ...restProps } = props;
+  const { className, columns, components, locale, pagination, preferenceKey, ...restProps } = props;
   const location = useLocation();
   const userId = useAuthStore((state) => state.user?.id);
   const tablePreferenceKey = useMemo(
-    () => `admin-table:${userId || 'anonymous'}:${location.pathname}`,
-    [location.pathname, userId]
+    () => `admin-table:${userId || 'anonymous'}:${preferenceKey || location.pathname}`,
+    [location.pathname, preferenceKey, userId]
   );
   const columnWidthsKey = `${tablePreferenceKey}:column-widths`;
   const tableSizeKey = `${tablePreferenceKey}:density`;

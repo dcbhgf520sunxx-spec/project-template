@@ -1,5 +1,7 @@
 import type { PageResult } from '../types/api';
 import { request, unwrap } from './requestClient';
+import { objectContract } from './responseContract';
+import { mapPageResult, type PageResponse } from './pageResult';
 
 type DateLike = {
   format: (template: string) => string;
@@ -33,6 +35,10 @@ export type AccessLogFilters = {
   failReason?: string;
   ip: string;
   accessTimeRange: DateLike[];
+  current?: number;
+  pageSize?: number;
+  sortField?: string;
+  sortOrder?: 'ascend' | 'descend';
 };
 
 type AccessLogResponse = {
@@ -53,6 +59,9 @@ type AccessLogResponse = {
   user_agent?: string;
   created_at?: string;
 };
+
+const accessLogContract = objectContract<AccessLogResponse>(['id', 'event_type', 'result']);
+const accessLogPageContract = objectContract<PageResponse<AccessLogResponse>>(['list', 'total', 'page', 'pageSize']);
 
 function formatDate(value?: string) {
   return String(value || '').slice(0, 19).replace('T', ' ');
@@ -99,8 +108,25 @@ function toRangeParams(range: DateLike[]) {
   };
 }
 
+function toAccessLogSortField(field?: string) {
+  const sortMap: Record<string, string> = {
+    employeeNo: 'employee_no',
+    account: 'account',
+    realName: 'real_name',
+    result: 'result',
+    failReason: 'fail_reason',
+    loginAt: 'login_at',
+    logoutAt: 'logout_at',
+    lastActiveAt: 'last_active_at',
+    durationSeconds: 'duration_seconds',
+    ip: 'ip',
+    createdAt: 'created_at'
+  };
+  return field ? sortMap[field] || field : undefined;
+}
+
 export async function getAccessLogList(params: AccessLogFilters): Promise<PageResult<AccessLogRecord>> {
-  const rows = await unwrap<AccessLogResponse[]>(request.get('/access-logs', {
+  const page = await unwrap<PageResponse<AccessLogResponse>>(request.get('/access-logs', {
     params: {
       account: params.account || undefined,
       employee_no: params.employeeNo || undefined,
@@ -108,16 +134,14 @@ export async function getAccessLogList(params: AccessLogFilters): Promise<PageRe
       result: params.result,
       fail_reason: params.failReason,
       ip: params.ip || undefined,
-      ...toRangeParams(params.accessTimeRange)
+      ...toRangeParams(params.accessTimeRange),
+      page: params.current || 1,
+      pageSize: params.pageSize || 20,
+      sort_field: toAccessLogSortField(params.sortField),
+      sort_order: params.sortOrder
     }
-  }));
-
-  return {
-    list: rows.map(toAccessLogRecord),
-    total: rows.length,
-    page: 1,
-    pageSize: rows.length
-  };
+  }), accessLogPageContract);
+  return mapPageResult(page, toAccessLogRecord);
 }
 
 export function heartbeatAccessSession(sessionId?: string) {

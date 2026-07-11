@@ -8,7 +8,10 @@ import {
   AdminTextAction,
   CompactFilterBar,
   ConfirmAction,
+  createListFilterItems,
+  createListSorters,
   DetailLinkCell,
+  listSorters,
   OperationColumnActions,
   PermissionButton,
   StatusTag,
@@ -37,42 +40,22 @@ const defaultFilters: UserFilters = {
   status: undefined
 };
 
-const userSorters: Record<string, (a: UserRecord, b: UserRecord) => number> = {
-  employeeNo: (a, b) => a.employeeNo.localeCompare(b.employeeNo),
-  realName: (a, b) => a.realName.localeCompare(b.realName),
-  phone: (a, b) => (a.phone || '').localeCompare(b.phone || ''),
-  roleName: (a, b) => (a.roleName || '').localeCompare(b.roleName || ''),
-  status: (a, b) => a.status.localeCompare(b.status),
-  creatorName: (a, b) => (a.creatorName || '').localeCompare(b.creatorName || ''),
-  createdAt: (a, b) => a.createdAt.localeCompare(b.createdAt)
-};
+const userSorters = createListSorters<UserRecord>({
+  employeeNo: listSorters.text((row) => row.employeeNo),
+  realName: listSorters.text((row) => row.realName),
+  phone: listSorters.text((row) => row.phone),
+  roleName: listSorters.text((row) => row.roleName),
+  status: listSorters.text((row) => row.status),
+  creatorName: listSorters.text((row) => row.creatorName),
+  createdAt: listSorters.date((row) => row.createdAt)
+});
 
 export function UserListPage() {
   const navigate = useNavigate();
   const [rows, setRows] = useState<UserRecord[]>([]);
-  const { draftFilters, appliedFilters, setDraftFilters, commitFilters, resetFilters } = useCommittedFilters(defaultFilters);
+  const [serverTotal, setServerTotal] = useState(0);
+  const { draftFilters, appliedFilters, revision: filterRevision, setDraftFilters, commitFilters, resetFilters } = useCommittedFilters(defaultFilters);
   const [roleOptions, setRoleOptions] = useState<Array<{ label: string; value: string }>>([]);
-
-  const loadRows = async () => {
-    const result = await getUserList({ pageSize: 1000 });
-    setRows(result.list);
-  };
-
-  useEffect(() => {
-    loadRows();
-    getRoleOptions().then(setRoleOptions);
-  }, []);
-
-  const filteredRows = useMemo(() => rows.filter((row) => {
-    const matchEmployeeNo = appliedFilters.employeeNo ? row.employeeNo.includes(appliedFilters.employeeNo) : true;
-    const matchRealName = appliedFilters.realName ? row.realName.includes(appliedFilters.realName) : true;
-    const matchPhone = appliedFilters.phone ? (row.phone || '').includes(appliedFilters.phone) : true;
-    const matchRole = appliedFilters.roleIds.length > 0
-      ? appliedFilters.roleIds.some((roleId) => row.roleIds?.includes(roleId))
-      : true;
-    const matchStatus = appliedFilters.status ? row.status === appliedFilters.status : true;
-    return matchEmployeeNo && matchRealName && matchPhone && matchRole && matchStatus;
-  }), [appliedFilters, rows]);
 
   const {
     currentPage,
@@ -80,13 +63,32 @@ export function UserListPage() {
     pagedRows,
     sortState,
     total,
-    setCurrentPage,
-    setPageSize,
+    pagination,
     handleTableChange,
     renderIndex
-  } = useTemplateListPageData({ rows: filteredRows, sorters: userSorters });
+  } = useTemplateListPageData({ rows, sorters: userSorters, resetOn: [filterRevision], total: serverTotal, serverPaging: true });
 
-  const filterItems = [
+  const loadRows = async () => {
+    const result = await getUserList({
+      ...appliedFilters,
+      current: currentPage,
+      pageSize,
+      sortField: sortState.field,
+      sortOrder: sortState.order || undefined
+    });
+    setRows(result.list);
+    setServerTotal(result.total);
+  };
+
+  useEffect(() => {
+    loadRows();
+  }, [appliedFilters, currentPage, pageSize, sortState.field, sortState.order]);
+
+  useEffect(() => {
+    getRoleOptions().then(setRoleOptions);
+  }, []);
+
+  const filterItems = createListFilterItems([
     {
       key: 'employeeNo',
       label: '工号',
@@ -98,7 +100,6 @@ export function UserListPage() {
           onChange={(event) => setDraftFilters((prev) => ({ ...prev, employeeNo: event.target.value }))}
           onPressEnter={() => {
             commitFilters();
-            setCurrentPage(1);
           }}
         />
       )
@@ -114,7 +115,6 @@ export function UserListPage() {
           onChange={(event) => setDraftFilters((prev) => ({ ...prev, realName: event.target.value }))}
           onPressEnter={() => {
             commitFilters();
-            setCurrentPage(1);
           }}
         />
       )
@@ -130,7 +130,6 @@ export function UserListPage() {
           onChange={(event) => setDraftFilters((prev) => ({ ...prev, phone: event.target.value }))}
           onPressEnter={() => {
             commitFilters();
-            setCurrentPage(1);
           }}
         />
       )
@@ -166,7 +165,7 @@ export function UserListPage() {
         />
       )
     }
-  ];
+  ]);
 
   const columns: ProColumns<UserRecord>[] = [
     {
@@ -287,11 +286,9 @@ export function UserListPage() {
           visibleCount={4}
           onSearch={() => {
             commitFilters();
-            setCurrentPage(1);
           }}
           onReset={() => {
             resetFilters();
-            setCurrentPage(1);
           }}
         />
       )}
@@ -304,20 +301,7 @@ export function UserListPage() {
         tableAlertRender: false,
         scroll: { x: 1200 }
       }}
-      scrollYDeps={[total, currentPage, pageSize, pagedRows.length]}
-      pagination={{
-        current: currentPage,
-        pageSize,
-        total,
-        onChange: (page, size) => {
-          setCurrentPage(page);
-          setPageSize(size);
-        },
-        onShowSizeChange: (_, size) => {
-          setCurrentPage(1);
-          setPageSize(size);
-        }
-      }}
+      pagination={pagination}
     />
   );
 }

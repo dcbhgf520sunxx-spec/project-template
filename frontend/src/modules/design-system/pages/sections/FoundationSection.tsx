@@ -7,9 +7,9 @@ const foundationColorGroups = [
     note: '全局统一，承载主按钮、导航选中、核心操作和重点链接。',
     colors: [
       { name: '默认', value: '#1f6fff', scene: '主按钮、选中态、核心链接', token: 'app-primary' },
-      { name: '悬浮', value: '#2563eb', scene: '蓝色文字悬浮、主交互悬浮态', token: 'app-primary-hover' },
+      { name: '悬浮', value: 'var(--app-primary-hover)', scene: '蓝色文字悬浮、主交互悬浮态', token: 'app-primary-hover' },
       { name: '深色', value: '#1559d6', scene: '按钮按下、强调态', token: 'app-primary-deep' },
-      { name: '浅背景', value: '#edf4ff', scene: '选中背景、轻提示背景', token: 'app-bg-strong' }
+      { name: '浅背景', value: 'var(--app-bg-strong)', scene: '选中背景、轻提示背景', token: 'app-bg-strong' }
     ]
   },
   {
@@ -17,9 +17,9 @@ const foundationColorGroups = [
     note: '按场景克制使用，单页按需选 1-3 种，避免后台页面变花。',
     colors: [
       { name: '青蓝', value: '#0ea5e9', scene: '信息提示、辅助点缀，不做核心悬浮色', token: 'app-cyan' },
-      { name: '淡紫', value: '#7c3aed', scene: 'AI 标识、特色模块', token: 'app-purple' },
-      { name: '暖橙', value: '#f59e0b', scene: '待办、提醒、中优先级', token: 'semantic-warning' },
-      { name: '冷灰蓝', value: '#475569', scene: '弱操作、次级图标、辅助说明', token: 'app-steel' }
+      { name: '淡紫', value: 'var(--app-purple)', scene: 'AI 标识、特色模块', token: 'app-purple' },
+      { name: '暖橙', value: 'var(--app-warning-strong)', scene: '待办、提醒、中优先级', token: 'semantic-warning' },
+      { name: '冷灰蓝', value: 'var(--app-steel)', scene: '弱操作、次级图标、辅助说明', token: 'app-steel' }
     ]
   },
   {
@@ -27,9 +27,9 @@ const foundationColorGroups = [
     note: '文字、背景、边框和表头优先使用中性色，保证长期耐看。',
     colors: [
       { name: '正文', value: '#12213a', scene: '一级文字、表格主内容', token: 'app-text' },
-      { name: '辅助文字', value: '#64748b', scene: '说明、占位、弱信息', token: 'app-muted' },
+      { name: '辅助文字', value: 'var(--app-muted)', scene: '说明、占位、弱信息', token: 'app-muted' },
       { name: '页面背景', value: '#f4f8fd', scene: '后台页面底色', token: 'app-bg' },
-      { name: '边框', value: '#dce8f7', scene: '卡片、输入框、表格分割', token: 'app-border' }
+      { name: '边框', value: 'var(--app-border)', scene: '卡片、输入框、表格分割', token: 'app-border' }
     ]
   },
   {
@@ -37,8 +37,8 @@ const foundationColorGroups = [
     note: '状态色全局不可随意替换，尤其是成功、警告、危险。',
     colors: [
       { name: '成功', value: '#22c55e', scene: '已完成、通过、成功反馈', token: 'semantic-success' },
-      { name: '警告', value: '#f59e0b', scene: '预警、待确认、中度异常', token: 'semantic-warning' },
-      { name: '危险', value: '#ef4444', scene: '删除、报错、校验失败', token: 'semantic-danger' },
+      { name: '警告', value: 'var(--app-warning-strong)', scene: '预警、待确认、中度异常', token: 'semantic-warning' },
+      { name: '危险', value: 'var(--app-danger-light)', scene: '删除、报错、校验失败', token: 'semantic-danger' },
       { name: '信息', value: '#1f6fff', scene: '普通通知、帮助、待处理', token: 'semantic-info' }
     ]
   },

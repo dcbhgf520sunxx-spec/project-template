@@ -4,7 +4,7 @@
 
 .admin-select.ant-select .ant-select-selector {
   min-height: 32px;
-  border-color: #dce8f7 !important;
+  border-color: var(--app-border) !important;
   border-radius: 6px;
   font-size: 13px;
 }
@@ -70,12 +70,12 @@
 }
 
 .admin-select.ant-select:hover .ant-select-selector {
-  border-color: #1f6fff !important;
+  border-color: var(--app-primary) !important;
 }
 
 .admin-select.ant-select-focused .ant-select-selector {
-  border-color: #1f6fff !important;
-  box-shadow: 0 0 0 2px rgba(31, 111, 255, 0.1) !important;
+  border-color: var(--app-primary) !important;
+  box-shadow: 0 0 0 2px var(--app-glow) !important;
 }
 
 .admin-select.ant-select-allow-clear:hover .ant-select-arrow {

@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Button, message, Space, Typography } from 'antd';
+import { message, Space } from 'antd';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
-  ActionBar,
+  AdminButton,
+  AdminText,
   AdminTextAction,
   ConfirmAction,
   DetailMetaList,
@@ -30,7 +31,18 @@ export function WorkOrderTemplateDetailPage() {
   const [statusOpen, setStatusOpen] = useState(false);
   const [targetStatus, setTargetStatus] = useState<WorkOrderStatus | undefined>();
   const [historyExpandedKeys, setHistoryExpandedKeys] = useState<string[]>([]);
-  const detail = mockWorkOrders.find((item) => item.id === params.id) || mockWorkOrders[0];
+  const detail = mockWorkOrders.find((item) => item.id === params.id);
+  if (!detail) {
+    return (
+      <TemplateDetailPage
+        title="工单详情样板"
+        notFound
+        onBack={() => navigate('/samples/work-order')}
+      >
+        {null}
+      </TemplateDetailPage>
+    );
+  }
   const nextStatuses = statusOptions.filter((item) => item.value > detail.status);
   const expandableHistoryKeys = mockWorkOrderHistory.filter((item) => item.changes?.length).map((item) => item.id);
   const isAllHistoryExpanded =
@@ -39,6 +51,7 @@ export function WorkOrderTemplateDetailPage() {
   return (
     <TemplateDetailPage
       title="工单详情样板"
+      onBack={() => navigate('/samples/work-order')}
       titleExtra={(
         <Space size={8} className="admin-template-detail-page__title-extra">
           <span className="admin-template-detail-page__code">{detail.code}</span>
@@ -48,10 +61,9 @@ export function WorkOrderTemplateDetailPage() {
         </Space>
       )}
       actions={
-        <ActionBar>
-          <Button onClick={() => navigate('/samples/work-order')}>返回列表</Button>
-          <Button type="primary" onClick={() => navigate(`/samples/work-order/${detail.id}/edit`)}>编辑</Button>
-          <Button onClick={() => navigate(`/samples/work-order/${detail.id}/copy`)}>复制</Button>
+        <>
+          <AdminButton type="primary" onClick={() => navigate(`/samples/work-order/${detail.id}/edit`)}>编辑</AdminButton>
+          <AdminButton onClick={() => navigate(`/samples/work-order/${detail.id}/copy`)}>复制</AdminButton>
           <ConfirmAction
             danger
             title="确认删除"
@@ -64,7 +76,7 @@ export function WorkOrderTemplateDetailPage() {
           >
             删除
           </ConfirmAction>
-        </ActionBar>
+        </>
       }
       statusSection={{
         children: (
@@ -80,17 +92,17 @@ export function WorkOrderTemplateDetailPage() {
               </div>
               <div className="work-order-detail-page__status-row">
                 <span>逾期</span>
-                {detail.status < 2 ? renderOverdue(detail.isOverdue) : <Typography.Text type="secondary">-</Typography.Text>}
+                {detail.status < 2 ? renderOverdue(detail.isOverdue) : <AdminText type="secondary">-</AdminText>}
               </div>
             </div>
             <Space direction="vertical" size={8} className="work-order-detail-page__side-actions">
-              <Button block type="primary" onClick={() => {
+              <AdminButton block type="primary" onClick={() => {
                 setTargetStatus(undefined);
                 setStatusOpen(true);
               }}
               >
                 状态变更
-              </Button>
+              </AdminButton>
             </Space>
           </>
         )

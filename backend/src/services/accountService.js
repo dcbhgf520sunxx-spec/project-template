@@ -44,6 +44,18 @@ function validateAvatarPayload(payload = {}) {
   const buffer = Buffer.from(payload.contentBase64, 'base64')
   if (!buffer.length) throw new Error('头像文件不能为空')
   if (buffer.length > AVATAR_MAX_BYTES) throw new Error(`头像大小不能超过 ${AVATAR_MAX_MB}MB`)
+  const signatures = {
+    '.jpg': Buffer.from([0xff, 0xd8, 0xff]),
+    '.png': Buffer.from([0x89, 0x50, 0x4e, 0x47]),
+    '.webp': Buffer.from('RIFF')
+  }
+  const signature = signatures[extension]
+  if (!signature || !buffer.subarray(0, signature.length).equals(signature)) {
+    throw new Error('头像文件内容与声明类型不一致')
+  }
+  if (extension === '.webp' && buffer.subarray(8, 12).toString() !== 'WEBP') {
+    throw new Error('头像文件内容与声明类型不一致')
+  }
 
   return { extension, buffer }
 }
@@ -154,14 +166,26 @@ async function saveAvatar(userId, payload = {}) {
   const filePath = path.join(uploadDir, fileName)
   await fs.writeFile(filePath, buffer)
 
+  const previous = await db.prepare('SELECT avatar_url FROM pms_user WHERE id = ?').get(userId)
   const avatarUrl = `/uploads/avatars/${fileName}`
   await db.prepare('UPDATE pms_user SET avatar_url = ?, updater_id = ?, updated_at = NOW() WHERE id = ?').run(avatarUrl, userId, userId)
+  await removeManagedAvatar(previous?.avatar_url)
   return toAvatarResponse(avatarUrl)
 }
 
 async function resetAvatar(userId) {
+  const previous = await db.prepare('SELECT avatar_url FROM pms_user WHERE id = ?').get(userId)
   await db.prepare('UPDATE pms_user SET avatar_url = NULL, updater_id = ?, updated_at = NOW() WHERE id = ?').run(userId, userId)
+  await removeManagedAvatar(previous?.avatar_url)
   return toAvatarResponse(null)
+}
+
+async function removeManagedAvatar(avatarUrl) {
+  if (!avatarUrl?.startsWith('/uploads/avatars/')) return
+  const filePath = path.join(__dirname, '../../uploads/avatars', path.basename(avatarUrl))
+  await fs.unlink(filePath).catch(error => {
+    if (error.code !== 'ENOENT') throw error
+  })
 }
 
 async function getPreference(userId) {

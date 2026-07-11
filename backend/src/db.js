@@ -1,8 +1,6 @@
 const { Pool, types } = require('pg')
-const dotenv = require('dotenv')
 const { toPostgresSql, withReturningId } = require('./dbSql')
-
-dotenv.config()
+require('./config/loadEnv')
 
 const DB_TIMEZONE = process.env.DB_TIMEZONE || 'Asia/Shanghai'
 

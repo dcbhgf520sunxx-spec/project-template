@@ -1,0 +1,61 @@
+.overlay-template-demo__grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.overlay-template-demo__grid section {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid rgba(220, 232, 247, 0.92);
+  border-radius: 6px;
+  background: var(--app-surface-tech);
+}
+
+.overlay-template-demo__grid h4,
+.overlay-template-demo__grid p {
+  margin: 0;
+}
+
+.overlay-template-demo__grid h4 {
+  color: var(--app-heading);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.overlay-template-demo__grid p {
+  min-height: 36px;
+  color: var(--app-muted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.overlay-template-demo__grid .admin-button {
+  justify-self: start;
+}
+
+.overlay-template-demo__drawer-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.overlay-template-demo__drawer-form label {
+  display: grid;
+  gap: 6px;
+  color: var(--app-steel);
+  font-size: 13px;
+}
+
+.overlay-template-demo__drawer-form .is-wide {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 1180px) {
+  .overlay-template-demo__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

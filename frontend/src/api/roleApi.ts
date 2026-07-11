@@ -1,4 +1,5 @@
 import { request, unwrap } from './requestClient';
+import { arrayContract, objectContract } from './responseContract';
 import type { PageResult } from '../types/api';
 
 export type RoleRecord = Record<string, unknown> & {
@@ -24,6 +25,8 @@ type RoleListParams = {
   name?: string;
   current?: number;
   pageSize?: number;
+  sortField?: string;
+  sortOrder?: 'ascend' | 'descend';
 };
 
 type RoleResponse = {
@@ -37,6 +40,12 @@ type RoleResponse = {
   created_at?: string;
   updated_at?: string;
 };
+
+const roleContract = objectContract<RoleResponse>(['id', 'code', 'name']);
+const roleListContract = objectContract<{ list: RoleResponse[]; total: number; page: number; pageSize: number }>(
+  ['list', 'total', 'page', 'pageSize'],
+  { list: arrayContract(roleContract) }
+);
 
 export type MenuRecord = {
   id: number;
@@ -63,22 +72,30 @@ function toRoleRecord(row: RoleResponse): RoleRecord {
   };
 }
 
+function toRoleSortField(field?: string) {
+  const sortMap: Record<string, string> = {
+    code: 'code',
+    name: 'name',
+    creatorName: 'creator_name',
+    createdAt: 'created_at'
+  };
+  return field ? sortMap[field] || field : undefined;
+}
+
 export async function getRoleList(params: RoleListParams = {}): Promise<PageResult<RoleRecord>> {
-  const rows = await unwrap<RoleResponse[]>(request.get('/roles', {
+  const result = await unwrap<{ list: RoleResponse[]; total: number; page: number; pageSize: number }>(request.get('/roles', {
     params: {
       code: params.code,
-      name: params.name
+      name: params.name,
+      page: params.current,
+      pageSize: params.pageSize,
+      sort_field: toRoleSortField(params.sortField),
+      sort_order: params.sortOrder
     }
-  }));
-  const page = Number(params.current || 1);
-  const pageSize = Number(params.pageSize || 20);
-  const start = (page - 1) * pageSize;
+  }), roleListContract);
 
   return {
-    list: rows.map(toRoleRecord).slice(start, start + pageSize),
-    total: rows.length,
-    page,
-    pageSize
+    list: result.list.map(toRoleRecord), total: result.total, page: result.page, pageSize: result.pageSize
   };
 }
 
@@ -88,7 +105,7 @@ export async function getRoleOptions() {
 }
 
 export async function getRole(id: string) {
-  const row = await unwrap<RoleResponse>(request.get(`/roles/${id}`));
+  const row = await unwrap<RoleResponse>(request.get(`/roles/${id}`), roleContract);
   return toRoleRecord(row);
 }
 

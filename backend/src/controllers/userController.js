@@ -1,5 +1,22 @@
 const db = require('../db')
 const bcrypt = require('bcryptjs')
+const { getSortDirection, parsePagination } = require('../utils/pagination')
+const { fail, ok } = require('../utils/response')
+const { validateBody } = require('../utils/validation')
+
+function requireValidBody(res, body, schema) {
+  const result = validateBody(body, schema)
+  if (result.ok) return true
+  fail(res, 400, 400, result.message)
+  return false
+}
+
+const userFormSchema = {
+  employee_no: { required: true, label: '工号' },
+  real_name: { required: true, label: '姓名' },
+  status: { type: 'enum', values: [0, 1], label: '状态' },
+  role_ids: { type: 'array', label: '角色' }
+}
 
 function withCreatorUpdater(sql) {
   return `SELECT ${sql}, u1.real_name as creator_name, u2.real_name as updater_name
@@ -11,6 +28,7 @@ function withCreatorUpdater(sql) {
 exports.list = async (req, res) => {
   try {
     const { employee_no, real_name, phone, status, role_ids } = req.query
+    const { page, pageSize, offset } = parsePagination(req.query)
     let baseSql = withCreatorUpdater('pms_user.id, pms_user.employee_no, pms_user.real_name, pms_user.phone, pms_user.status, pms_user.creator_id, pms_user.updater_id, pms_user.created_at, pms_user.updated_at')
 
     let sql, params = []
@@ -36,13 +54,23 @@ exports.list = async (req, res) => {
       if (status !== undefined && status !== '') { sql += ' AND pms_user.status = ?'; params.push(status) }
     }
 
-    sql += ' ORDER BY created_at DESC'
+    const prefix = ids.length > 0 ? 'pu' : 'pms_user'
+    const sortMap = {
+      employee_no: `${prefix}.employee_no`, real_name: `${prefix}.real_name`, phone: `${prefix}.phone`,
+      status: `${prefix}.status`, creator_name: 'creator_name', created_at: `${prefix}.created_at`,
+    }
+    const sortField = sortMap[req.query.sort_field] || `${prefix}.created_at`
+    const sortDirection = getSortDirection(req.query.sort_order)
+    sql = sql.replace('SELECT pu.*', 'SELECT pu.*, COUNT(*) OVER() as total')
+    if (!sql.includes('COUNT(*) OVER()')) sql = sql.replace('SELECT pms_user.id,', 'SELECT COUNT(*) OVER() as total, pms_user.id,')
+    sql += ` ORDER BY ${sortField} ${sortDirection}, ${prefix}.id ${sortDirection} LIMIT ? OFFSET ?`
+    params.push(pageSize, offset)
 
     const rows = await db.prepare(sql).all(...params)
     const getRoles = db.prepare(`SELECT r.id, r.name FROM pms_user_role ur LEFT JOIN pms_role r ON ur.role_id = r.id WHERE ur.user_id = ? ORDER BY r.id`)
     for (const row of rows) { row.roles = await getRoles.all(row.id) }
 
-    res.json({ code: 0, message: 'success', data: rows })
+    res.json({ code: 0, message: 'success', data: { list: rows, total: Number(rows[0]?.total || 0), page, pageSize } })
   } catch (err) {
     console.error(err)
     res.status(500).json({ code: 500, message: '查询失败', data: null })
@@ -85,15 +113,16 @@ exports.getById = async (req, res) => {
 
 exports.create = async (req, res) => {
   try {
+    if (!requireValidBody(res, req.body, userFormSchema)) return
     const { employee_no, real_name, phone, password, status, role_ids, creator_id } = req.body
 
     if (employee_no) {
       const exists = await db.prepare('SELECT id FROM pms_user WHERE employee_no = ? AND is_deleted = 0').get(employee_no)
-      if (exists) return res.status(400).json({ code: 400, message: '工号已存在', data: null })
+      if (exists) return fail(res, 400, 400, '工号已存在')
     }
     if (phone) {
       const exists = await db.prepare('SELECT id FROM pms_user WHERE phone = ? AND is_deleted = 0').get(phone)
-      if (exists) return res.status(400).json({ code: 400, message: '手机号已存在', data: null })
+      if (exists) return fail(res, 400, 400, '手机号已存在')
     }
 
     const hashedPassword = await bcrypt.hash(password || 'vv123456', 10)
@@ -115,22 +144,23 @@ exports.create = async (req, res) => {
       await db.writeLog(creator_id, '新增', '用户', userId, null, null, JSON.stringify({ employee_no, real_name, phone }), req.ip)
     })
 
-    res.json({ code: 0, message: 'success', data: { id: userId } })
+    ok(res, { id: userId })
   } catch (err) {
     console.error(err)
-    res.status(500).json({ code: 500, message: '创建失败', data: null })
+    fail(res, 500, 500, '创建失败')
   }
 }
 
 exports.update = async (req, res) => {
   try {
+    if (!requireValidBody(res, req.body, userFormSchema)) return
     const { employee_no, real_name, phone, password, status, role_ids, updater_id } = req.body
 
     const old = await db.prepare('SELECT employee_no, real_name, phone, status FROM pms_user WHERE id = ?').get(req.params.id)
 
     if (phone) {
       const exists = await db.prepare('SELECT id FROM pms_user WHERE phone = ? AND is_deleted = 0 AND id != ?').get(phone, req.params.id)
-      if (exists) return res.status(400).json({ code: 400, message: '手机号已存在', data: null })
+      if (exists) return fail(res, 400, 400, '手机号已存在')
     }
 
     // Build changes: one entry per changed field
@@ -194,62 +224,65 @@ exports.update = async (req, res) => {
       }
     })
 
-    res.json({ code: 0, message: 'success', data: null })
+    ok(res, null)
   } catch (err) {
     console.error(err)
-    res.status(500).json({ code: 500, message: '更新失败', data: null })
+    fail(res, 500, 500, '更新失败')
   }
 }
 
 exports.remove = async (req, res) => {
   try {
+    if (!requireValidBody(res, req.body, { updater_id: { type: 'number', label: '更新人' } })) return
     const { updater_id } = req.body
     const userId = req.params.id
 
     // 检查是否有角色关联
     const roleRef = await db.prepare('SELECT COUNT(*) as cnt FROM pms_user_role WHERE user_id = ?').get(userId)
     if (roleRef?.cnt > 0) {
-      return res.status(400).json({ code: 400, message: '该用户已分配角色，无法删除', data: null })
+      return fail(res, 400, 400, '该用户已分配角色，无法删除')
     }
 
     // 检查是否作为跟踪人被工单引用
     const woRef = await db.prepare('SELECT COUNT(*) as cnt FROM pms_work_order WHERE follower_id = ? AND is_deleted = 0').get(userId)
     if (woRef?.cnt > 0) {
-      return res.status(400).json({ code: 400, message: '该用户已被运维工单引用为跟踪人，无法删除', data: null })
+      return fail(res, 400, 400, '该用户已被运维工单引用为跟踪人，无法删除')
     }
 
     await db.prepare('UPDATE pms_user SET is_deleted = 1, updater_id = ? WHERE id = ?').run(updater_id || null, userId)
     if (updater_id) await db.writeLog(updater_id, '删除', '用户', userId, 'is_deleted', '0', '1', req.ip)
-    res.json({ code: 0, message: 'success', data: null })
+    ok(res, null)
   } catch (err) {
     console.error(err)
-    res.status(500).json({ code: 500, message: '删除失败', data: null })
+    fail(res, 500, 500, '删除失败')
   }
 }
 
 exports.toggleStatus = async (req, res) => {
   try {
+    if (!requireValidBody(res, req.body, { status: { required: true, type: 'enum', values: [0, 1], label: '状态' }, updater_id: { type: 'number', label: '更新人' } })) return
     const { status, updater_id } = req.body
     const oldStatus = await db.prepare('SELECT status FROM pms_user WHERE id = ?').get(req.params.id)
     await db.prepare('UPDATE pms_user SET status = ?, updater_id = ? WHERE id = ?').run(status, updater_id || null, req.params.id)
     if (updater_id) await db.writeLog(updater_id, '状态变更', '用户', req.params.id, 'status', String(oldStatus?.status ?? ''), String(status), req.ip)
-    res.json({ code: 0, message: 'success', data: null })
+    ok(res, null)
   } catch (err) {
     console.error(err)
-    res.status(500).json({ code: 500, message: '操作失败', data: null })
+    fail(res, 500, 500, '操作失败')
   }
 }
 
 exports.resetPassword = async (req, res) => {
   try {
+    if (!requireValidBody(res, req.body, { updater_id: { type: 'number', label: '更新人' } })) return
     const { updater_id } = req.body
     const hashed = await bcrypt.hash('vv123456', 10)
     await db.prepare('UPDATE pms_user SET password = ?, updater_id = ? WHERE id = ?').run(hashed, updater_id || null, req.params.id)
     if (updater_id) await db.writeLog(updater_id, '重置密码', '用户', req.params.id, 'password', '***', 'vv123456', req.ip)
-    res.json({ code: 0, message: 'success', data: null })
+    ok(res, null)
   } catch (err) {
     console.error(err)
-    res.status(500).json({ code: 500, message: '操作失败', data: null })
+    fail(res, 500, 500, '操作失败')
   }
 }
 

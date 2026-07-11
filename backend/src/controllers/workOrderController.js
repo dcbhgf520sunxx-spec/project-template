@@ -1,6 +1,39 @@
 const db = require('../db')
 const { calcOverdue } = require('../utils/calcOverdue')
 const { refreshOverdueStatus } = require('../services/overdueCron')
+const { getSortDirection, parsePagination } = require('../utils/pagination')
+const { fail, ok } = require('../utils/response')
+const { validateBody } = require('../utils/validation')
+
+function requireValidBody(res, body, schema) {
+  const result = validateBody(body, schema)
+  if (result.ok) return true
+  fail(res, 400, 400, result.message)
+  return false
+}
+
+const workOrderFormSchema = {
+  problem_type: { required: true, type: 'number', label: '问题类型' },
+  system_id: { type: 'number', label: '所属系统' },
+  problem_desc: { required: true, label: '问题描述' },
+  follower_id: { required: true, type: 'number', label: '跟进人' },
+  urgency: { required: true, type: 'enum', values: [0, 1, 2], label: '紧急程度' },
+  status: { type: 'enum', values: [0, 1, 2, 3], label: '状态' },
+  expected_resolve_date: { required: true, label: '预计完成时间' },
+  submitter_name: { required: true, label: '提出人' },
+  submit_time: { required: true, label: '提出时间' }
+}
+
+const workOrderStatusSchema = {
+  status: { required: true, type: 'enum', values: [0, 1, 2, 3], label: '状态' },
+  updater_id: { type: 'number', label: '更新人' }
+}
+
+const workOrderBatchAssignSchema = {
+  ids: { required: true, type: 'array', label: '工单' },
+  follower_id: { required: true, type: 'number', label: '跟进人' },
+  updater_id: { type: 'number', label: '更新人' }
+}
 
 function withJoins(sql) {
   return `SELECT ${sql}, u1.real_name as creator_name, u2.real_name as updater_name, u3.real_name as follower_name,
@@ -19,7 +52,16 @@ function buildWhereClause(q) {
   const params = []
   if (q.problem_desc) { sql += ' AND w.problem_desc LIKE ?'; params.push(`%${q.problem_desc}%`) }
   if (q.system_id) { sql += ' AND w.system_id = ?'; params.push(q.system_id) }
-  if (q.problem_type !== undefined && q.problem_type !== '') { sql += ' AND w.problem_type = ?'; params.push(q.problem_type) }
+  if (q.problem_type !== undefined && q.problem_type !== '') {
+    const problemTypes = String(q.problem_type).split(',').map(Number).filter(Number.isFinite)
+    if (problemTypes.length > 1) {
+      sql += ` AND w.problem_type IN (${problemTypes.map(() => '?').join(',')})`
+      params.push(...problemTypes)
+    } else if (problemTypes.length === 1) {
+      sql += ' AND w.problem_type = ?'
+      params.push(problemTypes[0])
+    }
+  }
   if (q.urgency !== undefined && q.urgency !== '') { sql += ' AND w.urgency = ?'; params.push(q.urgency) }
   if (q.status !== undefined && q.status !== '') { sql += ' AND w.status = ?'; params.push(q.status) }
   if (q.is_overdue !== undefined && q.is_overdue !== '') { sql += ' AND w.is_overdue = ?'; params.push(q.is_overdue) }
@@ -32,10 +74,19 @@ function buildWhereClause(q) {
   return { sql, params }
 }
 
+function buildWorkOrderCountSql(q) {
+  const { sql, params } = buildWhereClause(q)
+  return {
+    sql: `SELECT COUNT(*) as total FROM pms_work_order w${sql}`,
+    params
+  }
+}
+
 exports.list = async (req, res) => {
   try {
     const q = { ...req.query }
-    let sql = withJoins('w.id, w.system_id, w.problem_type, w.problem_desc, w.result_desc, w.follower_id, w.urgency, w.status, w.is_overdue, w.expected_resolve_date, w.resolve_date, w.close_date, w.submitter_name, w.submitter_dept, w.submit_time, w.created_at')
+    const { page, pageSize, offset } = parsePagination(q)
+    let sql = withJoins('COUNT(*) OVER() as total, w.id, w.system_id, w.problem_type, w.problem_desc, w.result_desc, w.follower_id, w.urgency, w.status, w.is_overdue, w.expected_resolve_date, w.resolve_date, w.close_date, w.submitter_name, w.submitter_dept, w.submit_time, w.created_at')
     const { sql: whereSql, params } = buildWhereClause(q)
     sql += whereSql
 
@@ -45,7 +96,7 @@ exports.list = async (req, res) => {
       is_overdue: 'w.is_overdue', follower_name: 'w.follower_id', follower_id: 'w.follower_id',
       submitter_name: 'w.submitter_name', submitter_dept: 'w.submitter_dept',
       submit_time: 'w.submit_time', expected_resolve_date: 'w.expected_resolve_date',
-      creator_name: null, created_at: 'w.created_at',
+      creator_name: 'u1.real_name', created_at: 'w.created_at',
     }
     let sortCol = 'w.created_at'
     let sortDir = 'DESC'
@@ -53,13 +104,26 @@ exports.list = async (req, res) => {
       const mapped = sortMap[q.sort_field]
       if (mapped) {
         sortCol = mapped
-        sortDir = q.sort_order === 'asc' ? 'ASC' : 'DESC'
+        sortDir = getSortDirection(q.sort_order)
       }
     }
-    sql += ` ORDER BY ${sortCol} ${sortDir}, w.id ${sortDir}`
+    sql += ` ORDER BY ${sortCol} ${sortDir}, w.id ${sortDir} LIMIT ? OFFSET ?`
+    params.push(pageSize, offset)
 
     const rows = await db.prepare(sql).all(...params)
-    res.json({ code: 0, message: 'success', data: rows })
+    const currentTotal = Number(rows[0]?.total || 0)
+    const viewCounts = {}
+    if (q.current_user_id) {
+      const { sql: allCountSql, params: allCountParams } = buildWorkOrderCountSql({ ...q, follower_id: undefined })
+      const { sql: mineCountSql, params: mineCountParams } = buildWorkOrderCountSql({ ...q, follower_id: q.current_user_id })
+      const [allCount, mineCount] = await Promise.all([
+        db.prepare(allCountSql).get(...allCountParams),
+        db.prepare(mineCountSql).get(...mineCountParams)
+      ])
+      viewCounts.all = Number(allCount?.total || 0)
+      viewCounts.mine = Number(mineCount?.total || 0)
+    }
+    res.json({ code: 0, message: 'success', data: { list: rows, total: currentTotal, page, pageSize, viewCounts } })
   } catch (err) {
     console.error(err)
     res.status(500).json({ code: 500, message: '查询失败', data: null })
@@ -90,12 +154,13 @@ exports.getById = async (req, res) => {
 
 exports.create = async (req, res) => {
   try {
+    if (!requireValidBody(res, req.body, workOrderFormSchema)) return
     const { system_id, problem_type, problem_desc, follower_id, urgency, status, expected_resolve_date, submitter_name, submitter_dept, submit_time, creator_id } = req.body
 
     // Validate problem_desc uniqueness
     if (problem_desc) {
       const exists = await db.prepare('SELECT id FROM pms_work_order WHERE problem_desc = ? AND is_deleted = 0').get(problem_desc)
-      if (exists) return res.status(400).json({ code: 400, message: '问题描述已存在，请勿重复创建', data: null })
+      if (exists) return fail(res, 400, 400, '问题描述已存在，请勿重复创建')
     }
 
     const finalStatus = status !== undefined ? status : 0
@@ -106,15 +171,16 @@ exports.create = async (req, res) => {
     ).run(system_id || null, problem_type || null, problem_desc || null, follower_id || null, urgency ?? 1, finalStatus, is_overdue, expected_resolve_date || null, submitter_name || null, submitter_dept || null, submit_time || null, creator_id || null, creator_id || null)
 
     await db.writeLog(creator_id, '新增', '运维工单', result.lastInsertRowid, null, null, JSON.stringify({ system_id, problem_type, follower_id, urgency }), req.ip)
-    res.json({ code: 0, message: 'success', data: { id: result.lastInsertRowid } })
+    ok(res, { id: result.lastInsertRowid })
   } catch (err) {
     console.error(err)
-    res.status(500).json({ code: 500, message: '创建失败', data: null })
+    fail(res, 500, 500, '创建失败')
   }
 }
 
 exports.update = async (req, res) => {
   try {
+    if (!requireValidBody(res, req.body, workOrderFormSchema)) return
     const { system_id, problem_type, problem_desc, result_desc, follower_id, urgency, status, expected_resolve_date, resolve_date, close_date, submitter_name, submitter_dept, submit_time, updater_id } = req.body
 
     const old = await db.prepare('SELECT system_id, problem_type, problem_desc, result_desc, follower_id, urgency, status, expected_resolve_date, resolve_date, close_date, submitter_name, submitter_dept, submit_time FROM pms_work_order WHERE id = ?').get(req.params.id)
@@ -180,15 +246,16 @@ exports.update = async (req, res) => {
       }
     }
 
-    res.json({ code: 0, message: 'success', data: null })
+    ok(res, null)
   } catch (err) {
     console.error(err)
-    res.status(500).json({ code: 500, message: '更新失败', data: null })
+    fail(res, 500, 500, '更新失败')
   }
 }
 
 exports.toggleStatus = async (req, res) => {
   try {
+    if (!requireValidBody(res, req.body, workOrderStatusSchema)) return
     const { status, updater_id, resolve_date, close_date, result_desc } = req.body
     const old = await db.prepare('SELECT status, is_overdue, expected_resolve_date, resolve_date, close_date, result_desc FROM pms_work_order WHERE id = ?').get(req.params.id)
     const changes = []
@@ -258,29 +325,30 @@ exports.toggleStatus = async (req, res) => {
         await db.writeLog(updater_id, '状态变更', '运维工单', req.params.id, ch.field, ch.oldVal ?? '空', ch.newVal ?? '空', req.ip)
       }
     }
-    res.json({ code: 0, message: 'success', data: null })
+    ok(res, null)
   } catch (err) {
     console.error(err)
-    res.status(500).json({ code: 500, message: '操作失败', data: null })
+    fail(res, 500, 500, '操作失败')
   }
 }
 
 exports.batchAssign = async (req, res) => {
   try {
+    if (!requireValidBody(res, req.body, workOrderBatchAssignSchema)) return
     const { ids, follower_id, updater_id } = req.body
     const workOrderIds = Array.isArray(ids) ? ids.map((id) => Number(id)).filter(Boolean) : []
     const followerId = Number(follower_id)
 
     if (workOrderIds.length === 0) {
-      return res.status(400).json({ code: 400, message: '请选择要指派的工单', data: null })
+      return fail(res, 400, 400, '请选择要指派的工单')
     }
     if (!followerId) {
-      return res.status(400).json({ code: 400, message: '请选择跟进人', data: null })
+      return fail(res, 400, 400, '请选择跟进人')
     }
 
     const follower = await db.prepare('SELECT id, real_name FROM pms_user WHERE id = ? AND is_deleted = 0 AND status = 1').get(followerId)
     if (!follower) {
-      return res.status(400).json({ code: 400, message: '跟进人不存在或已停用', data: null })
+      return fail(res, 400, 400, '跟进人不存在或已停用')
     }
 
     let updatedCount = 0
@@ -307,22 +375,23 @@ exports.batchAssign = async (req, res) => {
       }
     })
 
-    res.json({ code: 0, message: 'success', data: { updated: updatedCount, requested: workOrderIds.length } })
+    ok(res, { updated: updatedCount, requested: workOrderIds.length })
   } catch (err) {
     console.error(err)
-    res.status(400).json({ code: 400, message: err.message || '批量指派失败', data: null })
+    fail(res, 400, 400, err.message || '批量指派失败')
   }
 }
 
 exports.remove = async (req, res) => {
   try {
+    if (!requireValidBody(res, req.body, { updater_id: { type: 'number', label: '更新人' } })) return
     const { updater_id } = req.body
     await db.prepare('UPDATE pms_work_order SET is_deleted = 1, updater_id = ? WHERE id = ?').run(updater_id || null, req.params.id)
     if (updater_id) await db.writeLog(updater_id, '删除', '运维工单', req.params.id, 'is_deleted', '0', '1', req.ip)
-    res.json({ code: 0, message: 'success', data: null })
+    ok(res, null)
   } catch (err) {
     console.error(err)
-    res.status(500).json({ code: 500, message: '删除失败', data: null })
+    fail(res, 500, 500, '删除失败')
   }
 }
 
@@ -366,13 +435,13 @@ exports.getNeighbors = async (req, res) => {
 
     const listSql = withJoins('w.id') + whereSql + ' ' + orderClause
     const allRows = await db.prepare(listSql).all(...whereParams)
-    const idx = allRows.findIndex(r => r.id === Number(id))
+    const idx = allRows.findIndex(r => String(r.id) === String(id))
     if (idx < 0) return res.json({ code: 0, data: { prevId: null, nextId: null } })
 
     const prevId = idx > 0 ? allRows[idx - 1].id : null
     const nextId = idx < allRows.length - 1 ? allRows[idx + 1].id : null
 
-    res.json({ code: 0, message: 'success', data: { prevId, nextId } })
+    res.json({ code: 0, message: 'success', data: { prevId, nextId, total: allRows.length, ordinal: idx + 1 } })
   } catch (err) {
     console.error(err)
     res.status(500).json({ code: 500, message: '查询失败', data: null })
@@ -400,18 +469,16 @@ function formatHistoryDate(value) {
 }
 
 /** Resolve a raw value to a display name based on field */
-async function resolveValue(field, value) {
+function resolveValue(field, value, lookups = {}) {
   if (value === '空' || value === undefined) return ''
   if (field === 'is_overdue') return value === null || value === '' ? '-' : (Number(value) === 1 ? '逾期' : '未逾期')
   if (value === null) return ''
   if (HISTORY_DATE_FIELDS.has(field)) return formatHistoryDate(value)
   if (field === 'follower_id') {
-    const r = await db.prepare('SELECT real_name FROM pms_user WHERE id = ?').get(value)
-    return r?.real_name || value
+    return lookups.users?.get(String(value)) || value
   }
   if (field === 'system_id' || field === 'problem_type') {
-    const r = await db.prepare('SELECT name FROM pms_archive WHERE id = ?').get(value)
-    return r?.name || value
+    return lookups.archives?.get(String(value)) || value
   }
   if (field === 'urgency') {
     return { 0: '低', 1: '中', 2: '高' }[String(value)] || value
@@ -429,6 +496,15 @@ function historyTimeKey(value) {
   return String(value || '').replace('T', ' ').slice(0, 19)
 }
 
+function buildIdInQuery(ids, selectSql, tableName) {
+  const values = [...ids].filter(Number.isFinite)
+  if (!values.length) return { rows: [], promise: Promise.resolve([]) }
+  const placeholders = values.map(() => '?').join(',')
+  return {
+    promise: db.prepare(`${selectSql} FROM ${tableName} WHERE id IN (${placeholders})`).all(...values)
+  }
+}
+
 exports.getHistory = async (req, res) => {
   try {
     const orderId = req.params.id
@@ -438,6 +514,22 @@ exports.getHistory = async (req, res) => {
        WHERE l.module = '运维工单' AND l.target_id = ?
        ORDER BY l.created_at DESC`
     ).all(orderId)
+    const followerIds = new Set()
+    const archiveIds = new Set()
+    for (const log of logs) {
+      if (log.field_name === 'follower_id') [log.old_value, log.new_value].forEach(value => value && value !== '空' && followerIds.add(Number(value)))
+      if (log.field_name === 'system_id' || log.field_name === 'problem_type') [log.old_value, log.new_value].forEach(value => value && value !== '空' && archiveIds.add(Number(value)))
+    }
+    const userLookupQuery = buildIdInQuery(followerIds, 'SELECT id, real_name', 'pms_user')
+    const archiveLookupQuery = buildIdInQuery(archiveIds, 'SELECT id, name', 'pms_archive')
+    const [users, archives] = await Promise.all([
+      userLookupQuery.promise,
+      archiveLookupQuery.promise
+    ])
+    const lookups = {
+      users: new Map(users.map(row => [String(row.id), row.real_name])),
+      archives: new Map(archives.map(row => [String(row.id), row.name]))
+    }
 
     const grouped = []
     const groupMap = new Map()
@@ -464,16 +556,16 @@ exports.getHistory = async (req, res) => {
         title = '编辑'
         for (const ch of g.changes) {
           const label = FIELD_LABEL[ch.field_name] || ch.field_name
-          const oldVal = await resolveValue(ch.field_name, ch.old_value)
-          const newVal = await resolveValue(ch.field_name, ch.new_value)
+          const oldVal = resolveValue(ch.field_name, ch.old_value, lookups)
+          const newVal = resolveValue(ch.field_name, ch.new_value, lookups)
           details.push({ field: label, oldVal, newVal })
         }
       } else if (g.action === '状态变更') {
         title = '状态变更'
         const statusChange = g.changes.find(c => c.field_name === 'status')
         if (statusChange) {
-          const oldStatus = await resolveValue('status', statusChange.old_value)
-          const newStatus = await resolveValue('status', statusChange.new_value)
+          const oldStatus = resolveValue('status', statusChange.old_value, lookups)
+          const newStatus = resolveValue('status', statusChange.new_value, lookups)
           if (oldStatus && newStatus && oldStatus !== newStatus) {
             details.push({ field: '状态', oldVal: oldStatus, newVal: newStatus })
           }
@@ -481,8 +573,8 @@ exports.getHistory = async (req, res) => {
         for (const ch of g.changes) {
           if (ch.field_name === 'status') continue
           const label = FIELD_LABEL[ch.field_name] || ch.field_name
-          const oldVal = await resolveValue(ch.field_name, ch.old_value)
-          const newVal = await resolveValue(ch.field_name, ch.new_value)
+          const oldVal = resolveValue(ch.field_name, ch.old_value, lookups)
+          const newVal = resolveValue(ch.field_name, ch.new_value, lookups)
           if (oldVal !== newVal) {
             details.push({ field: label, oldVal, newVal })
           }

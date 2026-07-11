@@ -14,7 +14,6 @@ export type DataListPageProps<
   footerActions?: ReactNode;
   footerExtra?: ReactNode;
   selectedCount?: number;
-  scrollYDeps?: unknown[];
 };
 
 export function DataListPage<
@@ -25,15 +24,14 @@ export function DataListPage<
   table,
   footerActions,
   footerExtra,
-  selectedCount,
-  scrollYDeps = []
+  selectedCount
 }: DataListPageProps<T, P>) {
   const { className, scroll, tableRender, ...tableProps } = table;
-  const { containerRef, scrollY } = useDataListScrollY(scrollYDeps);
+  const { containerRef, filterRef, scrollY } = useDataListScrollY();
 
   return (
     <div className="admin-data-list-page">
-      {filter}
+      {filter ? <div ref={filterRef}>{filter}</div> : null}
       <div ref={containerRef} className="admin-data-list-page__table">
         <SearchTable<T, P>
           {...tableProps}

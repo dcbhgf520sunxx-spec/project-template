@@ -60,6 +60,7 @@ export function ConfirmAction({
   const actionClassName = isTextAction
     ? ['admin-text-action', danger ? 'is-danger' : '', className].filter(Boolean).join(' ')
     : className;
+  const modalClassName = danger ? 'admin-confirm-action-modal is-danger' : 'admin-confirm-action-modal';
 
   const buttonNode = (
     <PermissionButton
@@ -83,7 +84,9 @@ export function ConfirmAction({
     <>
       {tooltip ? <Tooltip title={tooltip}>{buttonNode}</Tooltip> : buttonNode}
       <AdminModal
+        className={modalClassName}
         title={title}
+        titleTone={danger ? 'danger' : 'normal'}
         open={open}
         size="small"
         okText={okText || (danger ? '删除' : '确认')}
@@ -96,7 +99,7 @@ export function ConfirmAction({
         onOk={handleConfirm}
       >
         {description ? (
-          <div className="admin-confirm-action__description">
+          <div className={danger ? 'admin-confirm-action__description is-danger' : 'admin-confirm-action__description'}>
             {description}
           </div>
         ) : null}

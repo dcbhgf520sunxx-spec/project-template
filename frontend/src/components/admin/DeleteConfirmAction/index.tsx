@@ -12,13 +12,13 @@ export type DeleteConfirmActionProps = Omit<ConfirmActionProps, 'title' | 'descr
 
 function renderDescription(entityName?: string, targetName?: ReactNode) {
   return (
-    <div className="admin-delete-confirm-action__content">
+    <div className="admin-confirm-action__danger-content">
       {targetName ? (
         <div>
           将删除{entityName || '记录'} <strong>{targetName}</strong>。
         </div>
       ) : null}
-      <div className="admin-delete-confirm-action__risk">
+      <div className="admin-confirm-action__danger-risk">
         删除后无法恢复，请谨慎操作。
       </div>
     </div>

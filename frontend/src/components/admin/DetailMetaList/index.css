@@ -27,7 +27,7 @@
 
 .admin-detail-meta-list__item dt {
   margin: 0 0 5px;
-  color: #64748b;
+  color: var(--app-muted);
   font-size: 12px;
   line-height: 18px;
 }

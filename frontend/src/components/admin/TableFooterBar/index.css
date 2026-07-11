@@ -7,7 +7,7 @@
   align-items: center;
   padding: 6px 12px;
   border: 0;
-  background: #fff;
+  background: var(--app-surface);
   box-shadow: 0 -5px 12px rgba(37, 99, 235, 0.04);
   justify-content: space-between;
   gap: 12px;
@@ -54,7 +54,7 @@
   flex-shrink: 0;
   height: 30px;
   align-items: center;
-  color: #64748b;
+  color: var(--app-muted);
   font-size: 12px;
   white-space: nowrap;
 }

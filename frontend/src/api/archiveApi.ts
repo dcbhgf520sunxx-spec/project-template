@@ -1,4 +1,5 @@
 import { request, unwrap } from './requestClient';
+import { arrayContract, objectContract } from './responseContract';
 import type { PageResult } from '../types/api';
 
 export type ArchiveTypeRecord = Record<string, unknown> & {
@@ -51,6 +52,10 @@ type ArchiveOptionResponse = {
   name: string;
 };
 
+const archiveTypeContract = objectContract<ArchiveTypeResponse>(['id', 'code', 'code_prefix', 'name', 'status']);
+const archiveContract = objectContract<ArchiveResponse>(['id', 'code', 'name', 'archive_type_id', 'sort_order', 'status']);
+const archiveOptionContract = objectContract<ArchiveOptionResponse>(['id', 'code', 'name']);
+
 function dateText(value?: string) {
   return String(value || '').slice(0, 19).replace('T', ' ');
 }
@@ -95,7 +100,7 @@ export async function getArchiveTypes(params: Record<string, unknown> = {}): Pro
       name: params.name,
       status: params.status ? toApiStatus(params.status as 'enabled' | 'disabled') : undefined
     }
-  }));
+  }), arrayContract(archiveTypeContract));
   const page = Number(params.current || 1);
   const pageSize = Number(params.pageSize || 20);
   const start = (page - 1) * pageSize;
@@ -116,7 +121,7 @@ export async function getArchiveTypeOptions() {
 export async function getArchiveOptionsByTypeName(typeName: string) {
   const rows = await unwrap<ArchiveOptionResponse[]>(request.get('/archive-options/by-type-name', {
     params: { type_name: typeName }
-  }));
+  }), arrayContract(archiveOptionContract));
   return rows.map((item) => ({ label: item.name, value: String(item.id), code: item.code }));
 }
 
@@ -160,7 +165,7 @@ export async function getArchives(params: Record<string, unknown> = {}): Promise
       name: params.name,
       status: params.status ? toApiStatus(params.status as 'enabled' | 'disabled') : undefined
     }
-  }));
+  }), arrayContract(archiveContract));
   const page = Number(params.current || 1);
   const pageSize = Number(params.pageSize || 20);
   const start = (page - 1) * pageSize;

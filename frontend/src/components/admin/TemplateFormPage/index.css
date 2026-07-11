@@ -7,13 +7,19 @@
   overflow: auto;
 }
 
+.admin-template-form-page__state {
+  min-height: 280px;
+  display: grid;
+  place-items: center;
+}
+
 .admin-template-form-page__title-extra {
   position: relative;
   top: -1px;
 }
 
 .admin-template-form-page__code {
-  color: #64748b;
+  color: var(--app-muted);
   font-size: 12px;
 }
 

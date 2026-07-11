@@ -102,7 +102,7 @@
   display: inline-grid;
   place-items: center;
   border-radius: 7px;
-  color: #fff;
+  color: var(--app-surface);
   font-size: 15px;
   font-weight: 700;
   background: linear-gradient(135deg, #2b7cff, #1762f0);
@@ -273,7 +273,7 @@
 }
 
 .admin-layout__user-avatar {
-  color: #fff;
+  color: var(--app-surface);
   background: #1f63d6;
   border: 0;
   box-shadow: none;
@@ -292,7 +292,7 @@
 }
 
 .admin-layout__user-avatar .ant-avatar-string {
-  color: #fff;
+  color: var(--app-surface);
 }
 
 .admin-layout__user-arrow {

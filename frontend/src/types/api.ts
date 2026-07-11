@@ -9,4 +9,5 @@ export type PageResult<T> = {
   total: number;
   page: number;
   pageSize: number;
+  viewCounts?: Record<string, number>;
 };

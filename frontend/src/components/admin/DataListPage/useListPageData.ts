@@ -12,6 +12,9 @@ type UseListPageDataOptions<T extends Record<string, unknown>> = {
   rows: T[];
   sorters?: Record<string, (a: T, b: T) => number>;
   defaultPageSize?: number;
+  resetOn?: unknown[];
+  total?: number;
+  serverPaging?: boolean;
 };
 
 type TableSorter = {
@@ -47,13 +50,17 @@ function getStoredDefaultPageSize() {
 export function useListPageData<T extends Record<string, unknown>>({
   rows,
   sorters = {},
-  defaultPageSize = getStoredDefaultPageSize()
+  defaultPageSize = getStoredDefaultPageSize(),
+  resetOn = [],
+  total,
+  serverPaging = false
 }: UseListPageDataOptions<T>) {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(defaultPageSize);
   const [sortState, setSortState] = useState<SortState>({});
 
   const sortedRows = useMemo(() => {
+    if (serverPaging) return rows;
     if (!sortState.field || !sortState.order) return rows;
 
     const sorter = sorters[sortState.field];
@@ -63,23 +70,43 @@ export function useListPageData<T extends Record<string, unknown>>({
       const result = sorter(a, b);
       return sortState.order === 'ascend' ? result : -result;
     });
-  }, [rows, sortState, sorters]);
+  }, [rows, serverPaging, sortState, sorters]);
 
   useEffect(() => {
-    const maxPage = Math.max(1, Math.ceil(sortedRows.length / pageSize));
+    const maxPage = Math.max(1, Math.ceil((serverPaging ? total || 0 : sortedRows.length) / pageSize));
     if (currentPage > maxPage) {
       setCurrentPage(maxPage);
     }
-  }, [currentPage, pageSize, sortedRows.length]);
+  }, [currentPage, pageSize, serverPaging, sortedRows.length, total]);
+
+  const resetKey = JSON.stringify(resetOn);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [resetKey]);
 
   const pagedRows = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
-    return sortedRows.slice(start, start + pageSize);
-  }, [currentPage, pageSize, sortedRows]);
+    return serverPaging ? sortedRows : sortedRows.slice(start, start + pageSize);
+  }, [currentPage, pageSize, serverPaging, sortedRows]);
 
   const handleTableChange: NonNullable<SearchTableProps<T>['onChange']> = (_, __, sorter) => {
     setSortState(normalizeSorter(sorter));
     setCurrentPage(1);
+  };
+
+  const pagination = {
+    current: currentPage,
+    pageSize,
+    total: serverPaging ? total || 0 : sortedRows.length,
+    onChange: (page: number, size: number) => {
+      setCurrentPage(page);
+      setPageSize(size);
+    },
+    onShowSizeChange: (_: number, size: number) => {
+      setCurrentPage(1);
+      setPageSize(size);
+    }
   };
 
   return {
@@ -88,7 +115,8 @@ export function useListPageData<T extends Record<string, unknown>>({
     pagedRows,
     sortedRows,
     sortState,
-    total: sortedRows.length,
+    total: serverPaging ? total || 0 : sortedRows.length,
+    pagination,
     setCurrentPage,
     setPageSize,
     setSortState,

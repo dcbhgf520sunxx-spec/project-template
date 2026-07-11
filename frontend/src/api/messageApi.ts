@@ -1,4 +1,5 @@
 import { request, unwrap } from './requestClient';
+import { arrayContract, objectContract } from './responseContract';
 
 export type MessageType = 'notification' | 'system';
 
@@ -21,6 +22,8 @@ type MessageResponse = {
   read_at?: string | null;
   created_at?: string;
 };
+
+const messageListContract = arrayContract(objectContract<MessageResponse>(['id', 'type', 'title', 'description']));
 
 function formatMessageTime(value?: string) {
   if (!value) return '-';
@@ -51,7 +54,7 @@ function toMessageRecord(row: MessageResponse): MessageRecord {
 }
 
 export async function getMessages() {
-  const rows = await unwrap<MessageResponse[]>(request.get('/messages'));
+  const rows = await unwrap<MessageResponse[]>(request.get('/messages'), messageListContract);
   return rows.map(toMessageRecord);
 }
 

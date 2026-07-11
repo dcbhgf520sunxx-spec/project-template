@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import type { Key } from 'react';
-import { App, Tree } from 'antd';
+import { App } from 'antd';
 import type { DataNode } from 'antd/es/tree';
 import { useNavigate, useParams } from 'react-router-dom';
-import { AdminProFormText, AdminProFormTextArea, TemplateFormPage, TemplateFormSection } from '../../../components/admin';
+import { AdminProFormText, AdminProFormTextArea, AdminTree, TemplateFormPage, TemplateFormSection } from '../../../components/admin';
 import {
   checkRoleCode,
   createRole,
@@ -29,6 +29,9 @@ export function RoleFormPage({ mode }: RoleFormPageProps) {
   const [checkedMenuIds, setCheckedMenuIds] = useState<Key[]>([]);
   const [expandedMenuIds, setExpandedMenuIds] = useState<Key[]>([]);
   const [loading, setLoading] = useState(mode === 'edit');
+  const [loadError, setLoadError] = useState('');
+  const [notFound, setNotFound] = useState(false);
+  const [reloadRevision, setReloadRevision] = useState(0);
 
   const buildMenuTree = (menus: MenuRecord[]): DataNode[] => {
     const nodeMap = new Map<number, DataNode>();
@@ -64,6 +67,9 @@ export function RoleFormPage({ mode }: RoleFormPageProps) {
   ]);
 
   useEffect(() => {
+    setLoading(true);
+    setLoadError('');
+    setNotFound(false);
     if (mode === 'edit' && params.id) {
       Promise.all([
         getMenuList().then((menus) => {
@@ -73,18 +79,25 @@ export function RoleFormPage({ mode }: RoleFormPageProps) {
         }),
         getRole(params.id).then((role) => setInitialValues(role)),
         getRoleMenuIds(params.id).then((ids) => setCheckedMenuIds(ids))
-      ]).finally(() => setLoading(false));
+      ]).catch((error) => {
+        const messageText = error instanceof Error ? error.message : '角色表单加载失败';
+        if (messageText.includes('不存在')) setNotFound(true);
+        else setLoadError(messageText);
+      }).finally(() => setLoading(false));
       return;
     }
 
     setLoading(false);
-  }, [mode, params.id]);
+  }, [mode, params.id, reloadRevision]);
 
   return (
     <TemplateFormPage<RoleFormValues>
       title={mode === 'create' ? '新增角色' : '编辑角色'}
       formId="role-form"
       loading={loading}
+      error={loadError}
+      notFound={notFound}
+      onRetry={() => setReloadRevision((value) => value + 1)}
       initialValues={initialValues}
       onCancel={() => navigate('/roles')}
       onSubmit={async (values) => {
@@ -142,7 +155,7 @@ export function RoleFormPage({ mode }: RoleFormPageProps) {
       {mode === 'edit' ? (
         <TemplateFormSection title="菜单权限">
           <div className="admin-template-form-page__tree">
-            <Tree
+            <AdminTree
               checkable
               expandedKeys={expandedMenuIds}
               treeData={menuTree}

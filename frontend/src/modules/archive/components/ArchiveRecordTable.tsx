@@ -1,25 +1,23 @@
-import { type DragEvent, useState } from 'react';
+import { type DragEvent, type ReactNode, useState } from 'react';
 import { HolderOutlined } from '@ant-design/icons';
 import type { ProColumns } from '@ant-design/pro-components';
 import {
   AdminTextAction,
   DeleteConfirmAction,
   OperationColumnActions,
-  SearchTable,
   StatusConfirmAction,
   StatusTag,
-  TablePagination
+  TemplateListPage,
+  type TemplateListPagination
 } from '../../../components/admin';
 import type { ArchiveRecord } from '../../../api/archiveApi';
 
 type ArchiveRecordTableProps = {
   rows: ArchiveRecord[];
-  pagedRows: ArchiveRecord[];
-  page: number;
-  pageSize: number;
+  filter: ReactNode;
+  pagination: TemplateListPagination;
+  renderIndex: (index: number) => number;
   loading?: boolean;
-  onPageChange: (page: number, pageSize: number) => void;
-  onPageSizeChange: (pageSize: number) => void;
   onEdit: (record: ArchiveRecord) => void;
   onToggleStatus: (record: ArchiveRecord) => Promise<void> | void;
   onDelete: (record: ArchiveRecord) => Promise<void> | void;
@@ -30,12 +28,10 @@ type ArchiveRecordTableProps = {
 
 export function ArchiveRecordTable({
   rows,
-  pagedRows,
-  page,
-  pageSize,
+  filter,
+  pagination,
+  renderIndex,
   loading,
-  onPageChange,
-  onPageSizeChange,
   onEdit,
   onToggleStatus,
   onDelete,
@@ -107,7 +103,7 @@ export function ArchiveRecordTable({
       width: 64,
       search: false,
       render: (_, __, index) => (
-        <span>{(page - 1) * pageSize + index + 1}</span>
+        <span>{renderIndex(index)}</span>
       )
     },
     { title: '档案编码', dataIndex: 'code', width: 112, search: false },
@@ -153,18 +149,21 @@ export function ArchiveRecordTable({
   ];
 
   return (
-    <>
-      <SearchTable<ArchiveRecord>
-        className="archive-page__table"
-        loading={loading}
-        columns={columns}
-        dataSource={pagedRows}
-        pagination={false}
-        search={false}
-        options={false}
-        tableAlertRender={false}
-        scroll={{ x: 860 }}
-        onRow={(record) => ({
+    <TemplateListPage<ArchiveRecord>
+      embedded
+      filter={filter}
+      pagination={pagination}
+      table={{
+        className: 'archive-page__table',
+        loading,
+        columns,
+        dataSource: rows,
+        pagination: false,
+        search: false,
+        options: false,
+        tableAlertRender: false,
+        scroll: { x: 860 },
+        onRow: (record) => ({
           className: [
             draggingRowId === record.id ? 'is-dragging' : '',
             dragOverRowId === record.id && draggingRowId !== record.id ? 'is-drag-over' : '',
@@ -187,16 +186,7 @@ export function ArchiveRecordTable({
             onDrop(record);
           }
         })}
-      />
-      <div className="archive-page__pagination">
-        <TablePagination
-          current={page}
-          pageSize={pageSize}
-          total={rows.length}
-          onChange={onPageChange}
-          onShowSizeChange={(_, nextPageSize) => onPageSizeChange(nextPageSize)}
-        />
-      </div>
-    </>
+      }
+    />
   );
 }

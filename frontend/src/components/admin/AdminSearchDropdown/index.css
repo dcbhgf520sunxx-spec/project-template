@@ -3,7 +3,7 @@
   padding: 8px;
   border: 1px solid rgba(185, 204, 230, 0.72);
   border-radius: 8px;
-  background: #fff;
+  background: var(--app-surface);
   box-shadow: 0 16px 36px rgba(15, 23, 42, 0.14);
 }
 

@@ -1,18 +1,21 @@
 import { useEffect, useState } from 'react';
-import { Button, message, Space, Typography } from 'antd';
+import { message, Space } from 'antd';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
-  ActionBar,
+  AdminButton,
+  AdminText,
   AdminTextAction,
-  ConfirmAction,
+  DeleteConfirmAction,
+  DetailNeighborNav,
   DetailMetaList,
   HistoryTimeline,
   RichTextViewer,
   TemplateDetailPage,
-  TemplateDetailSection
+  TemplateDetailSection,
+  useDetailNeighbors
 } from '../../../components/admin';
 import { StatusChangeModal } from '../components/StatusChangeModal';
-import { deleteWorkOrder, getWorkOrder, getWorkOrderHistory, updateWorkOrderStatus } from '../../../api/workOrderApi';
+import { deleteWorkOrder, getWorkOrder, getWorkOrderHistory, getWorkOrderNeighbors, updateWorkOrderStatus } from '../../../api/workOrderApi';
 import type { WorkOrderHistoryItem, WorkOrderRecord, WorkOrderStatus } from '../types';
 import {
   problemTypeText,
@@ -52,15 +55,36 @@ export function WorkOrderDetailPage() {
   const [historyExpandedKeys, setHistoryExpandedKeys] = useState<string[]>([]);
   const [detail, setDetail] = useState<WorkOrderRecord>();
   const [history, setHistory] = useState<WorkOrderHistoryItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const [notFound, setNotFound] = useState(false);
+  const neighbors = useDetailNeighbors({
+    id: params.id,
+    moduleKey: 'work-order',
+    routeBase: '/work-orders',
+    fetchNeighbors: getWorkOrderNeighbors
+  });
 
   const loadDetail = async () => {
     if (!params.id) return;
-    const [record, logs] = await Promise.all([
-      getWorkOrder(params.id),
-      getWorkOrderHistory(params.id)
-    ]);
-    setDetail(record);
-    setHistory(logs);
+    setLoading(true);
+    setLoadError('');
+    setNotFound(false);
+    setDetail(undefined);
+    try {
+      const [record, logs] = await Promise.all([
+        getWorkOrder(params.id),
+        getWorkOrderHistory(params.id)
+      ]);
+      setDetail(record);
+      setHistory(logs);
+    } catch (error) {
+      const messageText = error instanceof Error ? error.message : '工单加载失败';
+      if (messageText.includes('不存在')) setNotFound(true);
+      else setLoadError(messageText);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -69,7 +93,14 @@ export function WorkOrderDetailPage() {
 
   if (!detail) {
     return (
-      <TemplateDetailPage title="工单详情" loading>
+      <TemplateDetailPage
+        title="工单详情"
+        loading={loading}
+        error={loadError}
+        notFound={notFound}
+        onRetry={loadDetail}
+        onBack={() => navigate('/work-orders')}
+      >
         {null}
       </TemplateDetailPage>
     );
@@ -83,6 +114,7 @@ export function WorkOrderDetailPage() {
   return (
     <TemplateDetailPage
       title="工单详情"
+      onBack={() => navigate('/work-orders')}
       titleExtra={(
         <Space size={8} className="admin-template-detail-page__title-extra">
           <span className="admin-template-detail-page__code">{detail.code}</span>
@@ -91,15 +123,24 @@ export function WorkOrderDetailPage() {
           {detail.status < 2 ? renderOverdue(detail.isOverdue) : null}
         </Space>
       )}
+      titleCenter={(
+        <DetailNeighborNav
+          placement="title"
+          loading={neighbors.loading}
+          prevId={neighbors.prevId}
+          nextId={neighbors.nextId}
+          ordinal={neighbors.ordinal}
+          total={neighbors.total}
+          onNavigate={neighbors.navigateNeighbor}
+        />
+      )}
       actions={
-        <ActionBar>
-          <Button onClick={() => navigate('/work-orders')}>返回列表</Button>
-          <Button type="primary" onClick={() => navigate(`/work-orders/${detail.id}/edit`)}>编辑</Button>
-          <Button onClick={() => navigate(`/work-orders/${detail.id}/copy`)}>复制</Button>
-          <ConfirmAction
-            danger
-            title="确认删除"
-            description="删除后该运维工单及其处理记录将无法恢复，确认删除？"
+        <>
+          <AdminButton type="primary" onClick={() => navigate(`/work-orders/${detail.id}/edit`)}>编辑</AdminButton>
+          <AdminButton onClick={() => navigate(`/work-orders/${detail.id}/copy`)}>复制</AdminButton>
+          <DeleteConfirmAction
+            entityName="工单"
+            targetName={detail.problemDesc}
             onConfirm={async () => {
               await deleteWorkOrder(detail.id);
               message.success('工单已删除');
@@ -108,8 +149,8 @@ export function WorkOrderDetailPage() {
             successMessage={false}
           >
             删除
-          </ConfirmAction>
-        </ActionBar>
+          </DeleteConfirmAction>
+        </>
       }
       statusSection={{
         children: (
@@ -125,17 +166,17 @@ export function WorkOrderDetailPage() {
               </div>
               <div className="work-order-detail-page__status-row">
                 <span>逾期</span>
-                {detail.status < 2 ? renderOverdue(detail.isOverdue) : <Typography.Text type="secondary">-</Typography.Text>}
+                {detail.status < 2 ? renderOverdue(detail.isOverdue) : <AdminText type="secondary">-</AdminText>}
               </div>
             </div>
             <Space direction="vertical" size={8} className="work-order-detail-page__side-actions">
-              <Button block type="primary" onClick={() => {
+              <AdminButton block type="primary" onClick={() => {
                 setTargetStatus(undefined);
                 setStatusOpen(true);
               }}
               >
                 状态变更
-              </Button>
+              </AdminButton>
             </Space>
           </>
         )

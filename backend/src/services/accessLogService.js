@@ -1,5 +1,6 @@
 const crypto = require('crypto')
 const db = require('../db')
+const { getSortDirection, parsePagination } = require('../utils/pagination')
 
 function calculateDurationSeconds(startTime, endTime) {
   if (!startTime || !endTime) return 0
@@ -138,9 +139,18 @@ async function endSession({ userId, sessionId, preserveLastActive = false }) {
   return { id: row.id, logoutAt: now, lastActiveAt: activeEndTime, durationSeconds }
 }
 
+async function isSessionActive({ userId, sessionId }) {
+  if (!sessionId) return false
+  const row = await db.prepare(
+    'SELECT id FROM pms_access_log WHERE session_id = ? AND user_id = ? AND result = ? AND logout_at IS NULL'
+  ).get(sessionId, userId, 'success')
+  return Boolean(row)
+}
+
 async function listAccessLogs(query = {}) {
+  const { page, pageSize, offset } = parsePagination(query)
   const params = []
-  let sql = `SELECT
+  let sql = `SELECT COUNT(*) OVER() as total,
       l.id, l.user_id, l.employee_no, l.account, l.real_name, l.event_type, l.result, l.fail_reason,
       l.session_id, l.login_at, l.logout_at, l.last_active_at, l.duration_seconds,
       l.ip, l.user_agent, l.created_at
@@ -180,8 +190,17 @@ async function listAccessLogs(query = {}) {
     params.push(query.end_time)
   }
 
-  sql += ' ORDER BY l.created_at DESC, l.id DESC LIMIT 1000'
-  return db.prepare(sql).all(...params)
+  const sortMap = {
+    employee_no: 'l.employee_no', account: 'l.account', real_name: 'l.real_name', result: 'l.result',
+    fail_reason: 'l.fail_reason', login_at: 'l.login_at', logout_at: 'l.logout_at',
+    last_active_at: 'l.last_active_at', duration_seconds: 'l.duration_seconds', ip: 'l.ip', created_at: 'l.created_at',
+  }
+  const sortField = sortMap[query.sort_field] || 'l.created_at'
+  const sortDirection = getSortDirection(query.sort_order)
+  sql += ` ORDER BY ${sortField} ${sortDirection}, l.id ${sortDirection} LIMIT ? OFFSET ?`
+  params.push(pageSize, offset)
+  const list = await db.prepare(sql).all(...params)
+  return { list, total: Number(list[0]?.total || 0), page, pageSize }
 }
 
 module.exports = {
@@ -191,5 +210,6 @@ module.exports = {
   recordLoginFailure,
   touchSession,
   endSession,
+  isSessionActive,
   listAccessLogs
 }

@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import {
+  AdminSegmented,
   AdminProFormSelect,
   AdminProFormText,
   AdminProFormTextArea,
@@ -10,6 +12,7 @@ import { ComponentEntry } from '../components/ComponentEntry';
 
 export function FormTemplateDemo() {
   const { message } = useAdminFeedback();
+  const [demoState, setDemoState] = useState<'normal' | 'loading' | 'error' | 'notFound'>('normal');
 
   return (
     <div className="design-system-page__layout-pattern-template">
@@ -17,11 +20,28 @@ export function FormTemplateDemo() {
         <h3>TemplateFormPage</h3>
         <ComponentEntry name="TemplateFormPage / TemplateFormSection / AdminProForm*" />
         <p>新增和编辑页统一从这个入口接入。页面标题、右上角取消/保存、表单分组、字段网格都由模板承接，业务页只替换字段和提交逻辑。</p>
+        <div className="design-system-page__template-mode-switch">
+          <AdminSegmented
+            size="small"
+            value={demoState}
+            options={[
+              { label: '正常', value: 'normal' },
+              { label: '加载中', value: 'loading' },
+              { label: '加载失败', value: 'error' },
+              { label: '记录不存在', value: 'notFound' }
+            ]}
+            onChange={(value) => setDemoState(value as typeof demoState)}
+          />
+        </div>
       </div>
       <div className="design-system-page__template-demo is-form">
         <TemplateFormPage<Record<string, unknown>>
           title="表单模板：新增用户"
           formId="design-system-template-form"
+          loading={demoState === 'loading'}
+          error={demoState === 'error' ? '表单数据加载失败，请稍后重试' : undefined}
+          notFound={demoState === 'notFound'}
+          onRetry={() => setDemoState('normal')}
           initialValues={{
             employeeNo: '10086',
             realName: '张三',

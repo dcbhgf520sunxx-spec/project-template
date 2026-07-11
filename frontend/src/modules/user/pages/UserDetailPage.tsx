@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Button, message } from 'antd';
+import { message } from 'antd';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
-  ActionBar,
   DetailMetaList,
   PermissionButton,
   StatusConfirmAction,
@@ -17,19 +16,37 @@ export function UserDetailPage() {
   const navigate = useNavigate();
   const params = useParams();
   const [user, setUser] = useState<UserRecord>();
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const [notFound, setNotFound] = useState(false);
+  const [reloadRevision, setReloadRevision] = useState(0);
 
   useEffect(() => {
     if (!params.id) return;
-    getUser(params.id).then(setUser);
-  }, [params.id]);
+    setLoading(true);
+    setLoadError('');
+    setNotFound(false);
+    setUser(undefined);
+    getUser(params.id)
+      .then(setUser)
+      .catch((error) => {
+        const messageText = error instanceof Error ? error.message : '用户加载失败';
+        if (messageText.includes('不存在')) setNotFound(true);
+        else setLoadError(messageText);
+      })
+      .finally(() => setLoading(false));
+  }, [params.id, reloadRevision]);
 
   return (
     <TemplateDetailPage
       title="用户详情"
-      loading={!user}
+      loading={loading}
+      error={loadError}
+      notFound={notFound}
+      onRetry={() => setReloadRevision((value) => value + 1)}
+      onBack={() => navigate('/users')}
       actions={
-        <ActionBar>
-          <Button onClick={() => navigate('/users')}>返回</Button>
+        <>
           {user ? (
             <PermissionButton type="primary" permission="user" onClick={() => navigate(`/users/${user.id}/edit`)}>
               编辑
@@ -51,7 +68,7 @@ export function UserDetailPage() {
               {user.status === 'enabled' ? '停用' : '启用'}
             </StatusConfirmAction>
           ) : null}
-        </ActionBar>
+        </>
       }
       statusSection={user ? {
         items: [

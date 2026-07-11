@@ -3,13 +3,12 @@ import { App, Space } from 'antd';
 import type { RuleObject } from 'antd/es/form';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
-import { ProForm } from '@ant-design/pro-components';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
+  AdminProFormRichDescription,
   AdminProFormDatePicker,
   AdminProFormSelect,
   AdminProFormText,
-  RichDescriptionEditor,
   TemplateFormPage,
   TemplateFormSection
 } from '../../../components/admin';
@@ -77,23 +76,36 @@ export function WorkOrderFormPage({ mode }: { mode: 'create' | 'edit' | 'copy' }
   const [systemOptions, setSystemOptions] = useState<Array<{ label: string; value: string }>>([]);
   const [problemTypeOptions, setProblemTypeOptions] = useState<Array<{ label: string; value: string }>>([]);
   const [loading, setLoading] = useState(mode !== 'create');
+  const [loadError, setLoadError] = useState('');
+  const [notFound, setNotFound] = useState(false);
+  const [reloadRevision, setReloadRevision] = useState(0);
   const initialValues = source && mode !== 'create' ? toInitialValues(source) : undefined;
   const title = mode === 'edit' ? '编辑工单' : mode === 'copy' ? '复制工单' : '新增工单';
 
   useEffect(() => {
+    setLoading(true);
+    setLoadError('');
+    setNotFound(false);
     Promise.all([
       getUserOptions().then(setUserOptions),
       getArchiveOptionsByTypeName('系统').then(setSystemOptions),
       getArchiveOptionsByTypeName('问题类型').then(setProblemTypeOptions),
       mode !== 'create' && params.id ? getWorkOrder(params.id).then(setSource) : Promise.resolve()
-    ]).finally(() => setLoading(false));
-  }, [mode, params.id]);
+    ]).catch((error) => {
+      const messageText = error instanceof Error ? error.message : '工单表单加载失败';
+      if (messageText.includes('不存在')) setNotFound(true);
+      else setLoadError(messageText);
+    }).finally(() => setLoading(false));
+  }, [mode, params.id, reloadRevision]);
 
   return (
     <TemplateFormPage<WorkOrderFormValues>
       title={title}
       formId="work-order-form"
       loading={loading}
+      error={loadError}
+      notFound={notFound}
+      onRetry={() => setReloadRevision((value) => value + 1)}
       initialValues={initialValues}
       titleExtra={source && mode !== 'create' ? (
         <Space size={8} className="admin-template-form-page__title-extra">
@@ -126,10 +138,11 @@ export function WorkOrderFormPage({ mode }: { mode: 'create' | 'edit' | 'copy' }
     >
       <TemplateFormSection title="基本信息">
         <div className="admin-template-form-page__grid">
-                <ProForm.Item
+                <AdminProFormRichDescription
                   className="admin-template-form-page__field is-full"
                   name="problemDesc"
                   label="问题描述"
+                  placeholder="请输入问题描述，可粘贴图片"
                   rules={[
                     {
                       validator: async (_rule: RuleObject, value?: string) => {
@@ -139,9 +152,7 @@ export function WorkOrderFormPage({ mode }: { mode: 'create' | 'edit' | 'copy' }
                       }
                     }
                   ]}
-                >
-                  <RichDescriptionEditor placeholder="请输入问题描述，可粘贴图片" />
-                </ProForm.Item>
+                />
                 <AdminProFormSelect
                   className="admin-template-form-page__field"
                   formItemProps={{ className: 'admin-template-form-page__field' }}

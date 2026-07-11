@@ -246,7 +246,7 @@ export function AdminLayout() {
   const idleLoggedOutRef = useRef(false);
   const category = new URLSearchParams(location.search).get('category');
   const selectedDesignCategory = isDesignCategory(category) ? category : 'overview';
-  const isAdmin = user?.employee_no === 'admin';
+  const isAdmin = user?.roles?.includes('admin') ?? false;
   const visibleMenuItems = useMemo(() => {
     const permittedBusinessMenuItems = isAdmin
       ? businessMenuItems
@@ -313,31 +313,16 @@ export function AdminLayout() {
     touchSession();
     const timer = window.setInterval(checkIdle, SESSION_IDLE_CHECK_MS);
 
-    const handleBeforeUnload = () => {
-      if (!accessSessionId) return;
-      window.fetch('/api/auth/logout', {
-        method: 'POST',
-        keepalive: true,
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ session_id: accessSessionId })
-      }).catch(() => undefined);
-    };
-
     SESSION_ACTIVITY_EVENTS.forEach((eventName) => {
       window.addEventListener(eventName, touchSession, { passive: true });
     });
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('beforeunload', handleBeforeUnload);
     return () => {
       window.clearInterval(timer);
       SESSION_ACTIVITY_EVENTS.forEach((eventName) => {
         window.removeEventListener(eventName, touchSession);
       });
       document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, [accessSessionId, clearAuth, navigate, token]);
 

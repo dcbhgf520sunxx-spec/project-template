@@ -15,10 +15,10 @@ export type MilestoneItem = {
 };
 
 const statusMeta = {
-  pending: { label: '未开始', color: '#94a3b8', icon: <ClockCircleFilled /> },
-  processing: { label: '进行中', color: '#2563eb', icon: <ClockCircleFilled /> },
-  done: { label: '已完成', color: '#16a34a', icon: <CheckCircleFilled /> },
-  blocked: { label: '阻塞', color: '#dc2626', icon: <CloseCircleFilled /> }
+  pending: { label: '未开始', color: 'var(--app-gray)', icon: <ClockCircleFilled /> },
+  processing: { label: '进行中', color: 'var(--app-primary-hover)', icon: <ClockCircleFilled /> },
+  done: { label: '已完成', color: 'var(--app-success)', icon: <CheckCircleFilled /> },
+  blocked: { label: '阻塞', color: 'var(--app-danger)', icon: <CloseCircleFilled /> }
 };
 
 export function MilestoneTimeline({ items }: { items: MilestoneItem[] }) {

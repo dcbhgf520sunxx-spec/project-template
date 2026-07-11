@@ -13,7 +13,7 @@
 }
 
 .work-order-form-page__code {
-  color: #64748b;
+  color: var(--app-muted);
   font-size: 12px;
 }
 

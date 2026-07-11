@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Button, Space } from 'antd';
+import { useState } from 'react';
 import './index.css';
 
 export type CompactFilterItem = {
@@ -20,17 +21,25 @@ type CompactFilterBarProps = {
 
 export function CompactFilterBar({
   items,
-  expanded = false,
+  expanded,
   visibleCount = 5,
   onExpandChange,
   onSearch,
   onReset
 }: CompactFilterBarProps) {
-  const visibleItems = expanded ? items : items.slice(0, visibleCount);
+  const [internalExpanded, setInternalExpanded] = useState(false);
+  const isExpanded = expanded ?? internalExpanded;
+  const visibleItems = isExpanded ? items : items.slice(0, visibleCount);
   const canExpand = items.length > visibleCount;
 
+  const handleExpandChange = () => {
+    const nextExpanded = !isExpanded;
+    if (expanded === undefined) setInternalExpanded(nextExpanded);
+    onExpandChange?.(nextExpanded);
+  };
+
   return (
-    <div className={expanded ? 'admin-compact-filter is-expanded' : 'admin-compact-filter'}>
+    <div className={isExpanded ? 'admin-compact-filter is-expanded' : 'admin-compact-filter'}>
       <div className="admin-compact-filter__grid">
         <div className="admin-compact-filter__fields">
           {visibleItems.map((item) => (
@@ -47,8 +56,8 @@ export function CompactFilterBar({
           <Button onClick={onReset}>重置</Button>
           <Button type="primary" onClick={onSearch}>查询</Button>
           {canExpand ? (
-            <Button type="link" onClick={() => onExpandChange?.(!expanded)}>
-              {expanded ? '收起' : '展开'}
+            <Button type="link" onClick={handleExpandChange}>
+              {isExpanded ? '收起' : '展开'}
             </Button>
           ) : null}
         </Space>

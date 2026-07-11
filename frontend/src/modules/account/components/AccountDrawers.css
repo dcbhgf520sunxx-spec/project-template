@@ -37,7 +37,7 @@
     inset 0 2px 0 rgba(255, 255, 255, 0.34),
     inset 0 -7px 0 rgba(18, 70, 170, 0.34),
     0 10px 22px rgba(29, 78, 216, 0.24);
-  color: #fff;
+  color: var(--app-surface);
   display: inline-flex;
   font-size: 18px;
   font-weight: 700;
@@ -89,7 +89,7 @@
   align-items: center;
   background: rgba(9, 21, 39, 0.72);
   border-radius: 50%;
-  color: #fff;
+  color: var(--app-surface);
   display: flex;
   font-size: 18px;
   inset: 0;
@@ -115,7 +115,7 @@
   background: rgba(12, 24, 44, 0.7);
   border-radius: 999px;
   bottom: -8px;
-  color: #fff;
+  color: var(--app-surface);
   display: inline-flex;
   font-size: 11px;
   height: 18px;

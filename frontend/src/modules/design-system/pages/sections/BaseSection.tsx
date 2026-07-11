@@ -20,8 +20,10 @@ import {
   AdminIconAction,
   AdminSegmented,
   AdminSpace,
+  AdminText,
   AdminTextAction,
   AdminToggleStatusIconAction,
+  DetailNeighborNav,
   ExpandToggleButton,
   OverdueTag,
   PriorityTag,
@@ -139,6 +141,26 @@ export function BaseSection() {
                 <AdminSpace size={10}>
                   <AdminTextAction danger>删除</AdminTextAction>
                   <AdminTextAction danger>移除权限</AdminTextAction>
+                </AdminSpace>
+              </div>
+            </div>
+          </section>
+
+          <section className="design-system-page__base-panel is-wide">
+            <div className="design-system-page__base-panel-head">
+              <h3>文本状态</h3>
+              <p>用于表格、详情和弹窗中的弱提示、警告提示和状态补充文本，不直接在业务页使用 Typography.Text。</p>
+            </div>
+            <div className="design-system-page__text-action-demo">
+              <div className="design-system-page__button-demo">
+                <h4>文本语义</h4>
+                <ComponentEntry name="AdminText" />
+                <AdminSpace size={12} wrap>
+                  <AdminText>普通文本</AdminText>
+                  <AdminText type="secondary">辅助文本</AdminText>
+                  <AdminText type="warning">警告文本</AdminText>
+                  <AdminText type="danger">危险文本</AdminText>
+                  <AdminText strong>强调文本</AdminText>
                 </AdminSpace>
               </div>
             </div>
@@ -264,6 +286,19 @@ export function BaseSection() {
                   ]}
                   value={filterTab}
                   onChange={setFilterTab}
+                />
+              </div>
+              <div className="design-system-page__button-demo">
+                <h4>详情条目切换</h4>
+                <ComponentEntry name="DetailNeighborNav / useDetailNeighbors" />
+                <p className="design-system-page__button-demo-description">用于详情页标题栏中间的上一条、下一条切换。</p>
+                <DetailNeighborNav
+                  placement="title"
+                  prevId="WO-00059"
+                  nextId="WO-00061"
+                  ordinal={8}
+                  total={67}
+                  onNavigate={() => {}}
                 />
               </div>
             </div>

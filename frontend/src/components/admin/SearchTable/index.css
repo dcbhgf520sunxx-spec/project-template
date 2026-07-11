@@ -16,23 +16,23 @@
   height: 22px;
   align-items: center;
   justify-content: center;
-  color: #25415f;
+  color: var(--app-text-subtle);
 }
 
 .admin-table-settings-popover__reset:not(:disabled):hover {
   color: var(--app-primary-hover);
-  background: rgba(31, 111, 255, 0.08);
+  background: var(--app-soft-primary-bg);
 }
 
 .admin-table-settings-trigger {
   width: 28px;
   height: 28px;
-  color: #1f63d6;
+  color: var(--app-primary-deep);
 }
 
 .admin-table-settings-trigger:hover {
   color: var(--app-primary-hover);
-  background: rgba(24, 144, 255, 0.08);
+  background: var(--app-soft-primary-bg);
 }
 
 .admin-table-resizing {

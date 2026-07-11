@@ -9,14 +9,14 @@
 }
 
 .admin-status-confirm-action__title.is-enable .anticon {
-  color: #16a34a;
+  color: var(--app-success);
 }
 
 .admin-status-confirm-action__title.is-disable .anticon {
-  color: #f59e0b;
+  color: var(--app-danger);
 }
 
 .admin-confirm-action__description strong {
-  color: #0f172a;
+  color: var(--app-text-strong);
   font-weight: 650;
 }

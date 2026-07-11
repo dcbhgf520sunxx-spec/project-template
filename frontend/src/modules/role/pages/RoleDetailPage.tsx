@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import type { Key } from 'react';
-import { Button, message, Tree } from 'antd';
+import { message } from 'antd';
 import type { DataNode } from 'antd/es/tree';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
-  ActionBar,
+  AdminTree,
   DeleteConfirmAction,
   DetailMetaList,
   PermissionButton,
@@ -56,9 +56,17 @@ export function RoleDetailPage() {
   const [menuTree, setMenuTree] = useState<DataNode[]>([]);
   const [checkedMenuIds, setCheckedMenuIds] = useState<number[]>([]);
   const [expandedMenuIds, setExpandedMenuIds] = useState<Key[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const [notFound, setNotFound] = useState(false);
+  const [reloadRevision, setReloadRevision] = useState(0);
 
   useEffect(() => {
     if (!params.id) return;
+    setLoading(true);
+    setLoadError('');
+    setNotFound(false);
+    setRole(undefined);
     Promise.all([
       getRole(params.id).then(setRole),
       getMenuList().then((menus) => {
@@ -67,16 +75,23 @@ export function RoleDetailPage() {
         setExpandedMenuIds(collectTreeKeys(tree));
       }),
       getRoleMenuIds(params.id).then(setCheckedMenuIds)
-    ]);
-  }, [params.id]);
+    ]).catch((error) => {
+      const messageText = error instanceof Error ? error.message : '角色加载失败';
+      if (messageText.includes('不存在')) setNotFound(true);
+      else setLoadError(messageText);
+    }).finally(() => setLoading(false));
+  }, [params.id, reloadRevision]);
 
   return (
     <TemplateDetailPage
       title="角色详情"
-      loading={!role}
+      loading={loading}
+      error={loadError}
+      notFound={notFound}
+      onRetry={() => setReloadRevision((value) => value + 1)}
+      onBack={() => navigate('/roles')}
       actions={
-        <ActionBar>
-          <Button onClick={() => navigate('/roles')}>返回</Button>
+        <>
           {role ? (
             <PermissionButton type="primary" permission="role" onClick={() => navigate(`/roles/${role.id}/edit`)}>
               编辑
@@ -97,7 +112,7 @@ export function RoleDetailPage() {
               删除
             </DeleteConfirmAction>
           ) : null}
-        </ActionBar>
+        </>
       }
       documentSection={role ? {
         items: [
@@ -121,7 +136,7 @@ export function RoleDetailPage() {
             />
           </TemplateDetailSection>
           <TemplateDetailSection title="菜单权限">
-            <Tree
+            <AdminTree
               checkable
               disabled
               expandedKeys={expandedMenuIds}

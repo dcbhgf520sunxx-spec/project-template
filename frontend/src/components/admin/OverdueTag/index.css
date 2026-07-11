@@ -12,11 +12,11 @@
 }
 
 .admin-overdue-tag--normal.ant-tag {
-  background: color-mix(in srgb, #16a34a 8%, #fff);
-  color: #16a34a;
+  background: color-mix(in srgb, var(--app-success) 8%, var(--app-surface));
+  color: var(--app-success);
 }
 
 .admin-overdue-tag--overdue.ant-tag {
-  background: color-mix(in srgb, #dc2626 8%, #fff);
-  color: #dc2626;
+  background: color-mix(in srgb, var(--app-danger) 8%, var(--app-surface));
+  color: var(--app-danger);
 }

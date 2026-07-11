@@ -5,7 +5,7 @@ import { PageShell } from '../PageShell';
 import { TablePagination } from '../TablePagination';
 import { useListPageData } from '../DataListPage/useListPageData';
 
-type TemplateListPagination = {
+export type TemplateListPagination = {
   current: number;
   pageSize: number;
   total: number;
@@ -17,10 +17,11 @@ type TemplateListPageBaseProps<
   T extends Record<string, unknown>,
   P extends Record<string, unknown> = Record<string, unknown>
 > = Omit<DataListPageProps<T, P>, 'footerExtra' | 'footerActions' | 'selectedCount'> & {
-  title: string;
+  title?: string;
   titleExtra?: ReactNode;
   actions?: ReactNode;
   pagination: TemplateListPagination;
+  embedded?: boolean;
 };
 
 type TemplateListStandardMode = {
@@ -35,7 +36,7 @@ type TemplateListBatchMode = {
   };
 };
 
-type TemplateListPageProps<
+export type TemplateListPageProps<
   T extends Record<string, unknown>,
   P extends Record<string, unknown> = Record<string, unknown>
 > = TemplateListPageBaseProps<T, P> & (TemplateListStandardMode | TemplateListBatchMode);
@@ -50,6 +51,7 @@ export function TemplateListPage<
     actions,
     pagination,
     mode,
+    embedded,
     ...restProps
   } = props;
   const dataListProps = { ...restProps } as TemplateListPageBaseProps<T, P> & { batch?: TemplateListBatchMode['batch'] };
@@ -61,23 +63,25 @@ export function TemplateListPage<
     }
     : {};
 
-  return (
-    <PageShell title={title} compact titleExtra={titleExtra} actions={actions}>
-      <DataListPage<T, P>
-        {...dataListProps as Omit<DataListPageProps<T, P>, 'footerExtra'>}
-        {...batchProps}
-        footerExtra={(
-          <TablePagination
-            current={pagination.total === 0 ? 1 : pagination.current}
-            pageSize={pagination.pageSize}
-            total={pagination.total}
-            onChange={pagination.onChange}
-            onShowSizeChange={pagination.onShowSizeChange}
-          />
-        )}
-      />
-    </PageShell>
+  const content = (
+    <DataListPage<T, P>
+      {...dataListProps as Omit<DataListPageProps<T, P>, 'footerExtra'>}
+      {...batchProps}
+      footerExtra={(
+        <TablePagination
+          current={pagination.total === 0 ? 1 : pagination.current}
+          pageSize={pagination.pageSize}
+          total={pagination.total}
+          onChange={pagination.onChange}
+          onShowSizeChange={pagination.onShowSizeChange}
+        />
+      )}
+    />
   );
+
+  if (embedded) return content;
+
+  return <PageShell title={title || ''} compact titleExtra={titleExtra} actions={actions}>{content}</PageShell>;
 }
 
 export const useTemplateListPageData = useListPageData;

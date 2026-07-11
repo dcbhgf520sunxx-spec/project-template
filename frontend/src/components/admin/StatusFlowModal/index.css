@@ -20,7 +20,7 @@
 }
 
 .admin-status-flow-modal__form .ant-form-item-label > label {
-  color: #475569;
+  color: var(--app-steel);
   font-size: 12px;
   font-weight: 600;
   line-height: 18px;

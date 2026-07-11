@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "node --watch src/app.js",
     "start": "node src/app.js",
-    "test": "node --test"
+    "test": "node --test",
+    "db:migrate": "node scripts/migrate.js"
   },
   "keywords": [],
   "author": "",

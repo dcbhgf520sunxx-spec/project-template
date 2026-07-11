@@ -4,7 +4,7 @@
   padding: 12px;
   border: 1px solid var(--app-border);
   border-radius: var(--app-radius);
-  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  background: linear-gradient(180deg, var(--app-surface) 0%, #f8fafc 100%);
   color: inherit;
   text-align: left;
 }
@@ -28,7 +28,7 @@
 }
 
 .admin-metric-card__overdue {
-  color: #dc2626;
+  color: var(--app-danger);
   font-size: 12px;
 }
 
@@ -81,13 +81,13 @@
   width: 7px;
   height: 7px;
   border-radius: 999px;
-  background: #94a3b8;
+  background: var(--app-gray);
 }
 
-.admin-metric-card__dot--blue { background: #2563eb; }
-.admin-metric-card__dot--cyan { background: #0891b2; }
-.admin-metric-card__dot--green { background: #16a34a; }
-.admin-metric-card__dot--orange { background: #f97316; }
-.admin-metric-card__dot--red { background: #dc2626; }
-.admin-metric-card__dot--purple { background: #7c3aed; }
-.admin-metric-card__dot--gray { background: #94a3b8; }
+.admin-metric-card__dot--blue { background: var(--app-primary-hover); }
+.admin-metric-card__dot--cyan { background: var(--app-cyan-deep); }
+.admin-metric-card__dot--green { background: var(--app-success); }
+.admin-metric-card__dot--orange { background: var(--app-orange); }
+.admin-metric-card__dot--red { background: var(--app-danger); }
+.admin-metric-card__dot--purple { background: var(--app-purple); }
+.admin-metric-card__dot--gray { background: var(--app-gray); }

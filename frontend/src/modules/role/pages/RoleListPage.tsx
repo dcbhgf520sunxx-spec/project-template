@@ -6,8 +6,11 @@ import {
   AdminInput,
   AdminTextAction,
   CompactFilterBar,
+  createListFilterItems,
+  createListSorters,
   DeleteConfirmAction,
   DetailLinkCell,
+  listSorters,
   OperationColumnActions,
   PermissionButton,
   TemplateListPage,
@@ -26,33 +29,19 @@ const defaultFilters: RoleFilters = {
   name: ''
 };
 
-const roleSorters: Record<string, (a: RoleRecord, b: RoleRecord) => number> = {
-  code: (a, b) => a.code.localeCompare(b.code),
-  name: (a, b) => a.name.localeCompare(b.name),
-  permissions: (a, b) => (a.permissions || '').localeCompare(b.permissions || ''),
-  description: (a, b) => (a.description || '').localeCompare(b.description || ''),
-  createdAt: (a, b) => a.createdAt.localeCompare(b.createdAt)
-};
+const roleSorters = createListSorters<RoleRecord>({
+  code: listSorters.text((row) => row.code),
+  name: listSorters.text((row) => row.name),
+  permissions: listSorters.text((row) => row.permissions),
+  description: listSorters.text((row) => row.description),
+  createdAt: listSorters.date((row) => row.createdAt)
+});
 
 export function RoleListPage() {
   const navigate = useNavigate();
   const [rows, setRows] = useState<RoleRecord[]>([]);
-  const { draftFilters, appliedFilters, setDraftFilters, commitFilters, resetFilters } = useCommittedFilters(defaultFilters);
-
-  const loadRows = async () => {
-    const result = await getRoleList({ pageSize: 1000 });
-    setRows(result.list);
-  };
-
-  useEffect(() => {
-    loadRows();
-  }, []);
-
-  const filteredRows = useMemo(() => rows.filter((row) => {
-    const matchCode = appliedFilters.code ? row.code.includes(appliedFilters.code) : true;
-    const matchName = appliedFilters.name ? row.name.includes(appliedFilters.name) : true;
-    return matchCode && matchName;
-  }), [appliedFilters, rows]);
+  const [serverTotal, setServerTotal] = useState(0);
+  const { draftFilters, appliedFilters, revision: filterRevision, setDraftFilters, commitFilters, resetFilters } = useCommittedFilters(defaultFilters);
 
   const {
     currentPage,
@@ -60,13 +49,28 @@ export function RoleListPage() {
     pagedRows,
     sortState,
     total,
-    setCurrentPage,
-    setPageSize,
+    pagination,
     handleTableChange,
     renderIndex
-  } = useTemplateListPageData({ rows: filteredRows, sorters: roleSorters });
+  } = useTemplateListPageData({ rows, sorters: roleSorters, resetOn: [filterRevision], total: serverTotal, serverPaging: true });
 
-  const filterItems = [
+  const loadRows = async () => {
+    const result = await getRoleList({
+      ...appliedFilters,
+      current: currentPage,
+      pageSize,
+      sortField: sortState.field,
+      sortOrder: sortState.order || undefined
+    });
+    setRows(result.list);
+    setServerTotal(result.total);
+  };
+
+  useEffect(() => {
+    loadRows();
+  }, [appliedFilters, currentPage, pageSize, sortState.field, sortState.order]);
+
+  const filterItems = createListFilterItems([
     {
       key: 'code',
       label: '角色编码',
@@ -78,7 +82,6 @@ export function RoleListPage() {
           onChange={(event) => setDraftFilters((prev) => ({ ...prev, code: event.target.value }))}
           onPressEnter={() => {
             commitFilters();
-            setCurrentPage(1);
           }}
         />
       )
@@ -94,12 +97,11 @@ export function RoleListPage() {
           onChange={(event) => setDraftFilters((prev) => ({ ...prev, name: event.target.value }))}
           onPressEnter={() => {
             commitFilters();
-            setCurrentPage(1);
           }}
         />
       )
     }
-  ];
+  ]);
 
   const columns: ProColumns<RoleRecord>[] = [
     {
@@ -202,11 +204,9 @@ export function RoleListPage() {
           visibleCount={4}
           onSearch={() => {
             commitFilters();
-            setCurrentPage(1);
           }}
           onReset={() => {
             resetFilters();
-            setCurrentPage(1);
           }}
         />
       )}
@@ -219,20 +219,7 @@ export function RoleListPage() {
         tableAlertRender: false,
         scroll: { x: 1200 }
       }}
-      scrollYDeps={[total, currentPage, pageSize, pagedRows.length]}
-      pagination={{
-        current: currentPage,
-        pageSize,
-        total,
-        onChange: (page, size) => {
-          setCurrentPage(page);
-          setPageSize(size);
-        },
-        onShowSizeChange: (_, size) => {
-          setCurrentPage(1);
-          setPageSize(size);
-        }
-      }}
+      pagination={pagination}
     />
   );
 }

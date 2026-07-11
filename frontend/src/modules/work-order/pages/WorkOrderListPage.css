@@ -26,23 +26,23 @@
 }
 
 .work-order-list-page__delete-confirm {
-  color: #475569;
+  color: var(--app-steel);
   font-size: 13px;
   line-height: 22px;
 }
 
 .work-order-list-page__batch-delete-confirm {
-  color: #475569;
+  color: var(--app-steel);
   font-size: 13px;
   line-height: 22px;
 }
 
 .work-order-list-page__batch-delete-confirm strong {
-  color: #dc2626;
+  color: var(--app-danger);
   font-weight: 700;
 }
 
 .work-order-list-page__batch-delete-risk {
   margin-top: 8px;
-  color: #dc2626;
+  color: var(--app-danger);
 }

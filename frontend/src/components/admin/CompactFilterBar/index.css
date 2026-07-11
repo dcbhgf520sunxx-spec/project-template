@@ -10,43 +10,42 @@
   flex-shrink: 0;
   border: 1px solid var(--app-border);
   border-radius: 6px;
-  background: #fff;
-  box-shadow: 0 8px 24px rgba(30, 82, 142, 0.04);
+  background: var(--app-surface);
+  box-shadow: var(--app-shadow);
 }
 
 .admin-compact-filter__grid {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 8px;
-  align-items: center;
+  align-items: flex-start;
   padding: 8px 10px;
 }
 
 .admin-compact-filter__fields {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   min-width: 0;
-  flex: 1;
-  flex-wrap: nowrap;
   gap: 8px;
+  max-height: 32px;
   overflow: hidden;
 }
 
 .admin-compact-filter__item {
   display: flex;
-  width: var(--compact-filter-field-width);
-  min-width: var(--compact-filter-field-width);
+  min-width: 0;
   align-items: center;
   gap: var(--compact-filter-field-gap);
 }
 
 .admin-compact-filter__item.is-wide {
-  width: var(--compact-filter-wide-width);
-  min-width: var(--compact-filter-wide-width);
+  grid-column: span 2;
 }
 
 .admin-compact-filter__label {
   width: var(--compact-filter-label-width);
   flex-shrink: 0;
-  color: #25415f;
+  color: var(--app-text-subtle);
   font-size: 12px;
   line-height: 32px;
   text-align: right;
@@ -54,14 +53,14 @@
 }
 
 .admin-compact-filter__control {
-  width: var(--compact-filter-control-width);
+  width: auto;
   min-width: 0;
-  flex: 0 0 var(--compact-filter-control-width);
+  flex: 1 1 var(--compact-filter-control-width);
 }
 
 .admin-compact-filter__item.is-wide .admin-compact-filter__control {
-  width: var(--compact-filter-wide-control-width);
-  flex-basis: var(--compact-filter-wide-control-width);
+  width: auto;
+  flex-basis: auto;
 }
 
 .admin-compact-filter__actions {
@@ -71,16 +70,9 @@
   white-space: nowrap;
 }
 
-.admin-compact-filter.is-expanded .admin-compact-filter__grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, var(--compact-filter-field-width));
-  align-items: end;
-  justify-content: start;
-}
-
 .admin-compact-filter.is-expanded .admin-compact-filter__fields {
-  display: contents;
   overflow: visible;
+  max-height: none;
 }
 
 .admin-compact-filter.is-expanded .admin-compact-filter__item.is-wide {
@@ -127,7 +119,7 @@
 .admin-compact-filter .ant-select-multiple .ant-select-selector,
 .admin-compact-filter .ant-select-single .ant-select-selector {
   align-items: center;
-  border-color: #dce8f7 !important;
+  border-color: var(--app-border) !important;
 }
 
 .admin-compact-filter .ant-input-affix-wrapper {
@@ -182,7 +174,7 @@
 .admin-compact-filter .ant-input-affix-wrapper:hover,
 .admin-compact-filter .ant-picker:hover,
 .admin-compact-filter .ant-select:hover .ant-select-selector {
-  border-color: #1f6fff !important;
+  border-color: var(--app-primary) !important;
 }
 
 .admin-compact-filter .ant-input:focus,
@@ -191,8 +183,8 @@
 .admin-compact-filter .ant-input-affix-wrapper:focus-within,
 .admin-compact-filter .ant-picker-focused,
 .admin-compact-filter .ant-select-focused .ant-select-selector {
-  border-color: #1f6fff !important;
-  box-shadow: 0 0 0 2px rgba(31, 111, 255, 0.1) !important;
+  border-color: var(--app-primary) !important;
+  box-shadow: 0 0 0 2px var(--app-glow) !important;
 }
 
 .admin-compact-filter .ant-btn {
@@ -202,21 +194,45 @@
 }
 
 .admin-compact-filter .ant-btn-link {
-  color: #1f63d6;
+  color: var(--app-primary-deep);
 }
 
 .admin-compact-filter .ant-btn-link:hover,
 .admin-compact-filter .ant-btn-color-link.ant-btn-variant-link:not(:disabled):not(.ant-btn-disabled):hover {
   color: var(--app-primary-hover) !important;
-  background: rgba(31, 99, 214, 0.06);
+  background: var(--app-soft-primary-bg);
 }
 
 .admin-compact-filter .ant-btn-link:hover > span {
   color: inherit !important;
 }
 
+@media (max-width: 1180px) {
+  .admin-compact-filter__fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 900px) {
+  .admin-compact-filter__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-compact-filter__fields {
+    max-height: 32px;
+  }
+
   .admin-compact-filter__actions {
     margin-left: auto;
+  }
+}
+
+@media (max-width: 600px) {
+  .admin-compact-filter__fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-compact-filter__item.is-wide {
+    grid-column: span 1;
   }
 }

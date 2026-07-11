@@ -14,11 +14,11 @@ export function AssistantStage({ skin, tone }: AssistantStageProps) {
         dpr={[1, 1.8]}
         shadows
       >
-        <color attach="background" args={[tone === 'dark' ? '#0b1020' : '#f8fbff']} />
+        <color attach="background" args={[tone === 'dark' ? '#0b1020' : 'var(--app-surface-tech)']} />
         <ambientLight intensity={tone === 'dark' ? 0.85 : 1.15} />
         <directionalLight
           castShadow
-          color={tone === 'dark' ? '#dce8ff' : '#ffffff'}
+          color={tone === 'dark' ? '#dce8ff' : 'var(--app-surface)'}
           intensity={2.4}
           position={[3, 4, 4]}
           shadow-mapSize={[1024, 1024]}

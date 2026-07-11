@@ -677,7 +677,7 @@ export function InputSection({ richText, setRichText }: InputSectionProps) {
               <div className="design-system-page__input-demo">
                 <h4>基础颜色</h4>
                 <ComponentEntry name="AdminColorPicker" />
-                <AdminColorPicker className="design-system-page__color-picker" defaultValue="#2563eb" />
+                <AdminColorPicker className="design-system-page__color-picker" defaultValue="var(--app-primary-hover)" />
               </div>
               <div className="design-system-page__input-demo">
                 <h4>预设颜色</h4>
@@ -688,7 +688,7 @@ export function InputSection({ richText, setRichText }: InputSectionProps) {
                   presets={[
                     {
                       label: '主题色',
-                      colors: ['#2563eb', '#0f42d2', '#0891b2', '#475569']
+                      colors: ['var(--app-primary-hover)', '#0f42d2', 'var(--app-cyan-deep)', 'var(--app-steel)']
                     }
                   ]}
                 />

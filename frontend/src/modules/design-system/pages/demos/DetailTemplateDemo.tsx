@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import {
   AdminButton,
-  AdminSpace,
+  AdminSegmented,
+  DetailNeighborNav,
   DetailMetaList,
   StatusTag,
   TemplateDetailPage,
@@ -9,23 +11,48 @@ import {
 import { ComponentEntry } from '../components/ComponentEntry';
 
 export function DetailTemplateDemo() {
+  const [demoState, setDemoState] = useState<'normal' | 'loading' | 'error' | 'notFound'>('normal');
+
   return (
     <div className="design-system-page__layout-pattern-template">
       <div className="design-system-page__input-panel-head">
         <h3>TemplateDetailPage</h3>
-        <ComponentEntry name="TemplateDetailPage / TemplateDetailSection / DetailMetaList" />
-        <p>详情页统一从这个入口接入。左侧只放业务信息分组，状态和单据信息固定进入右侧区，避免每个页面自己决定位置。</p>
+        <ComponentEntry name="TemplateDetailPage / DetailNeighborNav / TemplateDetailSection / DetailMetaList" />
+        <p>详情页统一从这个入口接入。上一条/下一条放标题栏中间，左侧保留标题和状态，右侧保留页面操作。</p>
+        <div className="design-system-page__template-mode-switch">
+          <AdminSegmented
+            size="small"
+            value={demoState}
+            options={[
+              { label: '正常', value: 'normal' },
+              { label: '加载中', value: 'loading' },
+              { label: '加载失败', value: 'error' },
+              { label: '记录不存在', value: 'notFound' }
+            ]}
+            onChange={(value) => setDemoState(value as typeof demoState)}
+          />
+        </div>
       </div>
       <div className="design-system-page__template-demo is-detail">
         <TemplateDetailPage
           title="详情模板：用户详情"
+          loading={demoState === 'loading'}
+          error={demoState === 'error' ? '详情数据加载失败，请稍后重试' : undefined}
+          notFound={demoState === 'notFound'}
+          onRetry={() => setDemoState('normal')}
+          onBack={() => {}}
           titleExtra={<StatusTag status="enabled" />}
-          actions={(
-            <AdminSpace size={8}>
-              <AdminButton>返回</AdminButton>
-              <AdminButton type="primary">编辑</AdminButton>
-            </AdminSpace>
+          titleCenter={(
+            <DetailNeighborNav
+              placement="title"
+              prevId="10085"
+              nextId="10087"
+              ordinal={8}
+              total={24}
+              onNavigate={() => {}}
+            />
           )}
+          actions={<AdminButton type="primary">编辑</AdminButton>}
           statusSection={{
             items: [
               { label: '状态', value: <StatusTag status="enabled" />, wide: true },

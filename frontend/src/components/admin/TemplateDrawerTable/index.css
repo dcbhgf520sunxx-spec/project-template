@@ -1,0 +1,22 @@
+.admin-template-drawer-table-root .ant-drawer-content {
+  height: 100%;
+}
+
+.admin-template-drawer-table .ant-drawer-body {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.admin-template-drawer-table__description {
+  flex-shrink: 0;
+  margin: 0 0 10px;
+}
+
+.admin-template-drawer-table__content {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}

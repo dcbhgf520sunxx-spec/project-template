@@ -5,7 +5,7 @@
 .admin-date-picker.ant-picker {
   width: 100%;
   min-height: 32px;
-  border-color: #dce8f7 !important;
+  border-color: var(--app-border) !important;
   border-radius: 6px;
   font-size: 13px;
 }
@@ -45,7 +45,7 @@
 
 .admin-auto-complete.ant-select .ant-select-selector {
   min-height: 32px;
-  border-color: #dce8f7 !important;
+  border-color: var(--app-border) !important;
   border-radius: 6px;
 }
 
@@ -76,7 +76,7 @@
 .admin-input.ant-input-number:hover,
 .admin-auto-complete.ant-select:hover .ant-select-selector,
 .admin-date-picker.ant-picker:hover {
-  border-color: #1f6fff !important;
+  border-color: var(--app-primary) !important;
 }
 
 .admin-input.ant-input:focus,
@@ -86,6 +86,6 @@
 .admin-input.ant-input-number-focused,
 .admin-auto-complete.ant-select-focused .ant-select-selector,
 .admin-date-picker.ant-picker-focused {
-  border-color: #1f6fff !important;
-  box-shadow: 0 0 0 2px rgba(31, 111, 255, 0.1) !important;
+  border-color: var(--app-primary) !important;
+  box-shadow: 0 0 0 2px var(--app-glow) !important;
 }

@@ -2,13 +2,12 @@ import { message, Space } from 'antd';
 import type { RuleObject } from 'antd/es/form';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
-import { ProForm } from '@ant-design/pro-components';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
+  AdminProFormRichDescription,
   AdminProFormDatePicker,
   AdminProFormSelect,
   AdminProFormText,
-  RichDescriptionEditor,
   TemplateFormPage,
   TemplateFormSection
 } from '../../../components/admin';
@@ -60,6 +59,7 @@ export function WorkOrderTemplateFormPage({ mode }: { mode: 'create' | 'edit' | 
     <TemplateFormPage<WorkOrderFormValues>
       title={title}
       formId="work-order-template-form"
+      notFound={mode !== 'create' && !source}
       initialValues={initialValues}
       titleExtra={source && mode !== 'create' ? (
         <Space size={8} className="admin-template-form-page__title-extra">
@@ -74,10 +74,11 @@ export function WorkOrderTemplateFormPage({ mode }: { mode: 'create' | 'edit' | 
     >
       <TemplateFormSection title="基本信息">
         <div className="admin-template-form-page__grid">
-              <ProForm.Item
+              <AdminProFormRichDescription
                 className="admin-template-form-page__field is-full"
                 name="problemDesc"
                 label="问题描述"
+                placeholder="请输入问题描述，可粘贴图片"
                 rules={[
                   {
                     validator: async (_rule: RuleObject, value?: string) => {
@@ -85,9 +86,7 @@ export function WorkOrderTemplateFormPage({ mode }: { mode: 'create' | 'edit' | 
                     }
                   }
                 ]}
-              >
-                <RichDescriptionEditor placeholder="请输入问题描述，可粘贴图片" />
-              </ProForm.Item>
+              />
               <AdminProFormText
                 className="admin-template-form-page__field"
                 formItemProps={{ className: 'admin-template-form-page__field' }}

@@ -28,7 +28,7 @@
   height: 7px;
   border: 1.5px solid var(--app-surface);
   border-radius: 999px;
-  background: #ef4444;
+  background: var(--app-danger-light);
 }
 
 .admin-message-center__trigger-icon {
@@ -58,7 +58,7 @@
 }
 
 .admin-message-center__drawer-extra em {
-  color: #ef4444;
+  color: var(--app-danger-light);
   font-style: normal;
   font-weight: 650;
 }
@@ -89,12 +89,12 @@
   border-top: 1px solid rgba(226, 232, 240, 0.84);
   color: inherit;
   text-align: left;
-  background: #ffffff;
+  background: var(--app-surface);
   cursor: pointer;
 }
 
 .admin-message-center__item:hover {
-  background: #f8fbff;
+  background: var(--app-surface-tech);
 }
 
 .admin-message-center__item.is-unread {
@@ -119,7 +119,7 @@
   height: 6px;
   flex: 0 0 auto;
   border-radius: 999px;
-  background: #ef4444;
+  background: var(--app-danger-light);
 }
 
 .admin-message-center__item-title strong {
