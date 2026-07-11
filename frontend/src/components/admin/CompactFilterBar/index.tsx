@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Button, Space } from 'antd';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { getCollapsedVisibleCount } from './layout';
 import './index.css';
 
 export type CompactFilterItem = {
@@ -28,9 +29,25 @@ export function CompactFilterBar({
   onReset
 }: CompactFilterBarProps) {
   const [internalExpanded, setInternalExpanded] = useState(false);
+  const fieldsRef = useRef<HTMLDivElement>(null);
+  const [columnsPerRow, setColumnsPerRow] = useState(4);
   const isExpanded = expanded ?? internalExpanded;
-  const visibleItems = isExpanded ? items : items.slice(0, visibleCount);
-  const canExpand = items.length > visibleCount;
+  const collapsedVisibleCount = getCollapsedVisibleCount(items.length, visibleCount, columnsPerRow);
+  const visibleItems = isExpanded ? items : items.slice(0, collapsedVisibleCount);
+  const canExpand = items.length > collapsedVisibleCount;
+
+  useEffect(() => {
+    const fields = fieldsRef.current;
+    if (!fields) return;
+    const updateColumnsPerRow = () => {
+      const columnCount = getComputedStyle(fields).gridTemplateColumns.split(' ').filter(Boolean).length;
+      setColumnsPerRow(Math.max(1, columnCount));
+    };
+    updateColumnsPerRow();
+    const observer = new ResizeObserver(updateColumnsPerRow);
+    observer.observe(fields);
+    return () => observer.disconnect();
+  }, []);
 
   const handleExpandChange = () => {
     const nextExpanded = !isExpanded;
@@ -41,7 +58,7 @@ export function CompactFilterBar({
   return (
     <div className={isExpanded ? 'admin-compact-filter is-expanded' : 'admin-compact-filter'}>
       <div className="admin-compact-filter__grid">
-        <div className="admin-compact-filter__fields">
+        <div ref={fieldsRef} className="admin-compact-filter__fields">
           {visibleItems.map((item) => (
             <label
               key={item.key}

@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../../stores/authStore';
 import './index.css';
+import { enforceFixedColumnState, type ColumnStateEntry } from './columnState';
 
 export type SearchTableProps<
   T extends Record<string, unknown>,
@@ -133,6 +134,15 @@ export function SearchTable<
   const columnsStateKey = `${tablePreferenceKey}:columns-state`;
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>(() => readTableJson(columnWidthsKey, {}));
   const [tableSize, setTableSize] = useState<TableDensitySize>(() => readTableJson(tableSizeKey, 'small'));
+  const fixedColumnsSignature = columns.map((column, index) => `${getColumnKey(column, index)}:${column.fixed || ''}`).join('|');
+  const fixedColumns = useMemo(() => columns.map((column, index) => ({
+    key: getColumnKey(column, index),
+    fixed: column.fixed
+  })), [fixedColumnsSignature]);
+  const [columnState, setColumnState] = useState<Record<string, ColumnStateEntry>>(() => enforceFixedColumnState(
+    fixedColumns,
+    readTableJson(columnsStateKey, {})
+  ));
   const hasCustomColumnWidths = Object.keys(columnWidths).length > 0;
   const paginationConfig = typeof pagination === 'object' ? pagination : {};
   const scrollX = typeof restProps.scroll === 'object' && typeof restProps.scroll?.x === 'number'
@@ -155,7 +165,14 @@ export function SearchTable<
   useEffect(() => {
     setColumnWidths(readTableJson(columnWidthsKey, {}));
     setTableSize(readTableJson(tableSizeKey, 'small'));
-  }, [columnWidthsKey, tableSizeKey]);
+    setColumnState(enforceFixedColumnState(fixedColumns, readTableJson(columnsStateKey, {})));
+  }, [columnWidthsKey, columnsStateKey, fixedColumns, tableSizeKey]);
+
+  const handleColumnStateChange = (nextState: Record<string, ColumnStateEntry>) => {
+    const enforcedState = enforceFixedColumnState(fixedColumns, nextState);
+    setColumnState(enforcedState);
+    writeTableJson(columnsStateKey, enforcedState);
+  };
 
   const handleColumnWidthsChange = (nextWidths: Record<string, number>) => {
     setColumnWidths(nextWidths);
@@ -303,8 +320,8 @@ export function SearchTable<
       locale={{ emptyText: '暂无数据', ...locale }}
       pagination={mergedPagination}
       columnsState={{
-        persistenceKey: columnsStateKey,
-        persistenceType: 'localStorage'
+        value: columnState,
+        onChange: handleColumnStateChange
       }}
       defaultSize={tableSize}
       onSizeChange={handleTableSizeChange}
