@@ -35,6 +35,15 @@ const workOrderContract = objectContract<WorkOrderResponse>([
   'is_overdue', 'submitter_name', 'submitter_dept', 'submit_time'
 ]);
 const workOrderListContract = arrayContract(workOrderContract);
+const workOrderIdContract = objectContract<{ id: number }>(['id']);
+const overdueRefreshContract = objectContract<{ changed: number; checkedAt: string }>(['changed', 'checkedAt']);
+const batchAssignContract = objectContract<{ updated: number; requested: number }>(['updated', 'requested']);
+const workOrderHistoryContract = arrayContract(objectContract<{
+  time: string;
+  user: string;
+  title: string;
+  details?: Array<{ field: string; oldVal?: string; newVal?: string }>;
+}>(['time', 'user', 'title']));
 
 const workOrderPageContract = (value: unknown): value is PageResponse<WorkOrderResponse> => {
   if (!value || typeof value !== 'object') return false;
@@ -140,14 +149,14 @@ export async function getWorkOrder(id: string) {
 }
 
 export async function refreshWorkOrderOverdue() {
-  return unwrap<{ changed: number; checkedAt: string }>(request.post('/work-orders/refresh-overdue'));
+  return unwrap<{ changed: number; checkedAt: string }>(request.post('/work-orders/refresh-overdue'), overdueRefreshContract);
 }
 
 export async function batchAssignWorkOrders(ids: string[], followerId: string) {
   return unwrap<{ updated: number; requested: number }>(request.put('/work-orders/batch-assign', {
     ids: ids.map((id) => Number(id)),
     follower_id: Number(followerId)
-  }));
+  }), batchAssignContract);
 }
 
 function toPayload(values: WorkOrderFormPayload) {
@@ -165,7 +174,7 @@ function toPayload(values: WorkOrderFormPayload) {
 }
 
 export async function createWorkOrder(values: WorkOrderFormPayload) {
-  return unwrap<{ id: number }>(request.post('/work-orders', toPayload(values)));
+  return unwrap<{ id: number }>(request.post('/work-orders', toPayload(values)), workOrderIdContract);
 }
 
 export async function updateWorkOrder(id: string, values: WorkOrderFormPayload) {
@@ -190,7 +199,8 @@ export async function updateWorkOrderStatus(id: string, payload: WorkOrderStatus
 
 export async function getWorkOrderHistory(id: string): Promise<WorkOrderHistoryItem[]> {
   const rows = await unwrap<Array<{ time: string; user: string; title: string; details?: Array<{ field: string; oldVal?: string; newVal?: string }> }>>(
-    request.get(`/work-orders/${id}/history`)
+    request.get(`/work-orders/${id}/history`),
+    workOrderHistoryContract
   );
 
   return rows.map((row, index) => ({

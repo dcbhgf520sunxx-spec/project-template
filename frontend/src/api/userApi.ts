@@ -30,6 +30,10 @@ type UserResponse = {
 };
 
 const userContract = objectContract<UserResponse>(['id', 'employee_no', 'real_name', 'status']);
+const userOptionContract = objectContract<Pick<UserResponse, 'id' | 'employee_no' | 'real_name'>>(['id', 'employee_no', 'real_name']);
+const userIdContract = objectContract<{ id: number }>(['id']);
+const availableContract = objectContract<{ available: boolean }>(['available']);
+const hrPersonContract = objectContract<{ employee_no: string; real_name: string; phone?: string }>(['employee_no', 'real_name']);
 const userListContract = objectContract<{ list: UserResponse[]; total: number; page: number; pageSize: number }>(
   ['list', 'total', 'page', 'pageSize'],
   { list: arrayContract(userContract) }
@@ -103,7 +107,7 @@ export async function getUser(id: string) {
 }
 
 export async function getUserOptions() {
-  const rows = await unwrap<Array<Pick<UserResponse, 'id' | 'employee_no' | 'real_name'>>>(request.get('/user-options'));
+  const rows = await unwrap<Array<Pick<UserResponse, 'id' | 'employee_no' | 'real_name'>>>(request.get('/user-options'), arrayContract(userOptionContract));
   return rows.map((user) => ({ label: `${user.employee_no}·${user.real_name}`, value: String(user.id) }));
 }
 
@@ -115,7 +119,7 @@ export async function createUser(values: UserFormValues) {
     password: values.password || 'vv123456',
     status: 1,
     role_ids: values.roleIds?.map(Number) || []
-  }));
+  }), userIdContract);
 }
 
 export async function updateUser(id: string, values: UserFormValues) {
@@ -143,18 +147,19 @@ export async function resetUserPassword(id: string) {
 export async function checkEmployeeNo(employeeNo: string, excludeId?: string) {
   return unwrap<{ available: boolean }>(request.get('/users/check-employee-no', {
     params: { employee_no: employeeNo, excludeId }
-  }));
+  }), availableContract);
 }
 
 export async function checkPhone(phone: string, excludeId?: string) {
   return unwrap<{ available: boolean }>(request.get('/users/check-phone', {
     params: { phone, excludeId }
-  }));
+  }), availableContract);
 }
 
 export async function searchHrPersons(keyword: string): Promise<HrPerson[]> {
   const rows = await unwrap<Array<{ employee_no: string; real_name: string; phone?: string }>>(
-    request.get('/users/hr-search', { params: { keyword } })
+    request.get('/users/hr-search', { params: { keyword } }),
+    arrayContract(hrPersonContract)
   );
   return rows.map((row) => ({
     employeeNo: row.employee_no,

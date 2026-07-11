@@ -2,6 +2,7 @@ import { request, unwrap } from './requestClient';
 import type { MenuItem } from '../types/menu';
 import type { PermissionCode } from '../types/permission';
 import type { UserInfo, UserPreference } from '../stores/authStore';
+import { objectContract } from './responseContract';
 
 export type LoginParams = {
   account: string;
@@ -16,8 +17,10 @@ export type LoginResult = {
   menus: MenuItem[];
 };
 
+const loginContract = objectContract<LoginResult>(['token', 'first_login', 'user', 'menus']);
+
 export function login(params: LoginParams) {
-  return unwrap<LoginResult>(request.post('/auth/login', params));
+  return unwrap<LoginResult>(request.post('/auth/login', params), loginContract);
 }
 
 export type CurrentUserResult = {
@@ -31,29 +34,34 @@ export type CurrentUserResult = {
   last_login_at?: string;
 };
 
+const currentUserContract = objectContract<CurrentUserResult>(['id', 'employee_no', 'real_name', 'status']);
+const avatarUploadContract = objectContract<{ avatar_url: string }>(['avatar_url']);
+const avatarResetContract = objectContract<{ avatar_url: string | null }>(['avatar_url']);
+const preferenceContract = objectContract<UserPreference>(['default_route', 'default_page_size', 'appearance_mode']);
+
 export function getCurrentUser() {
-  return unwrap<CurrentUserResult>(request.get('/auth/me'));
+  return unwrap<CurrentUserResult>(request.get('/auth/me'), currentUserContract);
 }
 
 export function updateCurrentProfile(params: { phone?: string }) {
   return unwrap<CurrentUserResult>(request.put('/auth/me/profile', {
     phone: params.phone || null
-  }));
+  }), currentUserContract);
 }
 
 export function changeCurrentPhone(params: { phone: string; password: string }) {
   return unwrap<CurrentUserResult>(request.put('/auth/me/phone', {
     phone: params.phone,
     password: params.password
-  }));
+  }), currentUserContract);
 }
 
 export function uploadCurrentAvatar(params: { fileName: string; mimeType: string; contentBase64: string }) {
-  return unwrap<{ avatar_url: string }>(request.post('/auth/me/avatar', params));
+  return unwrap<{ avatar_url: string }>(request.post('/auth/me/avatar', params), avatarUploadContract);
 }
 
 export function resetCurrentAvatar() {
-  return unwrap<{ avatar_url: string | null }>(request.delete('/auth/me/avatar'));
+  return unwrap<{ avatar_url: string | null }>(request.delete('/auth/me/avatar'), avatarResetContract);
 }
 
 export function changeCurrentPassword(params: { oldPassword: string; newPassword: string }) {
@@ -64,11 +72,11 @@ export function changeCurrentPassword(params: { oldPassword: string; newPassword
 }
 
 export function getUserPreference() {
-  return unwrap<UserPreference>(request.get('/auth/preferences'));
+  return unwrap<UserPreference>(request.get('/auth/preferences'), preferenceContract);
 }
 
 export function updateUserPreference(params: UserPreference) {
-  return unwrap<UserPreference>(request.put('/auth/preferences', params));
+  return unwrap<UserPreference>(request.put('/auth/preferences', params), preferenceContract);
 }
 
 export function derivePermissions(menus: MenuItem[]): PermissionCode[] {

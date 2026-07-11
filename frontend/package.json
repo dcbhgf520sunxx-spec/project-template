@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "audit:components": "node scripts/audit-component-usage.mjs",
     "audit:components:strict": "node scripts/audit-component-usage.mjs --strict",
+    "audit:api-contracts": "node scripts/audit-api-contracts.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

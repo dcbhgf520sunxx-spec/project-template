@@ -55,6 +55,8 @@ type ArchiveOptionResponse = {
 const archiveTypeContract = objectContract<ArchiveTypeResponse>(['id', 'code', 'code_prefix', 'name', 'status']);
 const archiveContract = objectContract<ArchiveResponse>(['id', 'code', 'name', 'archive_type_id', 'sort_order', 'status']);
 const archiveOptionContract = objectContract<ArchiveOptionResponse>(['id', 'code', 'name']);
+const archiveCreateContract = objectContract<{ id: number; code: string }>(['id', 'code']);
+const availableContract = objectContract<{ available: boolean }>(['available']);
 
 function dateText(value?: string) {
   return String(value || '').slice(0, 19).replace('T', ' ');
@@ -129,7 +131,7 @@ export async function createArchiveType(values: { codePrefix: string; name: stri
   return unwrap<{ id: number; code: string }>(request.post('/archive-types', {
     code_prefix: values.codePrefix,
     name: values.name
-  }));
+  }), archiveCreateContract);
 }
 
 export async function updateArchiveType(id: string, values: { name: string }) {
@@ -152,7 +154,7 @@ export async function deleteArchiveType(id: string) {
 export async function checkArchiveTypePrefix(prefix: string, excludeId?: string) {
   return unwrap<{ available: boolean }>(request.get('/archive-types/check-prefix', {
     params: { prefix, excludeId }
-  }));
+  }), availableContract);
 }
 
 export async function getArchives(params: Record<string, unknown> = {}): Promise<PageResult<ArchiveRecord>> {
@@ -180,7 +182,7 @@ export async function createArchive(values: { archiveTypeId: string; name: strin
   return unwrap<{ id: number; code: string }>(request.post('/archives', {
     archive_type_id: Number(values.archiveTypeId),
     name: values.name
-  }));
+  }), archiveCreateContract);
 }
 
 export async function updateArchive(id: string, values: { name: string; sortOrder?: number }) {

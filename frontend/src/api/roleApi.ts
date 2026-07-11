@@ -42,6 +42,9 @@ type RoleResponse = {
 };
 
 const roleContract = objectContract<RoleResponse>(['id', 'code', 'name']);
+const roleOptionContract = objectContract<{ id: number; code: string; name: string }>(['id', 'code', 'name']);
+const roleIdContract = objectContract<{ id: number }>(['id']);
+const availableContract = objectContract<{ available: boolean }>(['available']);
 const roleListContract = objectContract<{ list: RoleResponse[]; total: number; page: number; pageSize: number }>(
   ['list', 'total', 'page', 'pageSize'],
   { list: arrayContract(roleContract) }
@@ -57,6 +60,9 @@ export type MenuRecord = {
   icon?: string;
   sort_order?: number;
 };
+
+const menuContract = objectContract<MenuRecord & { id: string | number; parent_id: string | number }>(['id', 'parent_id', 'name', 'code', 'type']);
+const menuIdListContract = arrayContract((value: unknown): value is number | string => typeof value === 'number' || typeof value === 'string');
 
 function toRoleRecord(row: RoleResponse): RoleRecord {
   return {
@@ -100,7 +106,7 @@ export async function getRoleList(params: RoleListParams = {}): Promise<PageResu
 }
 
 export async function getRoleOptions() {
-  const rows = await unwrap<Array<{ id: number; code: string; name: string }>>(request.get('/role-options'));
+  const rows = await unwrap<Array<{ id: number; code: string; name: string }>>(request.get('/role-options'), arrayContract(roleOptionContract));
   return rows.map((role) => ({ label: role.name, value: String(role.id) }));
 }
 
@@ -110,7 +116,7 @@ export async function getRole(id: string) {
 }
 
 export async function createRole(values: RoleFormValues) {
-  return unwrap<{ id: number }>(request.post('/roles', values));
+  return unwrap<{ id: number }>(request.post('/roles', values), roleIdContract);
 }
 
 export async function updateRole(id: string, values: RoleFormValues) {
@@ -122,11 +128,11 @@ export async function deleteRole(id: string) {
 }
 
 export async function checkRoleCode(code: string, excludeId?: string) {
-  return unwrap<{ available: boolean }>(request.get('/roles/check-code', { params: { code, excludeId } }));
+  return unwrap<{ available: boolean }>(request.get('/roles/check-code', { params: { code, excludeId } }), availableContract);
 }
 
 export async function getMenuList() {
-  const rows = await unwrap<Array<MenuRecord & { id: string | number; parent_id: string | number }>>(request.get('/menus'));
+  const rows = await unwrap<Array<MenuRecord & { id: string | number; parent_id: string | number }>>(request.get('/menus'), arrayContract(menuContract));
   return rows.map((row) => ({
     ...row,
     id: Number(row.id),
@@ -135,7 +141,7 @@ export async function getMenuList() {
 }
 
 export async function getRoleMenuIds(roleId: string) {
-  const ids = await unwrap<Array<number | string>>(request.get(`/menus/role/${roleId}`));
+  const ids = await unwrap<Array<number | string>>(request.get(`/menus/role/${roleId}`), menuIdListContract);
   return ids.map(Number);
 }
 

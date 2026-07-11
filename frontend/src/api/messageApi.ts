@@ -24,6 +24,8 @@ type MessageResponse = {
 };
 
 const messageListContract = arrayContract(objectContract<MessageResponse>(['id', 'type', 'title', 'description']));
+const messageIdContract = objectContract<{ id: number }>(['id']);
+const messageUpdatedContract = objectContract<{ updated: number }>(['updated']);
 
 function formatMessageTime(value?: string) {
   if (!value) return '-';
@@ -59,9 +61,9 @@ export async function getMessages() {
 }
 
 export async function markMessageRead(id: string) {
-  return unwrap<{ id: number }>(request.put(`/messages/${id}/read`));
+  return unwrap<{ id: number }>(request.put(`/messages/${id}/read`), messageIdContract);
 }
 
 export async function markAllMessagesRead() {
-  return unwrap<{ updated: number }>(request.put('/messages/read-all'));
+  return unwrap<{ updated: number }>(request.put('/messages/read-all'), messageUpdatedContract);
 }
