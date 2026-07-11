@@ -3,9 +3,10 @@ const path = require('node:path')
 const { pool } = require('../src/db')
 
 function listMigrationFiles(directory) {
-  return fs.readdirSync(directory)
-    .filter((file) => file.endsWith('.sql'))
-    .sort()
+  const files = fs.readdirSync(directory).filter((file) => file.endsWith('.sql'))
+  const invalid = files.filter((file) => !/^\d{8}_[a-z0-9_]+\.sql$/.test(file))
+  if (invalid.length) throw new Error(`迁移文件名不符合 YYYYMMDD_name.sql：${invalid.join(', ')}`)
+  return files.sort()
 }
 
 async function ensureMigrationsTable(client) {

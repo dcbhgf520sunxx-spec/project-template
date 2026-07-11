@@ -47,6 +47,11 @@ export function renderUrgency(value: WorkOrderUrgency) {
   return <PriorityTag level="low" text="低" />;
 }
 
-export function renderOverdue(isOverdue: boolean) {
-  return <OverdueTag overdueDays={isOverdue ? 3 : 0} />;
+export function renderOverdue(isOverdue: boolean, expectedResolveDate?: string) {
+  if (!isOverdue) return <OverdueTag overdueDays={0} />;
+  if (!expectedResolveDate) return <OverdueTag />;
+  const due = new Date(expectedResolveDate);
+  if (Number.isNaN(due.getTime())) return <OverdueTag />;
+  const overdueDays = Math.max(1, Math.ceil((Date.now() - due.getTime()) / 86_400_000));
+  return <OverdueTag overdueDays={overdueDays} />;
 }

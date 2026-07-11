@@ -37,13 +37,12 @@ export function WorkOrderListPage() {
   const [selectedRowKeys, setSelectedRowKeys] = useState<Key[]>([]);
 
   const {
-    workOrders,
-    serverTotal,
     viewCounts,
     listData,
     userOptions,
     systemOptions,
     problemTypeOptions,
+    error,
     reload
   } = useWorkOrderListData({
     appliedFilters,
@@ -136,6 +135,8 @@ export function WorkOrderListPage() {
     <>
       <TemplateListPage<WorkOrderRecord>
         mode="batch"
+        error={error}
+        onRetry={reload}
         title="运维工单"
         titleExtra={
           <ViewTabs<WorkOrderViewKey>

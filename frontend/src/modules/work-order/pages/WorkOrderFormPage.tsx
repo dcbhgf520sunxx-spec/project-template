@@ -27,7 +27,6 @@ type WorkOrderFormValues = Record<string, unknown> & {
   submitterName: string;
   submitterDept: string;
   submitTime: Dayjs;
-  startTime?: Dayjs;
   expectedResolveDate: Dayjs;
 };
 
@@ -48,7 +47,6 @@ function toInitialValues(source: WorkOrderRecord): Partial<WorkOrderFormValues> 
     submitterName: source.submitterName,
     submitterDept: source.submitterDept,
     submitTime: dayjs(source.submitTime),
-    startTime: dayjs(source.createdAt),
     expectedResolveDate: dayjs(source.expectedResolveDate)
   };
 }
@@ -155,7 +153,6 @@ export function WorkOrderFormPage({ mode }: { mode: 'create' | 'edit' | 'copy' }
                 />
                 <AdminProFormSelect
                   className="admin-template-form-page__field"
-                  formItemProps={{ className: 'admin-template-form-page__field' }}
                   name="systemId"
                   label="所属系统"
                   options={systemOptions}
@@ -164,7 +161,6 @@ export function WorkOrderFormPage({ mode }: { mode: 'create' | 'edit' | 'copy' }
                 />
                 <AdminProFormSelect
                   className="admin-template-form-page__field"
-                  formItemProps={{ className: 'admin-template-form-page__field' }}
                   name="problemType"
                   label="问题类型"
                   options={problemTypeOptions}
@@ -173,7 +169,6 @@ export function WorkOrderFormPage({ mode }: { mode: 'create' | 'edit' | 'copy' }
                 />
                 <AdminProFormSelect
                   className="admin-template-form-page__field"
-                  formItemProps={{ className: 'admin-template-form-page__field' }}
                   name="urgency"
                   label="紧急程度"
                   options={urgencyOptions}
@@ -182,7 +177,6 @@ export function WorkOrderFormPage({ mode }: { mode: 'create' | 'edit' | 'copy' }
                 />
                 <AdminProFormSelect
                   className="admin-template-form-page__field"
-                  formItemProps={{ className: 'admin-template-form-page__field' }}
                   name="followerId"
                   label="跟进人"
                   options={userOptions}
@@ -196,7 +190,6 @@ export function WorkOrderFormPage({ mode }: { mode: 'create' | 'edit' | 'copy' }
         <div className="admin-template-form-page__grid">
                 <AdminProFormText
                   className="admin-template-form-page__field"
-                  formItemProps={{ className: 'admin-template-form-page__field' }}
                   name="submitterName"
                   label="提出人"
                   placeholder="请输入提出人"
@@ -204,7 +197,6 @@ export function WorkOrderFormPage({ mode }: { mode: 'create' | 'edit' | 'copy' }
                 />
                 <AdminProFormText
                   className="admin-template-form-page__field"
-                  formItemProps={{ className: 'admin-template-form-page__field' }}
                   name="submitterDept"
                   label="提出组织"
                   placeholder="请输入提出组织"
@@ -212,7 +204,6 @@ export function WorkOrderFormPage({ mode }: { mode: 'create' | 'edit' | 'copy' }
                 />
                 <AdminProFormDatePicker
                   className="admin-template-form-page__field"
-                  formItemProps={{ className: 'admin-template-form-page__field' }}
                   name="submitTime"
                   label="提出时间"
                   placeholder="请选择提出时间"
@@ -220,7 +211,6 @@ export function WorkOrderFormPage({ mode }: { mode: 'create' | 'edit' | 'copy' }
                 />
                 <AdminProFormDatePicker
                   className="admin-template-form-page__field"
-                  formItemProps={{ className: 'admin-template-form-page__field' }}
                   name="expectedResolveDate"
                   label="预计完成时间"
                   placeholder="请选择预计完成时间"

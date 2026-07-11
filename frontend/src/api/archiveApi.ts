@@ -59,7 +59,7 @@ const archiveCreateContract = objectContract<{ id: number; code: string }>(['id'
 const availableContract = objectContract<{ available: boolean }>(['available']);
 
 function dateText(value?: string) {
-  return String(value || '').slice(0, 19).replace('T', ' ');
+  return value ? String(value).slice(0, 19).replace('T', ' ') : '-';
 }
 
 function toStatus(status: number): 'enabled' | 'disabled' {

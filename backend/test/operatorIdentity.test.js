@@ -60,6 +60,7 @@ test('work order creation ignores a forged creator_id and records the authentica
       urgency: 1,
       expected_resolve_date: '2026-07-20',
       submitter_name: '测试人',
+      submitter_dept: '测试部门',
       submit_time: '2026-07-11',
       creator_id: 999,
       updater_id: 999

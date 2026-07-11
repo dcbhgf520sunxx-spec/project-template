@@ -8,11 +8,9 @@
 function calcOverdue(expectedEndDate, status, terminalStatuses = [2, 3]) {
   if (terminalStatuses.includes(status)) return 0
   if (!expectedEndDate) return 0
-  const today = new Date().toLocaleDateString('zh-CN', {
-    timeZone: 'Asia/Shanghai',
-    year: 'numeric', month: '2-digit', day: '2-digit'
-  }).replace(/\//g, '-')
+  const today = getShanghaiDateText()
   return expectedEndDate < today ? 1 : 0
 }
 
 module.exports = { calcOverdue }
+const { getShanghaiDateText } = require('./date')

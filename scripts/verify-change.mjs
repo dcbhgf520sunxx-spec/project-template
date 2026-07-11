@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { checkDeliveryContract } from './check-delivery-contract.mjs';
@@ -34,10 +34,14 @@ const npmNodeExecutable = process.platform === 'darwin' && existsSync(macosUnive
   ? macosUniversalNode
   : process.execPath;
 const npmCommandEnv = getNpmCommandEnv(process.env, npmNodeExecutable);
+const frontendTests = readdirSync(join(rootDir, 'frontend/test'))
+  .filter((name) => /\.test\.(mjs|ts)$/.test(name))
+  .sort()
+  .map((name) => `test/${name}`);
 const commands = [
   { cwd: '.', command: 'node', args: ['--test', 'scripts/check-delivery-contract.test.mjs'] },
   { cwd: '.', command: 'node', args: ['--test', 'scripts/delivery-change-context.test.mjs'] },
-  { cwd: 'frontend', command: 'node', args: ['--experimental-strip-types', '--test', 'test/auditComponentUsage.test.ts', 'test/auditApiContracts.test.mjs', 'test/responseContract.test.ts', 'test/workOrderApi.test.ts', 'test/listHelpers.test.ts', 'test/detailNeighbors.test.ts', 'test/detailNeighborNavCompact.test.mjs', 'test/workOrderDetailNeighborPlacement.test.mjs', 'test/designSystemDetailNeighborUsage.test.mjs', 'test/designSystemMenuPermissions.test.mjs', 'test/detailReturnLabel.test.mjs', 'test/templatePageState.test.mjs', 'test/templateFormPageScroll.test.mjs', 'test/templateDrawerTable.test.mjs', 'test/overlayTemplateDemo.test.mjs', 'test/statusChangeAction.test.mjs', 'test/detailStatusPlacement.test.mjs', 'test/obsoleteStatusFlowAction.test.mjs', 'test/aiSemanticRules.test.mjs', 'test/statusTransitionContractTemplate.test.mjs', 'test/routerFutureFlag.test.mjs', 'test/viteChunkSplitting.test.mjs', 'test/formPageDateContract.test.mjs', 'test/operatorIdentityPayload.test.mjs'] },
+  { cwd: 'frontend', command: 'node', args: ['--experimental-strip-types', '--test', ...frontendTests] },
   { cwd: 'frontend', command: 'npm', args: ['run', 'audit:components'] },
   { cwd: 'frontend', command: 'npm', args: ['run', 'audit:components:strict'] },
   { cwd: 'frontend', command: 'npm', args: ['run', 'audit:api-contracts'] },

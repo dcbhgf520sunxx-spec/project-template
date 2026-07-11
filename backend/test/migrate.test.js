@@ -17,6 +17,12 @@ test('lists SQL migration files in lexical order', () => {
   ])
 })
 
+test('rejects migration files without the required date prefix', () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'migrations-'))
+  fs.writeFileSync(path.join(directory, 'bad-name.sql'), 'SELECT 1;')
+  assert.throws(() => listMigrationFiles(directory), /YYYYMMDD_name\.sql/)
+})
+
 test('applies only migrations that are not recorded', async () => {
   const queries = []
   const client = {

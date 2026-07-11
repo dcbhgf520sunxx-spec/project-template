@@ -14,6 +14,7 @@ function requireValidBody(res, body, schema) {
 const userFormSchema = {
   employee_no: { required: true, label: '工号' },
   real_name: { required: true, label: '姓名' },
+  phone: { required: true, label: '手机号' },
   status: { type: 'enum', values: [0, 1], label: '状态' },
   role_ids: { type: 'array', label: '角色' }
 }
@@ -25,18 +26,22 @@ function withCreatorUpdater(sql) {
     LEFT JOIN pms_user u2 ON pms_user.updater_id = u2.id`
 }
 
+function isUniqueViolation(error) {
+  return error?.code === '23505'
+}
+
 exports.list = async (req, res) => {
   try {
     const { employee_no, real_name, phone, status, role_ids } = req.query
     const { page, pageSize, offset } = parsePagination(req.query)
-    let baseSql = withCreatorUpdater('pms_user.id, pms_user.employee_no, pms_user.real_name, pms_user.phone, pms_user.status, pms_user.creator_id, pms_user.updater_id, pms_user.created_at, pms_user.updated_at')
+    let baseSql = withCreatorUpdater('COUNT(*) OVER() as total, pms_user.id, pms_user.employee_no, pms_user.real_name, pms_user.phone, pms_user.status, pms_user.creator_id, pms_user.updater_id, pms_user.created_at, pms_user.updated_at')
 
     let sql, params = []
     const ids = role_ids ? (Array.isArray(role_ids) ? role_ids : role_ids.split(',').map(Number).filter(Boolean)) : []
 
     if (ids.length > 0) {
       const placeholders = ids.map(() => '?').join(',')
-      sql = `SELECT pu.*, u1.real_name as creator_name, u2.real_name as updater_name FROM pms_user pu
+      sql = `SELECT pu.*, COUNT(*) OVER() as total, u1.real_name as creator_name, u2.real_name as updater_name FROM pms_user pu
         INNER JOIN pms_user_role ur ON pu.id = ur.user_id
         LEFT JOIN pms_user u1 ON pu.creator_id = u1.id
         LEFT JOIN pms_user u2 ON pu.updater_id = u2.id
@@ -61,8 +66,6 @@ exports.list = async (req, res) => {
     }
     const sortField = sortMap[req.query.sort_field] || `${prefix}.created_at`
     const sortDirection = getSortDirection(req.query.sort_order)
-    sql = sql.replace('SELECT pu.*', 'SELECT pu.*, COUNT(*) OVER() as total')
-    if (!sql.includes('COUNT(*) OVER()')) sql = sql.replace('SELECT pms_user.id,', 'SELECT COUNT(*) OVER() as total, pms_user.id,')
     sql += ` ORDER BY ${sortField} ${sortDirection}, ${prefix}.id ${sortDirection} LIMIT ? OFFSET ?`
     params.push(pageSize, offset)
 
@@ -132,7 +135,7 @@ exports.create = async (req, res) => {
     await db.transaction(async (conn) => {
       const result = await conn.prepare(
         'INSERT INTO pms_user (employee_no, real_name, phone, password, status, first_login, creator_id, updater_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
-      ).run(employee_no, real_name, phone || null, hashedPassword, status || 1, 1, operatorId, operatorId)
+      ).run(employee_no, real_name, phone, hashedPassword, status ?? 1, 1, operatorId, operatorId)
       userId = result.lastInsertRowid
 
       if (role_ids && role_ids.length > 0) {
@@ -148,6 +151,7 @@ exports.create = async (req, res) => {
     ok(res, { id: userId })
   } catch (err) {
     console.error(err)
+    if (isUniqueViolation(err)) return fail(res, 400, 400, '工号或手机号已存在')
     fail(res, 500, 500, '创建失败')
   }
 }
@@ -173,7 +177,7 @@ exports.update = async (req, res) => {
     for (const key of fieldsToCompare) {
       const oldVal = old[key]
       let newVal
-      if (key === 'phone') newVal = phone || null
+      if (key === 'phone') newVal = phone
       else if (key === 'status') newVal = status
       else newVal = req.body[key]
       if (oldVal !== newVal) {
@@ -188,29 +192,19 @@ exports.update = async (req, res) => {
     }
 
     await db.transaction(async (conn) => {
-      if (status === undefined) {
-        if (password) {
-          const hashed = await bcrypt.hash(password, 10)
-          await conn.prepare(
-            'UPDATE pms_user SET employee_no = ?, real_name = ?, phone = ?, password = ?, updater_id = ? WHERE id = ?'
-          ).run(employee_no, real_name, phone || null, hashed, operatorId, req.params.id)
-        } else {
-          await conn.prepare(
-            'UPDATE pms_user SET employee_no = ?, real_name = ?, phone = ?, updater_id = ? WHERE id = ?'
-          ).run(employee_no, real_name, phone || null, operatorId, req.params.id)
-        }
-      } else {
-        if (password) {
-          const hashed = await bcrypt.hash(password, 10)
-          await conn.prepare(
-            'UPDATE pms_user SET employee_no = ?, real_name = ?, phone = ?, password = ?, status = ?, updater_id = ? WHERE id = ?'
-          ).run(employee_no, real_name, phone || null, hashed, status, operatorId, req.params.id)
-        } else {
-          await conn.prepare(
-            'UPDATE pms_user SET employee_no = ?, real_name = ?, phone = ?, status = ?, updater_id = ? WHERE id = ?'
-          ).run(employee_no, real_name, phone || null, status, operatorId, req.params.id)
-        }
+      const assignments = ['employee_no = ?', 'real_name = ?', 'phone = ?']
+      const params = [employee_no, real_name, phone]
+      if (password) {
+        assignments.push('password = ?')
+        params.push(await bcrypt.hash(password, 10))
       }
+      if (status !== undefined) {
+        assignments.push('status = ?')
+        params.push(status)
+      }
+      assignments.push('updater_id = ?')
+      params.push(operatorId, req.params.id)
+      await conn.prepare(`UPDATE pms_user SET ${assignments.join(', ')} WHERE id = ?`).run(...params)
 
       await conn.prepare('DELETE FROM pms_user_role WHERE user_id = ?').run(req.params.id)
       for (const rid of newRoleIds) {
@@ -320,7 +314,8 @@ exports.hrSearch = async (req, res) => {
   try {
     const { keyword } = req.query
     if (!keyword || keyword.trim().length < 1) return res.json({ code: 0, message: 'success', data: [] })
-    const HR_URL = process.env.HR_API_URL || 'http://172.16.0.45:8500'
+    const HR_URL = process.env.HR_API_URL
+    if (!HR_URL) return fail(res, 503, 503, 'HR系统地址未配置')
     const response = await fetch(`${HR_URL}/shr/person/byCode?finService=1`)
     if (!response.ok) return res.status(502).json({ code: 502, message: 'HR系统暂不可用', data: [] })
     const body = await response.json()

@@ -28,6 +28,7 @@ export function useWorkOrderListData({
   const [userOptions, setUserOptions] = useState<Option[]>([]);
   const [systemOptions, setSystemOptions] = useState<Option[]>([]);
   const [problemTypeOptions, setProblemTypeOptions] = useState<Option[]>([]);
+  const [error, setError] = useState('');
   const listData = useTemplateListPageData({
     rows: workOrders,
     sorters: workOrderSorters,
@@ -37,6 +38,8 @@ export function useWorkOrderListData({
   });
 
   const loadWorkOrders = useCallback(async () => {
+    setError('');
+    try {
     const submitTimeRange = appliedFilters.submitTimeRange || [];
     const expectedRange = appliedFilters.expectedResolveDateRange || [];
     const result = await getWorkOrderList({
@@ -64,6 +67,11 @@ export function useWorkOrderListData({
       all: result.viewCounts?.all ?? (viewKey === 'all' ? result.total : 0),
       mine: result.viewCounts?.mine ?? (viewKey === 'mine' ? result.total : 0)
     });
+    } catch (loadError) {
+      setWorkOrders([]);
+      setServerTotal(0);
+      setError(loadError instanceof Error ? loadError.message : '请求失败，请稍后重试');
+    }
   }, [appliedFilters, currentFollowerId, listData.currentPage, listData.pageSize, listData.sortState.field, listData.sortState.order, viewKey]);
 
   useEffect(() => {
@@ -77,13 +85,12 @@ export function useWorkOrderListData({
   }, []);
 
   return {
-    workOrders,
-    serverTotal,
     viewCounts,
     listData,
     userOptions,
     systemOptions,
     problemTypeOptions,
+    error,
     reload: loadWorkOrders
   };
 }

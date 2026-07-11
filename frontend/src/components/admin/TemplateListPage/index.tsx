@@ -1,4 +1,6 @@
 import type { ReactNode } from 'react';
+import { Alert } from 'antd';
+import { AdminButton } from '../AdminPrimitives';
 import type { DataListPageProps } from '../DataListPage';
 import { DataListPage } from '../DataListPage';
 import { PageShell } from '../PageShell';
@@ -22,6 +24,8 @@ type TemplateListPageBaseProps<
   actions?: ReactNode;
   pagination: TemplateListPagination;
   embedded?: boolean;
+  error?: string;
+  onRetry?: () => void;
 };
 
 type TemplateListStandardMode = {
@@ -52,10 +56,14 @@ export function TemplateListPage<
     pagination,
     mode,
     embedded,
+    error,
+    onRetry,
     ...restProps
   } = props;
   const dataListProps = { ...restProps } as TemplateListPageBaseProps<T, P> & { batch?: TemplateListBatchMode['batch'] };
   delete dataListProps.batch;
+  delete dataListProps.error;
+  delete dataListProps.onRetry;
   const batchProps = mode === 'batch'
     ? {
       selectedCount: props.batch.selectedCount,
@@ -63,7 +71,15 @@ export function TemplateListPage<
     }
     : {};
 
-  const content = (
+  const content = error ? (
+    <Alert
+      type="error"
+      showIcon
+      message="列表加载失败"
+      description={error}
+      action={onRetry ? <AdminButton type="primary" onClick={onRetry}>重新加载</AdminButton> : undefined}
+    />
+  ) : (
     <DataListPage<T, P>
       {...dataListProps as Omit<DataListPageProps<T, P>, 'footerExtra'>}
       {...batchProps}

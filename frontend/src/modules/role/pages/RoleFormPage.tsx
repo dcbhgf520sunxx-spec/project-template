@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { Key } from 'react';
 import { App } from 'antd';
-import type { DataNode } from 'antd/es/tree';
 import { useNavigate, useParams } from 'react-router-dom';
 import { AdminProFormText, AdminProFormTextArea, AdminTree, TemplateFormPage, TemplateFormSection } from '../../../components/admin';
 import {
@@ -12,9 +11,9 @@ import {
   getRoleMenuIds,
   saveRoleMenuIds,
   updateRole,
-  type MenuRecord,
   type RoleFormValues
 } from '../../../api/roleApi';
+import { buildMenuTree, collectTreeKeys } from '../roleMenuTree';
 
 type RoleFormPageProps = {
   mode: 'create' | 'edit';
@@ -25,46 +24,13 @@ export function RoleFormPage({ mode }: RoleFormPageProps) {
   const params = useParams();
   const { message } = App.useApp();
   const [initialValues, setInitialValues] = useState<Partial<RoleFormValues>>();
-  const [menuTree, setMenuTree] = useState<DataNode[]>([]);
+  const [menuTree, setMenuTree] = useState<import('antd/es/tree').DataNode[]>([]);
   const [checkedMenuIds, setCheckedMenuIds] = useState<Key[]>([]);
   const [expandedMenuIds, setExpandedMenuIds] = useState<Key[]>([]);
   const [loading, setLoading] = useState(mode === 'edit');
   const [loadError, setLoadError] = useState('');
   const [notFound, setNotFound] = useState(false);
   const [reloadRevision, setReloadRevision] = useState(0);
-
-  const buildMenuTree = (menus: MenuRecord[]): DataNode[] => {
-    const nodeMap = new Map<number, DataNode>();
-    const roots: DataNode[] = [];
-
-    menus.forEach((menu) => {
-      nodeMap.set(menu.id, {
-        key: menu.id,
-        title: menu.name,
-        children: []
-      });
-    });
-
-    menus.forEach((menu) => {
-      const node = nodeMap.get(menu.id);
-      if (!node) return;
-      if (menu.parent_id === 0) {
-        roots.push(node);
-      } else {
-        const parent = nodeMap.get(menu.parent_id);
-        if (parent) {
-          parent.children = [...(parent.children || []), node];
-        }
-      }
-    });
-
-    return roots;
-  };
-
-  const collectTreeKeys = (nodes: DataNode[]): Key[] => nodes.flatMap((node) => [
-    node.key,
-    ...collectTreeKeys(node.children || [])
-  ]);
 
   useEffect(() => {
     setLoading(true);

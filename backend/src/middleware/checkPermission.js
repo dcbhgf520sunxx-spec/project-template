@@ -10,15 +10,15 @@ function checkPermission(menuPath) {
   return async (req, res, next) => {
     try {
       const user = req.user // verifyToken 中间件已注入，字段为 id
-      const menuId = await db.prepare(
+      const menuRow = await db.prepare(
         'SELECT id FROM pms_menu WHERE path = ? AND is_deleted = 0'
       ).get(menuPath)
-      if (!menuId) {
+      if (!menuRow) {
         return res.status(403).json({ code: 403, message: '权限不足', data: null })
       }
       const rows = await db.prepare(
         'SELECT 1 FROM pms_role_menu WHERE role_id IN (SELECT role_id FROM pms_user_role WHERE user_id = ?) AND menu_id = ?'
-      ).all(user.id, menuId.id)
+      ).all(user.id, menuRow.id)
       if (!rows.length) {
         return res.status(403).json({ code: 403, message: '权限不足', data: null })
       }

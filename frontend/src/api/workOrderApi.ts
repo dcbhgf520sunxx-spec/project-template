@@ -17,7 +17,7 @@ type WorkOrderResponse = {
   follower_name?: string;
   urgency: number;
   status: number;
-  is_overdue: number | boolean;
+  is_overdue: number;
   expected_resolve_date?: string;
   resolve_date?: string;
   close_date?: string;
@@ -76,7 +76,7 @@ export type WorkOrderStatusPayload = {
 };
 
 function dateText(value?: string) {
-  return String(value || '').slice(0, 19).replace('T', ' ');
+  return value ? String(value).slice(0, 19).replace('T', ' ') : '-';
 }
 
 export function toWorkOrderRecord(row: WorkOrderResponse): WorkOrderRecord {

@@ -100,17 +100,7 @@ const AccessLogListPage = lazy(() =>
     default: module.AccessLogListPage
   }))
 );
-const AiAssistant3DPage = lazy(() =>
-  import('../modules/ai-assistant-3d/pages/AiAssistant3DPage').then((module) => ({
-    default: module.AiAssistant3DPage
-  }))
-);
-
 export const routes: RouteObject[] = [
-  {
-    path: '/ai-assistant-3d',
-    element: withRouteSuspense(<AiAssistant3DPage />)
-  },
   {
     path: '/login',
     element: <AuthLayout />,

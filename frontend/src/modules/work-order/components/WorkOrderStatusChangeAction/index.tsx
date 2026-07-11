@@ -34,6 +34,10 @@ const toneByStatus: Record<WorkOrderStatus, StatusChangeOption<WorkOrderStatus>[
   3: 'danger'
 };
 
+function getTransitionTone(current: WorkOrderStatus, target: WorkOrderStatus) {
+  return target < current ? 'danger' : toneByStatus[target];
+}
+
 export function WorkOrderStatusChangeAction({
   workOrder,
   statusOptions,
@@ -54,7 +58,7 @@ export function WorkOrderStatusChangeAction({
       current={workOrder.status}
       currentValue={renderWorkOrderStatus(workOrder.status)}
       formValues={formValues}
-      options={statusOptions.map((item) => ({ ...item, tone: toneByStatus[item.value] }))}
+      options={statusOptions.map((item) => ({ ...item, tone: getTransitionTone(workOrder.status, item.value) }))}
       renderExtra={(target) => (
         <>
           {target === 2 ? (

@@ -10,15 +10,13 @@ test('Vite build keeps large framework dependencies in stable cacheable groups',
   for (const name of [
     'react-vendor',
     'pro-core-vendor',
-    'pro-form-vendor',
     'pro-table-vendor',
     'pro-layout-vendor',
     'pro-support-vendor',
     'antd-vendor',
     'ant-design-vendor',
     'rc-vendor',
-    'charts-vendor',
-    'three-vendor'
+    'charts-vendor'
   ]) {
     assert.match(source, new RegExp(`name:\\s*['\"]${name}['\"]`));
   }

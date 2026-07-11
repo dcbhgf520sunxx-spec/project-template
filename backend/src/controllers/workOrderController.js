@@ -14,13 +14,14 @@ function requireValidBody(res, body, schema) {
 
 const workOrderFormSchema = {
   problem_type: { required: true, type: 'number', label: '问题类型' },
-  system_id: { type: 'number', label: '所属系统' },
+  system_id: { required: true, type: 'number', label: '所属系统' },
   problem_desc: { required: true, label: '问题描述' },
   follower_id: { required: true, type: 'number', label: '跟进人' },
   urgency: { required: true, type: 'enum', values: [0, 1, 2], label: '紧急程度' },
   status: { type: 'enum', values: [0, 1, 2, 3], label: '状态' },
   expected_resolve_date: { required: true, label: '预计完成时间' },
   submitter_name: { required: true, label: '提出人' },
+  submitter_dept: { required: true, label: '提出组织' },
   submit_time: { required: true, label: '提出时间' }
 }
 
@@ -31,6 +32,13 @@ const workOrderStatusSchema = {
 const workOrderBatchAssignSchema = {
   ids: { required: true, type: 'array', label: '工单' },
   follower_id: { required: true, type: 'number', label: '跟进人' }
+}
+
+const WORK_ORDER_SORT_MAP = {
+  problem_desc: 'w.problem_desc', system_id: 'sys.name', problem_type: 'pt.name', urgency: 'w.urgency', status: 'w.status',
+  is_overdue: 'w.is_overdue', follower_name: 'w.follower_id', follower_id: 'w.follower_id',
+  submitter_name: 'w.submitter_name', submitter_dept: 'w.submitter_dept', submit_time: 'w.submit_time',
+  expected_resolve_date: 'w.expected_resolve_date', creator_name: 'u1.real_name', created_at: 'w.created_at'
 }
 
 function withJoins(sql) {
@@ -89,17 +97,10 @@ exports.list = async (req, res) => {
     sql += whereSql
 
     // 支持排序参数（与 neighbors 逻辑一致）
-    const sortMap = {
-      problem_desc: 'w.problem_desc', system_id: 'sys.name', problem_type: 'pt.name', urgency: 'w.urgency', status: 'w.status',
-      is_overdue: 'w.is_overdue', follower_name: 'w.follower_id', follower_id: 'w.follower_id',
-      submitter_name: 'w.submitter_name', submitter_dept: 'w.submitter_dept',
-      submit_time: 'w.submit_time', expected_resolve_date: 'w.expected_resolve_date',
-      creator_name: 'u1.real_name', created_at: 'w.created_at',
-    }
     let sortCol = 'w.created_at'
     let sortDir = 'DESC'
-    if (q.sort_field && sortMap[q.sort_field] !== undefined) {
-      const mapped = sortMap[q.sort_field]
+    if (q.sort_field && WORK_ORDER_SORT_MAP[q.sort_field] !== undefined) {
+      const mapped = WORK_ORDER_SORT_MAP[q.sort_field]
       if (mapped) {
         sortCol = mapped
         sortDir = getSortDirection(q.sort_order)
@@ -411,17 +412,10 @@ exports.getNeighbors = async (req, res) => {
     if (!inFilter) return res.json({ code: 0, data: { prevId: null, nextId: null } })
 
     // Map frontend sort field to DB column
-    const sortMap = {
-      problem_desc: 'w.problem_desc', system_id: 'sys.name', problem_type: 'pt.name', urgency: 'w.urgency', status: 'w.status',
-      is_overdue: 'w.is_overdue', follower_name: 'w.follower_id', follower_id: 'w.follower_id',
-      submitter_name: 'w.submitter_name', submitter_dept: 'w.submitter_dept',
-      submit_time: 'w.submit_time', expected_resolve_date: 'w.expected_resolve_date',
-      creator_name: null, created_at: 'w.created_at',
-    }
     let sortCol = 'w.created_at'
     let sortDir = 'DESC'
-    if (q.sort_field && sortMap[q.sort_field] !== undefined) {
-      const mapped = sortMap[q.sort_field]
+    if (q.sort_field && WORK_ORDER_SORT_MAP[q.sort_field] !== undefined) {
+      const mapped = WORK_ORDER_SORT_MAP[q.sort_field]
       if (mapped) {
         sortCol = mapped
         sortDir = q.sort_order === 'asc' ? 'ASC' : 'DESC'

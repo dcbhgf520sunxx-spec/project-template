@@ -95,7 +95,7 @@ exports.create = async (req, res) => {
     ok(res, { id: result.lastInsertRowid, code })
   } catch (err) {
     console.error(err)
-    if (err.code === 'ER_DUP_ENTRY' || err.code === '23505') return fail(res, 400, 400, '档案编码已存在')
+    if (err.code === '23505') return fail(res, 400, 400, '档案编码已存在')
     fail(res, 500, 500, '创建失败')
   }
 }

@@ -1,17 +1,9 @@
 const cron = require('node-cron')
 const db = require('../db')
-
-function getTodayText() {
-  return new Date().toLocaleDateString('zh-CN', {
-    timeZone: 'Asia/Shanghai',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).replace(/\//g, '-')
-}
+const { getShanghaiDateText } = require('../utils/date')
 
 async function refreshOverdueStatus() {
-  const today = getTodayText()
+  const today = getShanghaiDateText()
   const result = await db.prepare(
     `UPDATE pms_work_order
      SET is_overdue = CASE

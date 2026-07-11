@@ -9,7 +9,6 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react()],
     build: {
-      // Three.js is isolated behind the lazy AI 3D route (about 850 KB raw / 225 KB gzip).
       chunkSizeWarningLimit: 900,
       rolldownOptions: {
         output: {
@@ -25,11 +24,6 @@ export default defineConfig(({ mode }) => {
                 name: 'pro-core-vendor',
                 test: /node_modules[\\/]@ant-design[\\/]pro-(?:field|provider|utils)[\\/]/,
                 priority: 80
-              },
-              {
-                name: 'pro-form-vendor',
-                test: /node_modules[\\/]@ant-design[\\/]pro-form[\\/]/,
-                priority: 60
               },
               {
                 name: 'pro-table-vendor',
@@ -64,11 +58,6 @@ export default defineConfig(({ mode }) => {
               {
                 name: 'charts-vendor',
                 test: /node_modules[\\/](?:echarts|zrender)[\\/]/,
-                priority: 50
-              },
-              {
-                name: 'three-vendor',
-                test: /node_modules[\\/](?:three|@react-three[\\/][^\\/]+)[\\/]/,
                 priority: 50
               }
             ]

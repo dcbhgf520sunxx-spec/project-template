@@ -24,6 +24,8 @@ const { start: startOverdueCron } = require('./services/overdueCron')
 
 const app = express()
 const { allowedOrigin } = validateRuntimeConfig()
+// 生产只经过一层本机 Nginx，避免任意客户端伪造 X-Forwarded-For。
+app.set('trust proxy', 1)
 app.use(requestContext)
 app.use(attachResponseHelpers)
 app.use(cors({ origin: allowedOrigin, credentials: true }))
@@ -49,6 +51,7 @@ app.get('/api/archive-options/by-type-name', verifyToken, archiveController.getB
 app.use('/api/messages', verifyToken, messageRoutes)
 app.use('/api/users', verifyToken, checkPermission('/users'), userRoutes)
 app.use('/api/roles', verifyToken, checkPermission('/roles'), roleRoutes)
+// 菜单列表用于角色授权配置，复用“角色管理”页面权限，不单独暴露菜单管理入口。
 app.use('/api/menus', verifyToken, checkPermission('/roles'), menuRoutes)
 app.use('/api/archive-types', verifyToken, checkPermission('/archive'), archiveTypeRoutes)
 app.use('/api/archives', verifyToken, checkPermission('/archive'), archiveRoutes)

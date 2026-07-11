@@ -43,7 +43,7 @@ exports.create = async (req, res) => {
     res.json({ code: 0, message: 'success', data: { id: result.lastInsertRowid, code } })
   } catch (err) {
     console.error(err)
-    if (err.code === 'ER_DUP_ENTRY') return res.status(400).json({ code: 400, message: '类型编码已存在，请重试', data: null })
+    if (err.code === '23505') return res.status(400).json({ code: 400, message: '类型编码或编码前缀已存在，请重试', data: null })
     res.status(500).json({ code: 500, message: '创建失败', data: null })
   }
 }

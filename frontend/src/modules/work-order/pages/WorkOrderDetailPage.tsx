@@ -26,26 +26,7 @@ import {
   statusText
 } from '../helpers';
 import './WorkOrderDetailPage.css';
-
-const statusTransitions: Record<WorkOrderStatus, WorkOrderStatus[]> = {
-  0: [1, 3],
-  1: [2, 3],
-  2: [3],
-  3: [0, 1, 2]
-};
-
-function buildStatusPayload(status: WorkOrderStatus, values: Record<string, unknown>) {
-  return {
-    status,
-    resolveDate: values.actualFixedAt && typeof values.actualFixedAt === 'object' && 'format' in values.actualFixedAt
-      ? (values.actualFixedAt as { format: (format: string) => string }).format('YYYY-MM-DD')
-      : undefined,
-    closeDate: values.closedAt && typeof values.closedAt === 'object' && 'format' in values.closedAt
-      ? (values.closedAt as { format: (format: string) => string }).format('YYYY-MM-DD')
-      : undefined,
-    resultDesc: typeof values.result === 'string' ? values.result : undefined
-  };
-}
+import { buildStatusPayload, statusTransitions } from './workOrderList.constants';
 
 export function WorkOrderDetailPage() {
   const navigate = useNavigate();
@@ -118,7 +99,7 @@ export function WorkOrderDetailPage() {
           <span className="admin-template-detail-page__code">{detail.code}</span>
           {renderWorkOrderStatus(detail.status)}
           {renderUrgency(detail.urgency)}
-          {detail.status < 2 ? renderOverdue(detail.isOverdue) : null}
+          {detail.status < 2 ? renderOverdue(detail.isOverdue, detail.expectedResolveDate) : null}
         </Space>
       )}
       titleCenter={(
@@ -163,7 +144,7 @@ export function WorkOrderDetailPage() {
             </div>
             <div className="work-order-detail-page__status-row">
               <span>逾期</span>
-              {detail.status < 2 ? renderOverdue(detail.isOverdue) : <AdminText type="secondary">-</AdminText>}
+              {detail.status < 2 ? renderOverdue(detail.isOverdue, detail.expectedResolveDate) : <AdminText type="secondary">-</AdminText>}
             </div>
           </div>
         )

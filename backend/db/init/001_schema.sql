@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS pms_user (
   id BIGSERIAL PRIMARY KEY,
   employee_no VARCHAR(50) NOT NULL UNIQUE,
   real_name VARCHAR(50) NOT NULL,
-  phone VARCHAR(20) UNIQUE,
+  phone VARCHAR(20) NOT NULL UNIQUE,
   avatar_url VARCHAR(300),
   password VARCHAR(255) NOT NULL,
   status SMALLINT NOT NULL DEFAULT 1,
@@ -65,7 +65,7 @@ CREATE TABLE IF NOT EXISTS pms_role_menu (
 
 CREATE TABLE IF NOT EXISTS pms_work_order (
   id BIGSERIAL PRIMARY KEY,
-  system_id BIGINT,
+  system_id BIGINT NOT NULL,
   problem_type BIGINT NOT NULL,
   problem_desc TEXT NOT NULL,
   result_desc TEXT,
@@ -151,7 +151,7 @@ CREATE TABLE IF NOT EXISTS pms_user_preference (
   user_id BIGINT NOT NULL REFERENCES pms_user(id),
   default_route VARCHAR(200) NOT NULL DEFAULT '/home',
   default_page_size INTEGER NOT NULL DEFAULT 20,
-  appearance_mode VARCHAR(20) NOT NULL DEFAULT 'system',
+  appearance_mode VARCHAR(20) NOT NULL DEFAULT 'light',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE (user_id)
@@ -162,7 +162,7 @@ CREATE TABLE IF NOT EXISTS pms_message (
   recipient_user_id BIGINT NOT NULL REFERENCES pms_user(id),
   type VARCHAR(30) NOT NULL,
   title VARCHAR(120) NOT NULL,
-  description TEXT NOT NULL,
+  description TEXT NOT NULL CHECK (char_length(description) <= 1000),
   link_path VARCHAR(200),
   read_at TIMESTAMPTZ,
   creator_id BIGINT,
@@ -178,6 +178,7 @@ CREATE INDEX IF NOT EXISTS idx_work_order_status ON pms_work_order(status, is_de
 CREATE INDEX IF NOT EXISTS idx_work_order_follower ON pms_work_order(follower_id);
 CREATE INDEX IF NOT EXISTS idx_archive_type ON pms_archive(archive_type_id, is_deleted);
 CREATE INDEX IF NOT EXISTS idx_op_log_target ON pms_op_log(module, target_id);
+CREATE INDEX IF NOT EXISTS idx_op_log_module_created_at ON pms_op_log(module, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_access_log_created_at ON pms_access_log(created_at);
 CREATE INDEX IF NOT EXISTS idx_access_log_session ON pms_access_log(session_id);
 CREATE INDEX IF NOT EXISTS idx_access_log_employee_no ON pms_access_log(employee_no);

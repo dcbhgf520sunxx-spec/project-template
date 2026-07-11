@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { Key } from 'react';
 import { message } from 'antd';
-import type { DataNode } from 'antd/es/tree';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   AdminTree,
@@ -16,44 +15,15 @@ import {
   getMenuList,
   getRole,
   getRoleMenuIds,
-  type MenuRecord,
   type RoleRecord
 } from '../../../api/roleApi';
-
-function buildMenuTree(menus: MenuRecord[]): DataNode[] {
-  const nodeMap = new Map<number, DataNode>();
-  const roots: DataNode[] = [];
-
-  menus.forEach((menu) => {
-    nodeMap.set(menu.id, { key: menu.id, title: menu.name, children: [] });
-  });
-
-  menus.forEach((menu) => {
-    const node = nodeMap.get(menu.id);
-    if (!node) return;
-    if (menu.parent_id === 0) {
-      roots.push(node);
-    } else {
-      const parent = nodeMap.get(menu.parent_id);
-      if (parent) parent.children = [...(parent.children || []), node];
-    }
-  });
-
-  return roots;
-}
-
-function collectTreeKeys(nodes: DataNode[]): Key[] {
-  return nodes.flatMap((node) => [
-    node.key,
-    ...collectTreeKeys(node.children || [])
-  ]);
-}
+import { buildMenuTree, collectTreeKeys } from '../roleMenuTree';
 
 export function RoleDetailPage() {
   const navigate = useNavigate();
   const params = useParams();
   const [role, setRole] = useState<RoleRecord>();
-  const [menuTree, setMenuTree] = useState<DataNode[]>([]);
+  const [menuTree, setMenuTree] = useState<import('antd/es/tree').DataNode[]>([]);
   const [checkedMenuIds, setCheckedMenuIds] = useState<number[]>([]);
   const [expandedMenuIds, setExpandedMenuIds] = useState<Key[]>([]);
   const [loading, setLoading] = useState(true);
