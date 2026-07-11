@@ -16,13 +16,15 @@ test('代码声明的固定列覆盖历史列设置', () => {
       index: { fixed: 'left' },
       name: { fixed: undefined, show: true },
       owner: { fixed: 'left', show: true },
-      option: { fixed: undefined }
+      option: { fixed: undefined },
+      legacyOptionKey: { fixed: 'left', show: true }
     }
   );
   assert.equal(result.index.fixed, 'left');
   assert.equal(result.name.fixed, 'left');
   assert.equal(result.option.fixed, 'right');
-  assert.equal(result.owner.fixed, 'left');
+  assert.equal(result.owner.fixed, undefined);
+  assert.equal(result.legacyOptionKey.fixed, undefined);
   assert.equal(result.name.show, true);
 });
 
