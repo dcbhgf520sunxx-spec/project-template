@@ -37,3 +37,16 @@ test('AI 链路要求完整地址菜单权限和状态组件溯源', () => {
   assert.match(rules, /业务状态组件.*公共 `StatusChangeAction`/);
   assert.match(agents, /组件工作台.*独立授权/);
 });
+
+test('列表规则明确列宽、固定列、横向滚动和排序契约', () => {
+  const rules = read('../../docs/ai-development-rules.md');
+  const template = read('../../docs/ai-delivery-template.md');
+  assert.match(rules, /数值型 `width`/);
+  assert.match(rules, /fixed: 'left'/);
+  assert.match(rules, /fixed: 'right'/);
+  assert.match(rules, /scroll\.x/);
+  assert.match(rules, /sorter: true/);
+  assert.match(template, /左右固定列/);
+  assert.match(template, /列宽拖拽/);
+  assert.match(template, /列头排序/);
+});

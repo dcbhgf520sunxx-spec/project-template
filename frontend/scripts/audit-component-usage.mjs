@@ -271,6 +271,58 @@ function collectSemanticViolations(files) {
   });
 }
 
+function objectProperty(object, name) {
+  return object.properties.find((property) => ts.isPropertyAssignment(property)
+    && property.name.getText().replace(/^['"]|['"]$/g, '') === name);
+}
+
+function propertyText(object, name, sourceFile) {
+  return objectProperty(object, name)?.initializer.getText(sourceFile) || '';
+}
+
+function collectListColumnContractViolations(files) {
+  return files.flatMap((file) => {
+    if (!file.endsWith('ListPage.tsx')) return [];
+    const source = readFileSync(file, 'utf8');
+    if (!source.includes('<TemplateListPage')) return [];
+    const sourceFile = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+    const violations = [];
+    let columnsArray;
+    const findColumns = (node) => {
+      if (ts.isVariableDeclaration(node) && node.name.getText(sourceFile) === 'columns'
+        && node.initializer && ts.isArrayLiteralExpression(node.initializer)) columnsArray = node.initializer;
+      ts.forEachChild(node, findColumns);
+    };
+    findColumns(sourceFile);
+    if (!columnsArray) return violations;
+
+    const columns = columnsArray.elements.filter(ts.isObjectLiteralExpression);
+    if (columns.length < 2) return violations;
+    const first = columns[0];
+    const firstBusiness = columns[1];
+    const action = columns.find((column) => /^['"]option['"]$/.test(propertyText(column, 'valueType', sourceFile)));
+    const hasNumericWidth = (column) => /^\d+(?:\.\d+)?$/.test(propertyText(column, 'width', sourceFile));
+    const fixed = (column, side) => propertyText(column, 'fixed', sourceFile).replace(/['"]/g, '') === side;
+
+    for (const column of columns) {
+      if (!hasNumericWidth(column)) violations.push(finding(file, sourceFile, column, '标准列表每个可见列必须声明数值型 width，确保列宽可拖拽'));
+    }
+    if (!fixed(first, 'left') || !fixed(firstBusiness, 'left')) {
+      violations.push(finding(file, sourceFile, firstBusiness, '标准列表的序号列和第一业务列必须声明 fixed="left"'));
+    }
+    if (action && !fixed(action, 'right')) {
+      violations.push(finding(file, sourceFile, action, '标准列表操作列必须声明 fixed="right"'));
+    }
+    if (!/scroll\s*:\s*\{\s*x\s*:/.test(source)) {
+      violations.push(finding(file, sourceFile, columnsArray, '标准列表必须配置 table.scroll.x，使左右固定列在横向滚动时生效'));
+    }
+    if (!columns.slice(1).filter((column) => column !== action).some((column) => propertyText(column, 'sorter', sourceFile) === 'true')) {
+      violations.push(finding(file, sourceFile, firstBusiness, '标准列表至少一个业务列必须声明 sorter: true，并接入统一排序状态'));
+    }
+    return violations;
+  });
+}
+
 const files = walk(modulesDir).filter((file) => {
   const normalized = relative(modulesDir, file).split('/');
   return !excludedPathParts.includes(normalized[0]);
@@ -280,17 +332,18 @@ const blocking = collectMatches(files, blockingRules, 'BLOCK');
 const listTemplateBlocking = collectMatches(files, listTemplateRules, 'BLOCK');
 const pageTemplateBlocking = collectPageTemplateViolations(files);
 const semanticBlocking = collectSemanticViolations(files);
+const listColumnContractBlocking = collectListColumnContractViolations(files);
 const warnings = collectMatches(files, warningRules, 'WARN');
 
 console.log('组件接入审计');
 console.log(`扫描文件：${files.length}`);
-console.log(`阻断项：${blocking.length + listTemplateBlocking.length + pageTemplateBlocking.length + semanticBlocking.length}`);
+console.log(`阻断项：${blocking.length + listTemplateBlocking.length + pageTemplateBlocking.length + semanticBlocking.length + listColumnContractBlocking.length}`);
 console.log(`提醒项：${warnings.length}`);
 
-for (const item of [...blocking, ...listTemplateBlocking, ...pageTemplateBlocking, ...semanticBlocking, ...warnings]) {
+for (const item of [...blocking, ...listTemplateBlocking, ...pageTemplateBlocking, ...semanticBlocking, ...listColumnContractBlocking, ...warnings]) {
   console.log(`${item.level} ${item.file}:${item.line} ${item.token} ${item.reason}`);
 }
 
-if (strict && (blocking.length > 0 || listTemplateBlocking.length > 0 || pageTemplateBlocking.length > 0 || semanticBlocking.length > 0)) {
+if (strict && (blocking.length > 0 || listTemplateBlocking.length > 0 || pageTemplateBlocking.length > 0 || semanticBlocking.length > 0 || listColumnContractBlocking.length > 0)) {
   process.exitCode = 1;
 }

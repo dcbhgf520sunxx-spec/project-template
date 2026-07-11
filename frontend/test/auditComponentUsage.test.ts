@@ -185,6 +185,42 @@ test('组件审计阻断使用通用危险确认实现删除', () => {
   assert.match(result.stdout, /DeleteConfirmAction/);
 });
 
+test('组件审计阻断标准列表缺少列宽、固定列、横向滚动和排序契约', () => {
+  const result = runStrictAudit(
+    `export function CustomerListPage() {
+      const columns = [
+        { title: '序号', width: 56 },
+        { title: '客户名称', dataIndex: 'name' },
+        { title: '操作', valueType: 'option', width: 160 }
+      ];
+      return <TemplateListPage table={{ columns, dataSource: [], pagination: false }} pagination={{}} />;
+    }`,
+    'CustomerListPage.tsx'
+  );
+  assert.equal(result.status, 1);
+  assert.match(result.stdout, /数值型 width/);
+  assert.match(result.stdout, /fixed="left"/);
+  assert.match(result.stdout, /fixed="right"/);
+  assert.match(result.stdout, /scroll\.x/);
+  assert.match(result.stdout, /sorter/);
+});
+
+test('组件审计允许列行为完整的标准列表', () => {
+  const result = runStrictAudit(
+    `export function CustomerListPage() {
+      const columns = [
+        { title: '序号', width: 56, fixed: 'left' },
+        { title: '客户名称', dataIndex: 'name', width: 180, fixed: 'left', sorter: true },
+        { title: '创建时间', dataIndex: 'createdAt', width: 170, sorter: true },
+        { title: '操作', valueType: 'option', width: 160, fixed: 'right' }
+      ];
+      return <TemplateListPage table={{ columns, dataSource: [], pagination: false, scroll: { x: 800 } }} pagination={{}} />;
+    }`,
+    'CustomerListPage.tsx'
+  );
+  assert.equal(result.status, 0, result.stdout);
+});
+
 test('组件审计阻断有状态详情缺少标题标签和状态操作', () => {
   const result = runStrictAudit(
     'export function CustomerDetailPage() { return <TemplateDetailPage statusSection={{ items: [] }}><div /></TemplateDetailPage>; }'
