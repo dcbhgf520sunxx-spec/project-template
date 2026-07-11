@@ -198,6 +198,7 @@ export function SearchTable<
     if (canLockWidth) {
       return {
         ...column,
+        key: columnKey,
         width,
         onHeaderCell: (currentColumn: unknown) => ({
           ...(typeof column.onHeaderCell === 'function' ? column.onHeaderCell(currentColumn as never) : {}),
@@ -218,10 +219,11 @@ export function SearchTable<
       } as ProColumns<T>;
     }
 
-    if (!canResize) return column;
+    if (!canResize) return { ...column, key: columnKey };
 
     return {
       ...column,
+      key: columnKey,
       width,
       onHeaderCell: (currentColumn: unknown) => ({
         ...(typeof column.onHeaderCell === 'function' ? column.onHeaderCell(currentColumn as never) : {}),

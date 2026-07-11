@@ -42,4 +42,5 @@ test('组件已接入响应式容量和受控列状态', () => {
   assert.match(filter, /getCollapsedVisibleCount/);
   assert.match(table, /enforceFixedColumnState/);
   assert.match(table, /columnsState=\{/);
+  assert.match(table, /key: columnKey/);
 });
