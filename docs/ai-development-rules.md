@@ -53,7 +53,8 @@ API 接入保持统一：
 必须保持以下规则：
 
 - 第一列业务值进入详情，操作列不放“详情”。
-- 操作列使用 `OperationColumnActions`，默认文字操作；删除、停用等危险动作使用 `ConfirmAction`。
+- 操作列使用 `OperationColumnActions`，最多 3 个动作直接展示；4 个及以上时由组件保留前 2 个，第 3 个及之后收入“更多”。动作统一使用文字形态：普通动作使用 `AdminTextAction`，删除使用 `DeleteConfirmAction variant="text"`，状态变更使用 `StatusChangeAction variant="text"` 或以它为底层的业务 `*StatusChangeAction`。
+- 删除不得使用通用 `ConfirmAction danger` 或业务自建 `Modal`；启用、停用等二态确认使用 `StatusConfirmAction`。
 - 序号使用 `renderIndex(index)`，按过滤后的全量数据位置计算。
 - 排序交给 `useTemplateListPageData`，先排序过滤后的全量数据，再分页。
 - 分页配置通过 `TemplateListPage.pagination` 传入，不在业务页直接放 `TablePagination`。
@@ -92,6 +93,8 @@ API 接入保持统一：
 必须保持以下规则：
 
 - 详情页标题、操作区、主区/侧区和加载态由模板承接。
+- 有状态详情必须通过 `titleTags` 在标题后展示状态等标签，并通过 `statusAction` 把状态操作紧跟在当前状态区之后；右上角 `actions` 只放编辑等页面级操作。
+- 状态变更统一使用 `StatusChangeAction` 或以它为底层的业务封装。目标状态语义固定为：普通操作蓝色、正向操作绿色、危险或反向操作红色；业务页面不得直接使用 `StatusFlowModal`，不得创建自维护开关和目标状态的重复弹窗。
 - 返回列表通过 `TemplateDetailPage.onBack` 传入，业务页不重复创建“返回列表”按钮和操作栏外壳。
 - 接口失败或记录不存在时，通过模板的 `error`、`notFound`、`onRetry` 展示统一状态，不能无限显示加载中。
 - 基础信息、单据信息、历史记录等使用详情分组和 `DetailMetaList`。
@@ -138,6 +141,7 @@ API 接入保持统一：
 - `npm run audit:components:strict`
 - `npm run build`
 - 浏览器实际检查核心页面，重点看筛选、排序、分页、弹窗、下拉、空状态和表单控件。
+- 对列表和详情额外检查：操作列是否全为文字动作、4 个动作时是否按规则进入“更多”、标题状态标签是否存在、状态操作是否紧跟当前状态、删除和状态变更是否打开统一组件。
 
 审查脚本出现阻断项时，不能交付；提醒项必须确认是否需要沉淀组件，不能忽略。
 
