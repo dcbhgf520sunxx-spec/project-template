@@ -299,7 +299,9 @@ function collectListColumnContractViolations(files) {
     const columns = columnsArray.elements.filter(ts.isObjectLiteralExpression);
     if (columns.length < 2) return violations;
     const first = columns[0];
-    const firstBusiness = columns[1];
+    const hasSequenceColumn = /序号/.test(propertyText(first, 'title', sourceFile))
+      || propertyText(first, 'valueType', sourceFile).replace(/['"]/g, '') === 'index';
+    const firstBusiness = hasSequenceColumn ? columns[1] : first;
     const action = columns.find((column) => /^['"]option['"]$/.test(propertyText(column, 'valueType', sourceFile)));
     const hasNumericWidth = (column) => /^\d+(?:\.\d+)?$/.test(propertyText(column, 'width', sourceFile));
     const fixed = (column, side) => propertyText(column, 'fixed', sourceFile).replace(/['"]/g, '') === side;
@@ -307,11 +309,10 @@ function collectListColumnContractViolations(files) {
     for (const column of columns) {
       if (!hasNumericWidth(column)) violations.push(finding(file, sourceFile, column, '标准列表每个可见列必须声明数值型 width，确保列宽可拖拽'));
     }
-    if (fixed(first, 'left')) {
-      violations.push(finding(file, sourceFile, first, '标准列表序号列不固定，避免占用左侧固定区域'));
-    }
-    if (!fixed(firstBusiness, 'left')) {
-      violations.push(finding(file, sourceFile, firstBusiness, '标准列表第一业务列必须声明 fixed="left"'));
+    if ((hasSequenceColumn && !fixed(first, 'left')) || !fixed(firstBusiness, 'left')) {
+      violations.push(finding(file, sourceFile, firstBusiness, hasSequenceColumn
+        ? '包含序号列时，序号列和紧随其后的第一业务列都必须声明 fixed="left"'
+        : '标准列表第一业务列必须声明 fixed="left"'));
     }
     if (action && !fixed(action, 'right')) {
       violations.push(finding(file, sourceFile, action, '标准列表操作列必须声明 fixed="right"'));
