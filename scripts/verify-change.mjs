@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { checkDeliveryContract } from './check-delivery-contract.mjs';
+import { resolveDeliveryChangeContext } from './delivery-change-context.mjs';
 import { getNpmCommandEnv, shouldUseArm64Node } from './npm-command-env.mjs';
 
 const rootDir = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -35,6 +36,7 @@ const npmNodeExecutable = process.platform === 'darwin' && existsSync(macosUnive
 const npmCommandEnv = getNpmCommandEnv(process.env, npmNodeExecutable);
 const commands = [
   { cwd: '.', command: 'node', args: ['--test', 'scripts/check-delivery-contract.test.mjs'] },
+  { cwd: '.', command: 'node', args: ['--test', 'scripts/delivery-change-context.test.mjs'] },
   { cwd: 'frontend', command: 'node', args: ['--experimental-strip-types', '--test', 'test/auditComponentUsage.test.ts', 'test/responseContract.test.ts', 'test/workOrderApi.test.ts', 'test/listHelpers.test.ts', 'test/detailNeighbors.test.ts', 'test/detailNeighborNavCompact.test.mjs', 'test/workOrderDetailNeighborPlacement.test.mjs', 'test/designSystemDetailNeighborUsage.test.mjs', 'test/detailReturnLabel.test.mjs', 'test/templatePageState.test.mjs', 'test/templateDrawerTable.test.mjs', 'test/overlayTemplateDemo.test.mjs', 'test/routerFutureFlag.test.mjs'] },
   { cwd: 'frontend', command: 'npm', args: ['run', 'audit:components'] },
   { cwd: 'frontend', command: 'npm', args: ['run', 'audit:components:strict'] },
@@ -44,27 +46,24 @@ const commands = [
 
 function gitOutput(args) {
   try {
-    return execFileSync('git', args, { cwd: rootDir, encoding: 'utf8' });
+    return execFileSync('git', args, {
+      cwd: rootDir,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore']
+    });
   } catch {
     return '';
   }
 }
 
-function routeRoots(source) {
-  return new Set([...source.matchAll(/path:\s*'([^/'][^']*)'/g)]
-    .map((match) => match[1])
-    .filter((route) => !route.startsWith('samples/') && !route.startsWith('system/'))
-    .map((route) => `/${route.split('/')[0]}`));
-}
-
 const currentRoutes = readFileSync(join(rootDir, 'frontend/src/app/routes.tsx'), 'utf8');
-const baseRoutes = gitOutput(['show', 'HEAD:frontend/src/app/routes.tsx']);
-const beforeRouteRoots = routeRoots(baseRoutes);
-const changedRouteRoots = [...routeRoots(currentRoutes)].filter((route) => !beforeRouteRoots.has(route));
-const changedFiles = gitOutput(['status', '--porcelain'])
-  .split('\n')
-  .filter(Boolean)
-  .map((line) => line.slice(3));
+const hasGitBaseline = Boolean(gitOutput(['rev-parse', '--verify', 'HEAD']).trim());
+const { changedFiles, changedRouteRoots } = resolveDeliveryChangeContext({
+  currentRoutes,
+  baseRoutes: hasGitBaseline ? gitOutput(['show', 'HEAD:frontend/src/app/routes.tsx']) : currentRoutes,
+  statusOutput: hasGitBaseline ? gitOutput(['status', '--porcelain']) : '',
+  hasGitBaseline
+});
 const errors = checkDeliveryContract(rootDir, { changedFiles, changedRouteRoots });
 if (errors.length) {
   console.error(`交付结构检查失败：\n- ${errors.join('\n- ')}`);
