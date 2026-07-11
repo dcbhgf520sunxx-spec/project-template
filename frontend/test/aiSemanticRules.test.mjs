@@ -28,8 +28,20 @@ test('统一门禁包含新增的语义约束测试', () => {
     'statusChangeAction.test.mjs',
     'detailStatusPlacement.test.mjs',
     'obsoleteStatusFlowAction.test.mjs',
-    'aiSemanticRules.test.mjs'
+    'aiSemanticRules.test.mjs',
+    'auditApiContracts.test.mjs',
+    'designSystemMenuPermissions.test.mjs'
   ]) {
     assert.match(gate, new RegExp(name.replaceAll('.', '\\.')));
   }
+  assert.match(gate, /audit:api-contracts/);
+});
+
+test('AI 链路要求完整地址菜单权限和状态组件溯源', () => {
+  const rules = read('../docs/ai-development-rules.md');
+  const agents = read('../AGENTS.md');
+  assert.match(rules, /完整地址/);
+  assert.match(rules, /查询参数/);
+  assert.match(rules, /业务状态组件.*公共 `StatusChangeAction`/);
+  assert.match(agents, /组件工作台.*独立授权/);
 });
