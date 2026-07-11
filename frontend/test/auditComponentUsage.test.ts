@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import test from 'node:test';
 
 const scriptPath = new URL('../scripts/audit-component-usage.mjs', import.meta.url).pathname;
@@ -152,6 +152,21 @@ function runStrictAudit(source: string, fileName = 'CustomerDetailPage.tsx') {
   return result;
 }
 
+function runStrictAuditFiles(files: Record<string, string>) {
+  const modulesDir = mkdtempSync(join(tmpdir(), 'component-audit-'));
+  for (const [fileName, source] of Object.entries(files)) {
+    const filePath = join(modulesDir, fileName);
+    mkdirSync(dirname(filePath), { recursive: true });
+    writeFileSync(filePath, source);
+  }
+  const result = spawnSync(process.execPath, [scriptPath, '--strict', '--modules-dir', modulesDir], {
+    encoding: 'utf8',
+    stdio: 'pipe'
+  });
+  rmSync(modulesDir, { recursive: true, force: true });
+  return result;
+}
+
 test('组件审计阻断操作列中的普通按钮形态', () => {
   const result = runStrictAudit(
     'export function CustomerListPage() { return <OperationColumnActions><AdminButton>状态变更</AdminButton></OperationColumnActions>; }',
@@ -221,9 +236,18 @@ test('组件审计阻断状态动作页面遗漏状态区', () => {
 });
 
 test('组件审计允许基于标准状态动作扩展的业务状态动作', () => {
-  const result = runStrictAudit(
-    'export function CustomerPage() { return <OperationColumnActions><CustomerStatusChangeAction variant="text" /></OperationColumnActions>; }',
-    'CustomerPage.tsx'
-  );
+  const result = runStrictAuditFiles({
+    'customer/pages/CustomerListPage.tsx': 'import { CustomerStatusChangeAction } from "../components/CustomerStatusChangeAction"; export function CustomerListPage() { return <OperationColumnActions><CustomerStatusChangeAction variant="text" /></OperationColumnActions>; }',
+    'customer/components/CustomerStatusChangeAction.tsx': 'export function CustomerStatusChangeAction(props) { return <StatusChangeAction {...props} />; }'
+  });
   assert.equal(result.status, 0, result.stdout);
+});
+
+test('组件审计阻断只改名字但未调用公共组件的业务状态动作', () => {
+  const result = runStrictAuditFiles({
+    'customer/pages/CustomerListPage.tsx': 'import { CustomerStatusChangeAction } from "../components/CustomerStatusChangeAction"; export function CustomerListPage() { return <OperationColumnActions><CustomerStatusChangeAction variant="text" /></OperationColumnActions>; }',
+    'customer/components/CustomerStatusChangeAction.tsx': 'export function CustomerStatusChangeAction() { return <AdminButton>状态变更</AdminButton>; }'
+  });
+  assert.equal(result.status, 1);
+  assert.match(result.stdout, /公共 StatusChangeAction/);
 });

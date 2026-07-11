@@ -1,5 +1,5 @@
-import { readdirSync, readFileSync, statSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { dirname, join, relative, resolve } from 'node:path';
 import ts from 'typescript';
 
 const rootDir = new URL('..', import.meta.url).pathname;
@@ -150,6 +150,23 @@ function finding(file, sourceFile, node, reason, token = jsxTagName(node, source
   };
 }
 
+function resolveImportedComponentSource(file, sourceFile, componentName) {
+  for (const statement of sourceFile.statements) {
+    if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier)) continue;
+    const modulePath = statement.moduleSpecifier.text;
+    if (!modulePath.startsWith('.')) continue;
+    const namedImports = statement.importClause?.namedBindings;
+    if (!namedImports || !ts.isNamedImports(namedImports)) continue;
+    const importsComponent = namedImports.elements.some((element) => element.name.text === componentName);
+    if (!importsComponent) continue;
+    const basePath = resolve(dirname(file), modulePath);
+    const candidates = [`${basePath}.tsx`, `${basePath}.ts`, join(basePath, 'index.tsx'), join(basePath, 'index.ts')];
+    const componentFile = candidates.find((candidate) => existsSync(candidate));
+    return componentFile ? readFileSync(componentFile, 'utf8') : '';
+  }
+  return '';
+}
+
 function collectSemanticViolations(files) {
   const allowedOperationActions = new Set([
     'AdminTextAction',
@@ -170,6 +187,18 @@ function collectSemanticViolations(files) {
     const source = readFileSync(file, 'utf8');
     const sourceFile = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
     const violations = [];
+
+    const inspectBusinessStatusAction = (node, name) => {
+      const isBusinessChangeAction = name !== 'StatusChangeAction' && name.endsWith('StatusChangeAction');
+      const isBusinessConfirmAction = name !== 'StatusConfirmAction' && name.endsWith('StatusConfirmAction');
+      if (!isBusinessChangeAction && !isBusinessConfirmAction) return;
+      const componentSource = resolveImportedComponentSource(file, sourceFile, name);
+      const requiredComponent = isBusinessChangeAction ? 'StatusChangeAction' : 'StatusConfirmAction';
+      const rendersRequiredComponent = new RegExp(`<${requiredComponent}(?:<|\\s|/|>)`).test(componentSource);
+      if (!rendersRequiredComponent) {
+        violations.push(finding(file, sourceFile, node, `业务状态动作 ${name} 必须直接调用公共 ${requiredComponent}`));
+      }
+    };
 
     const inspectOperationChildren = (container) => {
       const inspect = (node) => {
@@ -195,6 +224,7 @@ function collectSemanticViolations(files) {
     const visit = (node) => {
       if (ts.isJsxElement(node) || ts.isJsxSelfClosingElement(node)) {
         const name = jsxTagName(node, sourceFile);
+        inspectBusinessStatusAction(node, name);
         if (name === 'StatusFlowModal') {
           violations.push(finding(file, sourceFile, node, '业务页面不得直接使用 StatusFlowModal，应通过 StatusChangeAction 承接'));
         }
