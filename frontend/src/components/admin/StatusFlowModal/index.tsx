@@ -8,6 +8,7 @@ import { InfoGrid } from '../InfoGrid';
 import './index.css';
 
 export type StatusFlowValue = string | number;
+export type StatusFlowTone = 'normal' | 'success' | 'danger';
 
 export type StatusFlowModalOption<T extends StatusFlowValue = StatusFlowValue> = {
   label: string;
@@ -23,6 +24,8 @@ export type StatusFlowModalFormValues = Record<string, unknown> & {
 export type StatusFlowModalProps<T extends StatusFlowValue = StatusFlowValue> = {
   open: boolean;
   title?: string;
+  tone?: StatusFlowTone;
+  confirming?: boolean;
   currentValue: ReactNode;
   targetValue?: T;
   formValues?: StatusFlowModalFormValues;
@@ -32,13 +35,15 @@ export type StatusFlowModalProps<T extends StatusFlowValue = StatusFlowValue> = 
   targetLabel?: string;
   onTargetChange: (target: T) => void;
   onCancel: () => void;
-  onConfirm: (values: StatusFlowModalFormValues) => void;
+  onConfirm: (values: StatusFlowModalFormValues) => Promise<void> | void;
   renderExtra?: StatusFlowModalRenderExtra<T>;
 };
 
 export function StatusFlowModal<T extends StatusFlowValue = StatusFlowValue>({
   open,
   title = '状态变更',
+  tone = 'normal',
+  confirming = false,
   currentValue,
   targetValue,
   formValues,
@@ -95,7 +100,7 @@ export function StatusFlowModal<T extends StatusFlowValue = StatusFlowValue>({
   const handleConfirm = async () => {
     try {
       const values = await form.validateFields();
-      onConfirm(values);
+      await onConfirm(values);
     } catch {
       // 具体错误由表单项展示，这里只阻止提交。
     }
@@ -104,12 +109,14 @@ export function StatusFlowModal<T extends StatusFlowValue = StatusFlowValue>({
   return (
     <AdminModal
       title={title}
+      titleTone={tone === 'success' ? 'positive' : tone}
       open={open}
       size="small"
       forceRender
       onCancel={onCancel}
       onOk={handleConfirm}
-      okButtonProps={{ disabled: targetValue === undefined }}
+      confirmLoading={confirming}
+      okButtonProps={{ danger: tone === 'danger', disabled: targetValue === undefined }}
     >
       <div className="admin-status-flow-modal">
         <InfoGrid

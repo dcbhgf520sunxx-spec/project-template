@@ -9,6 +9,7 @@ export * from './BubbleConfirmAction';
 export * from './ConfirmAction';
 export * from './DeleteConfirmAction';
 export * from './StatusConfirmAction';
+export * from './StatusChangeAction';
 export * from './OperationLog';
 export * from './SectionTitle';
 export * from './InfoGrid';
