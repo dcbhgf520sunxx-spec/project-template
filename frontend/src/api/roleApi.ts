@@ -110,15 +110,15 @@ export async function getRole(id: string) {
 }
 
 export async function createRole(values: RoleFormValues) {
-  return unwrap<{ id: number }>(request.post('/roles', { ...values, creator_id: 1 }));
+  return unwrap<{ id: number }>(request.post('/roles', values));
 }
 
 export async function updateRole(id: string, values: RoleFormValues) {
-  return unwrap<null>(request.put(`/roles/${id}`, { ...values, updater_id: 1 }));
+  return unwrap<null>(request.put(`/roles/${id}`, values));
 }
 
 export async function deleteRole(id: string) {
-  return unwrap<null>(request.delete(`/roles/${id}`, { data: { updater_id: 1 } }));
+  return unwrap<null>(request.delete(`/roles/${id}`));
 }
 
 export async function checkRoleCode(code: string, excludeId?: string) {
@@ -140,5 +140,5 @@ export async function getRoleMenuIds(roleId: string) {
 }
 
 export async function saveRoleMenuIds(roleId: string, menuIds: number[]) {
-  return unwrap<null>(request.put(`/menus/role/${roleId}`, { menuIds, updater_id: 1 }));
+  return unwrap<null>(request.put(`/menus/role/${roleId}`, { menuIds }));
 }

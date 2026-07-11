@@ -114,8 +114,7 @@ export async function createUser(values: UserFormValues) {
     phone: values.phone || null,
     password: values.password || 'vv123456',
     status: 1,
-    role_ids: values.roleIds?.map(Number) || [],
-    creator_id: 1
+    role_ids: values.roleIds?.map(Number) || []
   }));
 }
 
@@ -125,21 +124,20 @@ export async function updateUser(id: string, values: UserFormValues) {
     real_name: values.realName,
     phone: values.phone || null,
     password: values.password || undefined,
-    role_ids: values.roleIds?.map(Number) || [],
-    updater_id: 1
+    role_ids: values.roleIds?.map(Number) || []
   }));
 }
 
 export async function deleteUser(id: string) {
-  return unwrap<null>(request.delete(`/users/${id}`, { data: { updater_id: 1 } }));
+  return unwrap<null>(request.delete(`/users/${id}`));
 }
 
 export async function toggleUserStatus(id: string, status: UserRecord['status']) {
-  return unwrap<null>(request.put(`/users/${id}/status`, { status: toApiStatus(status), updater_id: 1 }));
+  return unwrap<null>(request.put(`/users/${id}/status`, { status: toApiStatus(status) }));
 }
 
 export async function resetUserPassword(id: string) {
-  return unwrap<null>(request.put(`/users/${id}/reset-password`, { updater_id: 1 }));
+  return unwrap<null>(request.put(`/users/${id}/reset-password`));
 }
 
 export async function checkEmployeeNo(employeeNo: string, excludeId?: string) {

@@ -146,8 +146,7 @@ export async function refreshWorkOrderOverdue() {
 export async function batchAssignWorkOrders(ids: string[], followerId: string) {
   return unwrap<{ updated: number; requested: number }>(request.put('/work-orders/batch-assign', {
     ids: ids.map((id) => Number(id)),
-    follower_id: Number(followerId),
-    updater_id: 1
+    follower_id: Number(followerId)
   }));
 }
 
@@ -161,9 +160,7 @@ function toPayload(values: WorkOrderFormPayload) {
     expected_resolve_date: values.expectedResolveDate,
     submitter_name: values.submitterName,
     submitter_dept: values.submitterDept,
-    submit_time: values.submitTime,
-    creator_id: 1,
-    updater_id: 1
+    submit_time: values.submitTime
   };
 }
 
@@ -176,18 +173,17 @@ export async function updateWorkOrder(id: string, values: WorkOrderFormPayload) 
 }
 
 export async function deleteWorkOrder(id: string) {
-  return unwrap<null>(request.delete(`/work-orders/${id}`, { data: { updater_id: 1 } }));
+  return unwrap<null>(request.delete(`/work-orders/${id}`));
 }
 
 export async function updateWorkOrderStatus(id: string, payload: WorkOrderStatus | WorkOrderStatusPayload) {
   const data = typeof payload === 'number'
-    ? { status: payload, updater_id: 1 }
+    ? { status: payload }
     : {
       status: payload.status,
       resolve_date: payload.resolveDate,
       close_date: payload.closeDate,
-      result_desc: payload.resultDesc,
-      updater_id: 1
+      result_desc: payload.resultDesc
     };
   return unwrap<null>(request.put(`/work-orders/${id}/status`, data));
 }

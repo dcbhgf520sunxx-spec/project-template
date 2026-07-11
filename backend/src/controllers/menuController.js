@@ -3,7 +3,8 @@ const db = require('../db')
 exports.saveRoleMenus = async (req, res) => {
   try {
     const roleId = req.params.roleId
-    const { menuIds, updater_id } = req.body
+    const { menuIds } = req.body
+    const operatorId = req.user.id
 
     // Get old menu ids (sorted for comparison)
     const oldRows = await db.prepare('SELECT menu_id FROM pms_role_menu WHERE role_id = ?').all(roleId)
@@ -23,10 +24,10 @@ exports.saveRoleMenus = async (req, res) => {
       }
 
       // Only write log if menus actually changed
-      if (hasChanged && updater_id) {
+      if (hasChanged) {
         const oldValue = oldMenuIds.join('、') || '无'
         const newValue = newMenuIds.join('、') || '无'
-        await db.writeLog(updater_id, '分配权限', '角色', roleId, 'menu_ids', oldValue, newValue, req.ip)
+        await db.writeLog(operatorId, '分配权限', '角色', roleId, 'menu_ids', oldValue, newValue, req.ip)
       }
     })
     res.json({ code: 0, message: 'success', data: null })

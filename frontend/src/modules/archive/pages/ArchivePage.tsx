@@ -17,7 +17,6 @@ import {
   type ArchiveRecord,
   type ArchiveTypeRecord
 } from '../../../api/archiveApi';
-import { useAuthStore } from '../../../stores/authStore';
 import { ArchiveRecordFilter, type ArchiveRecordFilters } from '../components/ArchiveRecordFilter';
 import { ArchiveRecordModal, type ArchiveFormValue } from '../components/ArchiveRecordModal';
 import { ArchiveRecordTable } from '../components/ArchiveRecordTable';
@@ -30,7 +29,6 @@ const MAX_ARCHIVE_SIDEBAR_WIDTH = 460;
 
 export function ArchivePage() {
   const { message } = App.useApp();
-  const currentUserId = useAuthStore((state) => state.user?.id) || 1;
   const [typeForm] = Form.useForm<TypeFormValue>();
   const [archiveForm] = Form.useForm<ArchiveFormValue>();
 
@@ -156,14 +154,13 @@ export function ArchivePage() {
     setTypeSubmitting(true);
     try {
       if (editingType) {
-        await updateArchiveType(editingType.id, { name: values.name, updaterId: currentUserId });
+        await updateArchiveType(editingType.id, { name: values.name });
         message.success('保存成功');
         await loadTypes(editingType.id);
       } else {
         const result = await createArchiveType({
           name: values.name,
-          codePrefix: values.codePrefix || '',
-          creatorId: currentUserId
+          codePrefix: values.codePrefix || ''
         });
         message.success(`创建成功，编码：${result.code}`);
         await loadTypes(String(result.id));
@@ -182,15 +179,13 @@ export function ArchivePage() {
       if (editingArchive) {
         await updateArchive(editingArchive.id, {
           name: values.name,
-          sortOrder: editingArchive.sortOrder,
-          updaterId: currentUserId
+          sortOrder: editingArchive.sortOrder
         });
         message.success('保存成功');
       } else {
         const result = await createArchive({
           archiveTypeId: values.archiveTypeId,
-          name: values.name,
-          creatorId: currentUserId
+          name: values.name
         });
         message.success(`创建成功，编码：${result.code}`);
       }
@@ -205,27 +200,27 @@ export function ArchivePage() {
 
   const handleTypeStatusChange = async (record: ArchiveTypeRecord) => {
     const nextStatus = record.status === 'enabled' ? 'disabled' : 'enabled';
-    await toggleArchiveTypeStatus(record.id, { status: nextStatus, updaterId: currentUserId });
+    await toggleArchiveTypeStatus(record.id, { status: nextStatus });
     message.success(nextStatus === 'enabled' ? '启用成功' : '停用成功');
     await loadTypes(record.id);
   };
 
   const handleArchiveStatusChange = async (record: ArchiveRecord) => {
     const nextStatus = record.status === 'enabled' ? 'disabled' : 'enabled';
-    await toggleArchiveStatus(record.id, { status: nextStatus, updaterId: currentUserId });
+    await toggleArchiveStatus(record.id, { status: nextStatus });
     message.success(nextStatus === 'enabled' ? '启用成功' : '停用成功');
     await loadArchives(selectedTypeId);
   };
 
   const handleDeleteType = async (record: ArchiveTypeRecord) => {
-    await deleteArchiveType(record.id, currentUserId);
+    await deleteArchiveType(record.id);
     message.success('删除成功');
     const fallback = typeList.find((item) => item.id !== record.id)?.id;
     await loadTypes(fallback);
   };
 
   const handleDeleteArchive = async (record: ArchiveRecord) => {
-    await deleteArchive(record.id, currentUserId);
+    await deleteArchive(record.id);
     message.success('删除成功');
     await loadArchives(selectedTypeId);
   };
@@ -234,8 +229,7 @@ export function ArchivePage() {
     const sortedRows = rows.map((item, index) => ({ ...item, sortOrder: index + 1 }));
     setArchiveRows(sortedRows);
     await batchUpdateArchiveSort(
-      sortedRows.map((item) => ({ id: item.id, sortOrder: item.sortOrder })),
-      currentUserId
+      sortedRows.map((item) => ({ id: item.id, sortOrder: item.sortOrder }))
     );
     message.success('排序已更新');
   };

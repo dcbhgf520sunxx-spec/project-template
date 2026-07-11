@@ -35,6 +35,8 @@ API 接入保持统一：
 - 后端字段使用数据库命名，前端 API 层负责转成页面需要的 record。
 - 页面读取接口必须为关键返回字段传入 `objectContract` / `arrayContract` 运行时契约，字段名不匹配时直接报错，不能静默渲染 `undefined`。
 - 前端 `id` 统一转成字符串，后端写入时再转成数字。
+- `creator_id`、`updater_id` 和操作日志 `user_id` 必须由后端从 `req.user.id` 取得，前端请求体不得提交或覆盖操作者身份。
+- 新增、编辑、删除、状态变更、批量操作和权限分配都遵守同一身份来源；业务控制器不得从 `req.body` 解构 `creator_id` 或 `updater_id`。
 - 新模块路由统一注册到 `frontend/src/app/routes.tsx`。
 - 数据库物理表名必须使用 `pms_` 前缀。
 

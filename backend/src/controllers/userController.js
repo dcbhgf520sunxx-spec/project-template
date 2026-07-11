@@ -114,7 +114,8 @@ exports.getById = async (req, res) => {
 exports.create = async (req, res) => {
   try {
     if (!requireValidBody(res, req.body, userFormSchema)) return
-    const { employee_no, real_name, phone, password, status, role_ids, creator_id } = req.body
+    const { employee_no, real_name, phone, password, status, role_ids } = req.body
+    const operatorId = req.user.id
 
     if (employee_no) {
       const exists = await db.prepare('SELECT id FROM pms_user WHERE employee_no = ? AND is_deleted = 0').get(employee_no)
@@ -131,7 +132,7 @@ exports.create = async (req, res) => {
     await db.transaction(async (conn) => {
       const result = await conn.prepare(
         'INSERT INTO pms_user (employee_no, real_name, phone, password, status, first_login, creator_id, updater_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
-      ).run(employee_no, real_name, phone || null, hashedPassword, status || 1, 1, creator_id || null, creator_id || null)
+      ).run(employee_no, real_name, phone || null, hashedPassword, status || 1, 1, operatorId, operatorId)
       userId = result.lastInsertRowid
 
       if (role_ids && role_ids.length > 0) {
@@ -141,7 +142,7 @@ exports.create = async (req, res) => {
         }
       }
 
-      await db.writeLog(creator_id, '新增', '用户', userId, null, null, JSON.stringify({ employee_no, real_name, phone }), req.ip)
+      await db.writeLog(operatorId, '新增', '用户', userId, null, null, JSON.stringify({ employee_no, real_name, phone }), req.ip)
     })
 
     ok(res, { id: userId })
@@ -154,7 +155,8 @@ exports.create = async (req, res) => {
 exports.update = async (req, res) => {
   try {
     if (!requireValidBody(res, req.body, userFormSchema)) return
-    const { employee_no, real_name, phone, password, status, role_ids, updater_id } = req.body
+    const { employee_no, real_name, phone, password, status, role_ids } = req.body
+    const operatorId = req.user.id
 
     const old = await db.prepare('SELECT employee_no, real_name, phone, status FROM pms_user WHERE id = ?').get(req.params.id)
 
@@ -191,22 +193,22 @@ exports.update = async (req, res) => {
           const hashed = await bcrypt.hash(password, 10)
           await conn.prepare(
             'UPDATE pms_user SET employee_no = ?, real_name = ?, phone = ?, password = ?, updater_id = ? WHERE id = ?'
-          ).run(employee_no, real_name, phone || null, hashed, updater_id || null, req.params.id)
+          ).run(employee_no, real_name, phone || null, hashed, operatorId, req.params.id)
         } else {
           await conn.prepare(
             'UPDATE pms_user SET employee_no = ?, real_name = ?, phone = ?, updater_id = ? WHERE id = ?'
-          ).run(employee_no, real_name, phone || null, updater_id || null, req.params.id)
+          ).run(employee_no, real_name, phone || null, operatorId, req.params.id)
         }
       } else {
         if (password) {
           const hashed = await bcrypt.hash(password, 10)
           await conn.prepare(
             'UPDATE pms_user SET employee_no = ?, real_name = ?, phone = ?, password = ?, status = ?, updater_id = ? WHERE id = ?'
-          ).run(employee_no, real_name, phone || null, hashed, status, updater_id || null, req.params.id)
+          ).run(employee_no, real_name, phone || null, hashed, status, operatorId, req.params.id)
         } else {
           await conn.prepare(
             'UPDATE pms_user SET employee_no = ?, real_name = ?, phone = ?, status = ?, updater_id = ? WHERE id = ?'
-          ).run(employee_no, real_name, phone || null, status, updater_id || null, req.params.id)
+          ).run(employee_no, real_name, phone || null, status, operatorId, req.params.id)
         }
       }
 
@@ -216,11 +218,9 @@ exports.update = async (req, res) => {
       }
 
       // One log entry per changed field
-      if (updater_id) {
-        const fmt = (v) => Array.isArray(v) ? `[${v.join(',')}]` : (v ?? '空')
-        for (const ch of changes) {
-          await db.writeLog(updater_id, '编辑', '用户', req.params.id, ch.field, fmt(ch.oldVal), fmt(ch.newVal), req.ip)
-        }
+      const fmt = (v) => Array.isArray(v) ? `[${v.join(',')}]` : (v ?? '空')
+      for (const ch of changes) {
+        await db.writeLog(operatorId, '编辑', '用户', req.params.id, ch.field, fmt(ch.oldVal), fmt(ch.newVal), req.ip)
       }
     })
 
@@ -233,8 +233,7 @@ exports.update = async (req, res) => {
 
 exports.remove = async (req, res) => {
   try {
-    if (!requireValidBody(res, req.body, { updater_id: { type: 'number', label: '更新人' } })) return
-    const { updater_id } = req.body
+    const operatorId = req.user.id
     const userId = req.params.id
 
     // 检查是否有角色关联
@@ -249,8 +248,8 @@ exports.remove = async (req, res) => {
       return fail(res, 400, 400, '该用户已被运维工单引用为跟踪人，无法删除')
     }
 
-    await db.prepare('UPDATE pms_user SET is_deleted = 1, updater_id = ? WHERE id = ?').run(updater_id || null, userId)
-    if (updater_id) await db.writeLog(updater_id, '删除', '用户', userId, 'is_deleted', '0', '1', req.ip)
+    await db.prepare('UPDATE pms_user SET is_deleted = 1, updater_id = ? WHERE id = ?').run(operatorId, userId)
+    await db.writeLog(operatorId, '删除', '用户', userId, 'is_deleted', '0', '1', req.ip)
     ok(res, null)
   } catch (err) {
     console.error(err)
@@ -260,11 +259,12 @@ exports.remove = async (req, res) => {
 
 exports.toggleStatus = async (req, res) => {
   try {
-    if (!requireValidBody(res, req.body, { status: { required: true, type: 'enum', values: [0, 1], label: '状态' }, updater_id: { type: 'number', label: '更新人' } })) return
-    const { status, updater_id } = req.body
+    if (!requireValidBody(res, req.body, { status: { required: true, type: 'enum', values: [0, 1], label: '状态' } })) return
+    const { status } = req.body
+    const operatorId = req.user.id
     const oldStatus = await db.prepare('SELECT status FROM pms_user WHERE id = ?').get(req.params.id)
-    await db.prepare('UPDATE pms_user SET status = ?, updater_id = ? WHERE id = ?').run(status, updater_id || null, req.params.id)
-    if (updater_id) await db.writeLog(updater_id, '状态变更', '用户', req.params.id, 'status', String(oldStatus?.status ?? ''), String(status), req.ip)
+    await db.prepare('UPDATE pms_user SET status = ?, updater_id = ? WHERE id = ?').run(status, operatorId, req.params.id)
+    await db.writeLog(operatorId, '状态变更', '用户', req.params.id, 'status', String(oldStatus?.status ?? ''), String(status), req.ip)
     ok(res, null)
   } catch (err) {
     console.error(err)
@@ -274,11 +274,10 @@ exports.toggleStatus = async (req, res) => {
 
 exports.resetPassword = async (req, res) => {
   try {
-    if (!requireValidBody(res, req.body, { updater_id: { type: 'number', label: '更新人' } })) return
-    const { updater_id } = req.body
+    const operatorId = req.user.id
     const hashed = await bcrypt.hash('vv123456', 10)
-    await db.prepare('UPDATE pms_user SET password = ?, updater_id = ? WHERE id = ?').run(hashed, updater_id || null, req.params.id)
-    if (updater_id) await db.writeLog(updater_id, '重置密码', '用户', req.params.id, 'password', '***', 'vv123456', req.ip)
+    await db.prepare('UPDATE pms_user SET password = ?, updater_id = ? WHERE id = ?').run(hashed, operatorId, req.params.id)
+    await db.writeLog(operatorId, '重置密码', '用户', req.params.id, 'password', '***', 'vv123456', req.ip)
     ok(res, null)
   } catch (err) {
     console.error(err)

@@ -79,7 +79,8 @@ exports.list = async (req, res) => {
 exports.create = async (req, res) => {
   try {
     if (!requireValidBody(res, req.body, archiveCreateSchema)) return
-    const { archive_type_id, name, creator_id } = req.body
+    const { archive_type_id, name } = req.body
+    const operatorId = req.user.id
     const code = await generateCode(archive_type_id)
     if (!code) return fail(res, 400, 400, '档案类型不存在')
 
@@ -89,8 +90,8 @@ exports.create = async (req, res) => {
 
     const result = await db.prepare(
       'INSERT INTO pms_archive (code, name, archive_type_id, sort_order, status, creator_id, updater_id) VALUES (?, ?, ?, ?, 1, ?, ?)'
-    ).run(code, name, archive_type_id, sort_order, creator_id || null, creator_id || null)
-    await db.writeLog(creator_id, '新增', '档案', result.lastInsertRowid, null, null, JSON.stringify({ code, name, archive_type_id }), req.ip)
+    ).run(code, name, archive_type_id, sort_order, operatorId, operatorId)
+    await db.writeLog(operatorId, '新增', '档案', result.lastInsertRowid, null, null, JSON.stringify({ code, name, archive_type_id }), req.ip)
     ok(res, { id: result.lastInsertRowid, code })
   } catch (err) {
     console.error(err)
@@ -102,17 +103,18 @@ exports.create = async (req, res) => {
 exports.update = async (req, res) => {
   try {
     if (!requireValidBody(res, req.body, archiveUpdateSchema)) return
-    const { name, sort_order, updater_id } = req.body
+    const { name, sort_order } = req.body
+    const operatorId = req.user.id
     const old = await db.prepare('SELECT name, sort_order, archive_type_id FROM pms_archive WHERE id = ?').get(req.params.id)
     const changes = []
     if (name !== undefined && String(old.name) !== String(name)) changes.push({ field: 'name', oldVal: old.name, newVal: name })
     if (sort_order !== undefined && Number(old.sort_order) !== Number(sort_order)) changes.push({ field: 'sort_order', oldVal: old.sort_order, newVal: sort_order })
     await db.prepare(
       'UPDATE pms_archive SET name = ?, sort_order = ?, updater_id = ? WHERE id = ?'
-    ).run(name || old.name, sort_order !== undefined ? sort_order : old.sort_order, updater_id || null, req.params.id)
-    if (updater_id && changes.length > 0) {
+    ).run(name || old.name, sort_order !== undefined ? sort_order : old.sort_order, operatorId, req.params.id)
+    if (changes.length > 0) {
       for (const ch of changes) {
-        await db.writeLog(updater_id, '编辑', '档案', req.params.id, ch.field, ch.oldVal ?? null, ch.newVal ?? null, req.ip)
+        await db.writeLog(operatorId, '编辑', '档案', req.params.id, ch.field, ch.oldVal ?? null, ch.newVal ?? null, req.ip)
       }
     }
     ok(res, null)
@@ -124,11 +126,12 @@ exports.update = async (req, res) => {
 
 exports.toggleStatus = async (req, res) => {
   try {
-    if (!requireValidBody(res, req.body, { status: { required: true, type: 'enum', values: [0, 1], label: '状态' }, updater_id: { type: 'number', label: '更新人' } })) return
-    const { status, updater_id } = req.body
+    if (!requireValidBody(res, req.body, { status: { required: true, type: 'enum', values: [0, 1], label: '状态' } })) return
+    const { status } = req.body
+    const operatorId = req.user.id
     const oldStatus = await db.prepare('SELECT status FROM pms_archive WHERE id = ?').get(req.params.id)
-    await db.prepare('UPDATE pms_archive SET status = ?, updater_id = ? WHERE id = ?').run(status, updater_id || null, req.params.id)
-    if (updater_id) await db.writeLog(updater_id, '状态变更', '档案', req.params.id, 'status', String(oldStatus?.status ?? ''), String(status), req.ip)
+    await db.prepare('UPDATE pms_archive SET status = ?, updater_id = ? WHERE id = ?').run(status, operatorId, req.params.id)
+    await db.writeLog(operatorId, '状态变更', '档案', req.params.id, 'status', String(oldStatus?.status ?? ''), String(status), req.ip)
     ok(res, null)
   } catch (err) {
     console.error(err)
@@ -138,8 +141,7 @@ exports.toggleStatus = async (req, res) => {
 
 exports.remove = async (req, res) => {
   try {
-    if (!requireValidBody(res, req.body, { updater_id: { type: 'number', label: '更新人' } })) return
-    const { updater_id } = req.body
+    const operatorId = req.user.id
     const archiveId = Number(req.params.id)
     const archive = await db.prepare('SELECT id FROM pms_archive WHERE id = ? AND is_deleted = 0').get(archiveId)
     if (!archive) return fail(res, 404, 404, '档案不存在或已删除')
@@ -147,8 +149,8 @@ exports.remove = async (req, res) => {
     const referenceMessage = await getArchiveReferenceMessage(archiveId)
     if (referenceMessage) return fail(res, 400, 400, referenceMessage)
 
-    await db.prepare('UPDATE pms_archive SET is_deleted = 1, updater_id = ? WHERE id = ?').run(updater_id || null, archiveId)
-    if (updater_id) await db.writeLog(updater_id, '删除', '档案', archiveId, 'is_deleted', '0', '1', req.ip)
+    await db.prepare('UPDATE pms_archive SET is_deleted = 1, updater_id = ? WHERE id = ?').run(operatorId, archiveId)
+    await db.writeLog(operatorId, '删除', '档案', archiveId, 'is_deleted', '0', '1', req.ip)
     ok(res, null)
   } catch (err) {
     console.error(err)
@@ -168,10 +170,10 @@ exports.batchUpdateSort = async (req, res) => {
           id: { required: true, type: 'number', label: '档案ID' },
           sort_order: { required: true, type: 'number', label: '排序值' }
         }
-      },
-      updater_id: { type: 'number', label: '更新人' }
+      }
     })) return
-    const { items, updater_id } = req.body // [{ id, sort_order }, ...]
+    const { items } = req.body // [{ id, sort_order }, ...]
+    const operatorId = req.user.id
     if (!Array.isArray(items) || items.length === 0) {
       return fail(res, 400, 400, '缺少排序数据')
     }
@@ -192,12 +194,10 @@ exports.batchUpdateSort = async (req, res) => {
         const old = oldMap.get(archiveId)
         if (!old || Number(old.sort_order) === nextSortOrder) continue
 
-        await conn.prepare('UPDATE pms_archive SET sort_order = ?, updater_id = ?, updated_at = NOW() WHERE id = ?').run(nextSortOrder, updater_id || null, archiveId)
-        if (updater_id) {
-          await conn.prepare(
-            'INSERT INTO pms_op_log (user_id, action, module, target_id, field_name, old_value, new_value, ip, target_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
-          ).run(updater_id, '排序', '档案', archiveId, 'sort_order', old.sort_order, nextSortOrder, req.ip, old.name)
-        }
+        await conn.prepare('UPDATE pms_archive SET sort_order = ?, updater_id = ?, updated_at = NOW() WHERE id = ?').run(nextSortOrder, operatorId, archiveId)
+        await conn.prepare(
+          'INSERT INTO pms_op_log (user_id, action, module, target_id, field_name, old_value, new_value, ip, target_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+        ).run(operatorId, '排序', '档案', archiveId, 'sort_order', old.sort_order, nextSortOrder, req.ip, old.name)
       }
     })
     ok(res, null)

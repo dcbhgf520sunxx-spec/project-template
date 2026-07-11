@@ -125,30 +125,28 @@ export async function getArchiveOptionsByTypeName(typeName: string) {
   return rows.map((item) => ({ label: item.name, value: String(item.id), code: item.code }));
 }
 
-export async function createArchiveType(values: { codePrefix: string; name: string; creatorId?: number }) {
+export async function createArchiveType(values: { codePrefix: string; name: string }) {
   return unwrap<{ id: number; code: string }>(request.post('/archive-types', {
     code_prefix: values.codePrefix,
-    name: values.name,
-    creator_id: values.creatorId || 1
+    name: values.name
   }));
 }
 
-export async function updateArchiveType(id: string, values: { name: string; updaterId?: number }) {
-  return unwrap<null>(request.put(`/archive-types/${id}`, { name: values.name, updater_id: values.updaterId || 1 }));
+export async function updateArchiveType(id: string, values: { name: string }) {
+  return unwrap<null>(request.put(`/archive-types/${id}`, { name: values.name }));
 }
 
 export async function toggleArchiveTypeStatus(
   id: string,
-  values: { status: 'enabled' | 'disabled'; updaterId?: number }
+  values: { status: 'enabled' | 'disabled' }
 ) {
   return unwrap<null>(request.put(`/archive-types/${id}/status`, {
-    status: toApiStatus(values.status),
-    updater_id: values.updaterId || 1
+    status: toApiStatus(values.status)
   }));
 }
 
-export async function deleteArchiveType(id: string, updaterId = 1) {
-  return unwrap<null>(request.delete(`/archive-types/${id}`, { data: { updater_id: updaterId } }));
+export async function deleteArchiveType(id: string) {
+  return unwrap<null>(request.delete(`/archive-types/${id}`));
 }
 
 export async function checkArchiveTypePrefix(prefix: string, excludeId?: string) {
@@ -178,39 +176,35 @@ export async function getArchives(params: Record<string, unknown> = {}): Promise
   };
 }
 
-export async function createArchive(values: { archiveTypeId: string; name: string; creatorId?: number }) {
+export async function createArchive(values: { archiveTypeId: string; name: string }) {
   return unwrap<{ id: number; code: string }>(request.post('/archives', {
     archive_type_id: Number(values.archiveTypeId),
-    name: values.name,
-    creator_id: values.creatorId || 1
+    name: values.name
   }));
 }
 
-export async function updateArchive(id: string, values: { name: string; sortOrder?: number; updaterId?: number }) {
+export async function updateArchive(id: string, values: { name: string; sortOrder?: number }) {
   return unwrap<null>(request.put(`/archives/${id}`, {
     name: values.name,
-    sort_order: values.sortOrder,
-    updater_id: values.updaterId || 1
+    sort_order: values.sortOrder
   }));
 }
 
 export async function toggleArchiveStatus(
   id: string,
-  values: { status: 'enabled' | 'disabled'; updaterId?: number }
+  values: { status: 'enabled' | 'disabled' }
 ) {
   return unwrap<null>(request.put(`/archives/${id}/status`, {
-    status: toApiStatus(values.status),
-    updater_id: values.updaterId || 1
+    status: toApiStatus(values.status)
   }));
 }
 
-export async function deleteArchive(id: string, updaterId = 1) {
-  return unwrap<null>(request.delete(`/archives/${id}`, { data: { updater_id: updaterId } }));
+export async function deleteArchive(id: string) {
+  return unwrap<null>(request.delete(`/archives/${id}`));
 }
 
-export async function batchUpdateArchiveSort(items: Array<{ id: string; sortOrder: number }>, updaterId = 1) {
+export async function batchUpdateArchiveSort(items: Array<{ id: string; sortOrder: number }>) {
   return unwrap<null>(request.put('/archives/batch-sort', {
-    items: items.map((item) => ({ id: Number(item.id), sort_order: item.sortOrder })),
-    updater_id: updaterId
+    items: items.map((item) => ({ id: Number(item.id), sort_order: item.sortOrder }))
   }));
 }

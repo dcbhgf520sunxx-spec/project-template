@@ -114,11 +114,12 @@ exports.getById = async (req, res) => {
 exports.create = async (req, res) => {
   try {
     if (!requireValidBody(res, req.body, roleFormSchema)) return
-    const { code, name, description, creator_id } = req.body
+    const { code, name, description } = req.body
+    const operatorId = req.user.id
     const result = await db.prepare(
       'INSERT INTO pms_role (code, name, description, creator_id, updater_id) VALUES (?, ?, ?, ?, ?)'
-    ).run(code, name, description || null, creator_id || null, creator_id || null)
-    await db.writeLog(creator_id, '新增', '角色', result.lastInsertRowid, null, null, JSON.stringify({ code, name, description }), req.ip)
+    ).run(code, name, description || null, operatorId, operatorId)
+    await db.writeLog(operatorId, '新增', '角色', result.lastInsertRowid, null, null, JSON.stringify({ code, name, description }), req.ip)
     ok(res, { id: result.lastInsertRowid })
   } catch (err) {
     console.error(err)
@@ -129,7 +130,8 @@ exports.create = async (req, res) => {
 exports.update = async (req, res) => {
   try {
     if (!requireValidBody(res, req.body, roleFormSchema)) return
-    const { code, name, description, updater_id } = req.body
+    const { code, name, description } = req.body
+    const operatorId = req.user.id
     const old = await db.prepare('SELECT code, name, description FROM pms_role WHERE id = ?').get(req.params.id)
 
     // Build changes: one entry per changed field
@@ -145,14 +147,12 @@ exports.update = async (req, res) => {
     if (changes.length > 0) {
       await db.prepare(
         'UPDATE pms_role SET code = ?, name = ?, description = ?, updater_id = ? WHERE id = ?'
-      ).run(code, name, description || null, updater_id || null, req.params.id)
+      ).run(code, name, description || null, operatorId, req.params.id)
 
       // Write one log entry per changed field
-      if (updater_id) {
-        const fmt = (v) => v ?? '空'
-        for (const ch of changes) {
-          await db.writeLog(updater_id, '编辑', '角色', req.params.id, ch.field, fmt(ch.oldVal), fmt(ch.newVal), req.ip)
-        }
+      const fmt = (v) => v ?? '空'
+      for (const ch of changes) {
+        await db.writeLog(operatorId, '编辑', '角色', req.params.id, ch.field, fmt(ch.oldVal), fmt(ch.newVal), req.ip)
       }
     }
 
@@ -165,8 +165,7 @@ exports.update = async (req, res) => {
 
 exports.remove = async (req, res) => {
   try {
-    if (!requireValidBody(res, req.body, { updater_id: { type: 'number', label: '更新人' } })) return
-    const { updater_id } = req.body
+    const operatorId = req.user.id
     const roleId = req.params.id
 
     // 检查是否有用户关联此角色
@@ -175,8 +174,8 @@ exports.remove = async (req, res) => {
       return fail(res, 400, 400, '该角色下有用户关联，无法删除')
     }
 
-    await db.prepare('UPDATE pms_role SET is_deleted = 1, updater_id = ? WHERE id = ?').run(updater_id || null, roleId)
-    if (updater_id) await db.writeLog(updater_id, '删除', '角色', roleId, 'is_deleted', '0', '1', req.ip)
+    await db.prepare('UPDATE pms_role SET is_deleted = 1, updater_id = ? WHERE id = ?').run(operatorId, roleId)
+    await db.writeLog(operatorId, '删除', '角色', roleId, 'is_deleted', '0', '1', req.ip)
     ok(res, null)
   } catch (err) {
     console.error(err)

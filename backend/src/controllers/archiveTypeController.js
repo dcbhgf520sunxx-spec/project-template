@@ -26,7 +26,8 @@ exports.list = async (req, res) => {
 
 exports.create = async (req, res) => {
   try {
-    const { code_prefix, name, creator_id } = req.body
+    const { code_prefix, name } = req.body
+    const operatorId = req.user.id
     // Auto-generate code: 3-digit sequence based on active records only
     const maxSeq = await db.prepare("SELECT MAX(CAST(code AS INTEGER)) as max_seq FROM pms_archive_type WHERE is_deleted = 0").get()
     const nextSeq = (maxSeq?.max_seq || 0) + 1
@@ -37,8 +38,8 @@ exports.create = async (req, res) => {
 
     const result = await db.prepare(
       'INSERT INTO pms_archive_type (code, code_prefix, name, status, creator_id, updater_id) VALUES (?, ?, ?, 1, ?, ?)'
-    ).run(code, code_prefix, name, creator_id || null, creator_id || null)
-    await db.writeLog(creator_id, '新增', '档案类型', result.lastInsertRowid, null, null, JSON.stringify({ code, code_prefix, name }), req.ip)
+    ).run(code, code_prefix, name, operatorId, operatorId)
+    await db.writeLog(operatorId, '新增', '档案类型', result.lastInsertRowid, null, null, JSON.stringify({ code, code_prefix, name }), req.ip)
     res.json({ code: 0, message: 'success', data: { id: result.lastInsertRowid, code } })
   } catch (err) {
     console.error(err)
@@ -49,16 +50,17 @@ exports.create = async (req, res) => {
 
 exports.update = async (req, res) => {
   try {
-    const { name, updater_id } = req.body
+    const { name } = req.body
+    const operatorId = req.user.id
     const old = await db.prepare('SELECT name, code_prefix FROM pms_archive_type WHERE id = ?').get(req.params.id)
     const changes = []
     if (name !== undefined && String(old.name) !== String(name)) changes.push({ field: 'name', oldVal: old.name, newVal: name })
     await db.prepare(
       'UPDATE pms_archive_type SET name = ?, updater_id = ? WHERE id = ?'
-    ).run(name || old.name, updater_id || null, req.params.id)
-    if (updater_id && changes.length > 0) {
+    ).run(name || old.name, operatorId, req.params.id)
+    if (changes.length > 0) {
       for (const ch of changes) {
-        await db.writeLog(updater_id, '编辑', '档案类型', req.params.id, ch.field, ch.oldVal ?? null, ch.newVal ?? null, req.ip)
+        await db.writeLog(operatorId, '编辑', '档案类型', req.params.id, ch.field, ch.oldVal ?? null, ch.newVal ?? null, req.ip)
       }
     }
     res.json({ code: 0, message: 'success', data: null })
@@ -70,10 +72,11 @@ exports.update = async (req, res) => {
 
 exports.toggleStatus = async (req, res) => {
   try {
-    const { status, updater_id } = req.body
+    const { status } = req.body
+    const operatorId = req.user.id
     const oldStatus = await db.prepare('SELECT status FROM pms_archive_type WHERE id = ?').get(req.params.id)
-    await db.prepare('UPDATE pms_archive_type SET status = ?, updater_id = ? WHERE id = ?').run(status, updater_id || null, req.params.id)
-    if (updater_id) await db.writeLog(updater_id, '状态变更', '档案类型', req.params.id, 'status', String(oldStatus?.status ?? ''), String(status), req.ip)
+    await db.prepare('UPDATE pms_archive_type SET status = ?, updater_id = ? WHERE id = ?').run(status, operatorId, req.params.id)
+    await db.writeLog(operatorId, '状态变更', '档案类型', req.params.id, 'status', String(oldStatus?.status ?? ''), String(status), req.ip)
     res.json({ code: 0, message: 'success', data: null })
   } catch (err) {
     console.error(err)
@@ -98,13 +101,13 @@ exports.checkPrefix = async (req, res) => {
 
 exports.remove = async (req, res) => {
   try {
-    const { updater_id } = req.body
+    const operatorId = req.user.id
     const refCount = await db.prepare('SELECT COUNT(*) as cnt FROM pms_archive WHERE archive_type_id = ? AND is_deleted = 0').get(req.params.id)
     if (refCount?.cnt > 0) {
       return res.status(400).json({ code: 400, message: '该类型下已有档案数据，不可删除', data: null })
     }
-    await db.prepare('UPDATE pms_archive_type SET is_deleted = 1, updater_id = ? WHERE id = ?').run(updater_id || null, req.params.id)
-    if (updater_id) await db.writeLog(updater_id, '删除', '档案类型', req.params.id, 'is_deleted', '0', '1', req.ip)
+    await db.prepare('UPDATE pms_archive_type SET is_deleted = 1, updater_id = ? WHERE id = ?').run(operatorId, req.params.id)
+    await db.writeLog(operatorId, '删除', '档案类型', req.params.id, 'is_deleted', '0', '1', req.ip)
     res.json({ code: 0, message: 'success', data: null })
   } catch (err) {
     console.error(err)

@@ -25,14 +25,12 @@ const workOrderFormSchema = {
 }
 
 const workOrderStatusSchema = {
-  status: { required: true, type: 'enum', values: [0, 1, 2, 3], label: '状态' },
-  updater_id: { type: 'number', label: '更新人' }
+  status: { required: true, type: 'enum', values: [0, 1, 2, 3], label: '状态' }
 }
 
 const workOrderBatchAssignSchema = {
   ids: { required: true, type: 'array', label: '工单' },
-  follower_id: { required: true, type: 'number', label: '跟进人' },
-  updater_id: { type: 'number', label: '更新人' }
+  follower_id: { required: true, type: 'number', label: '跟进人' }
 }
 
 function withJoins(sql) {
@@ -155,7 +153,8 @@ exports.getById = async (req, res) => {
 exports.create = async (req, res) => {
   try {
     if (!requireValidBody(res, req.body, workOrderFormSchema)) return
-    const { system_id, problem_type, problem_desc, follower_id, urgency, status, expected_resolve_date, submitter_name, submitter_dept, submit_time, creator_id } = req.body
+    const { system_id, problem_type, problem_desc, follower_id, urgency, status, expected_resolve_date, submitter_name, submitter_dept, submit_time } = req.body
+    const operatorId = req.user.id
 
     // Validate problem_desc uniqueness
     if (problem_desc) {
@@ -168,9 +167,9 @@ exports.create = async (req, res) => {
 
     const result = await db.prepare(
       'INSERT INTO pms_work_order (system_id, problem_type, problem_desc, follower_id, urgency, status, is_overdue, expected_resolve_date, submitter_name, submitter_dept, submit_time, creator_id, updater_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-    ).run(system_id || null, problem_type || null, problem_desc || null, follower_id || null, urgency ?? 1, finalStatus, is_overdue, expected_resolve_date || null, submitter_name || null, submitter_dept || null, submit_time || null, creator_id || null, creator_id || null)
+    ).run(system_id || null, problem_type || null, problem_desc || null, follower_id || null, urgency ?? 1, finalStatus, is_overdue, expected_resolve_date || null, submitter_name || null, submitter_dept || null, submit_time || null, operatorId, operatorId)
 
-    await db.writeLog(creator_id, '新增', '运维工单', result.lastInsertRowid, null, null, JSON.stringify({ system_id, problem_type, follower_id, urgency }), req.ip)
+    await db.writeLog(operatorId, '新增', '运维工单', result.lastInsertRowid, null, null, JSON.stringify({ system_id, problem_type, follower_id, urgency }), req.ip)
     ok(res, { id: result.lastInsertRowid })
   } catch (err) {
     console.error(err)
@@ -181,7 +180,8 @@ exports.create = async (req, res) => {
 exports.update = async (req, res) => {
   try {
     if (!requireValidBody(res, req.body, workOrderFormSchema)) return
-    const { system_id, problem_type, problem_desc, result_desc, follower_id, urgency, status, expected_resolve_date, resolve_date, close_date, submitter_name, submitter_dept, submit_time, updater_id } = req.body
+    const { system_id, problem_type, problem_desc, result_desc, follower_id, urgency, status, expected_resolve_date, resolve_date, close_date, submitter_name, submitter_dept, submit_time } = req.body
+    const operatorId = req.user.id
 
     const old = await db.prepare('SELECT system_id, problem_type, problem_desc, result_desc, follower_id, urgency, status, expected_resolve_date, resolve_date, close_date, submitter_name, submitter_dept, submit_time FROM pms_work_order WHERE id = ?').get(req.params.id)
 
@@ -234,15 +234,15 @@ exports.update = async (req, res) => {
     params.push(is_overdue)
 
     setParts.push('updater_id = ?')
-    params.push(updater_id || null)
+    params.push(operatorId)
     params.push(req.params.id)
 
     const sql = `UPDATE pms_work_order SET ${setParts.join(', ')} WHERE id = ?`
     await db.prepare(sql).run(...params)
 
-    if (updater_id && changes.length > 0) {
+    if (changes.length > 0) {
       for (const ch of changes) {
-        await db.writeLog(updater_id, '编辑', '运维工单', req.params.id, ch.field, ch.oldVal ?? null, ch.newVal ?? null, req.ip)
+        await db.writeLog(operatorId, '编辑', '运维工单', req.params.id, ch.field, ch.oldVal ?? null, ch.newVal ?? null, req.ip)
       }
     }
 
@@ -256,7 +256,8 @@ exports.update = async (req, res) => {
 exports.toggleStatus = async (req, res) => {
   try {
     if (!requireValidBody(res, req.body, workOrderStatusSchema)) return
-    const { status, updater_id, resolve_date, close_date, result_desc } = req.body
+    const { status, resolve_date, close_date, result_desc } = req.body
+    const operatorId = req.user.id
     const old = await db.prepare('SELECT status, is_overdue, expected_resolve_date, resolve_date, close_date, result_desc FROM pms_work_order WHERE id = ?').get(req.params.id)
     const changes = []
 
@@ -318,12 +319,10 @@ exports.toggleStatus = async (req, res) => {
 
     await db.prepare(
       'UPDATE pms_work_order SET status = ?, is_overdue = ?, resolve_date = ?, close_date = ?, result_desc = ?, updater_id = ? WHERE id = ?'
-    ).run(status, is_overdue, finalResolveDate, finalCloseDate, finalResultDesc, updater_id || null, req.params.id)
+    ).run(status, is_overdue, finalResolveDate, finalCloseDate, finalResultDesc, operatorId, req.params.id)
 
-    if (updater_id) {
-      for (const ch of changes) {
-        await db.writeLog(updater_id, '状态变更', '运维工单', req.params.id, ch.field, ch.oldVal ?? '空', ch.newVal ?? '空', req.ip)
-      }
+    for (const ch of changes) {
+      await db.writeLog(operatorId, '状态变更', '运维工单', req.params.id, ch.field, ch.oldVal ?? '空', ch.newVal ?? '空', req.ip)
     }
     ok(res, null)
   } catch (err) {
@@ -335,7 +334,8 @@ exports.toggleStatus = async (req, res) => {
 exports.batchAssign = async (req, res) => {
   try {
     if (!requireValidBody(res, req.body, workOrderBatchAssignSchema)) return
-    const { ids, follower_id, updater_id } = req.body
+    const { ids, follower_id } = req.body
+    const operatorId = req.user.id
     const workOrderIds = Array.isArray(ids) ? ids.map((id) => Number(id)).filter(Boolean) : []
     const followerId = Number(follower_id)
 
@@ -365,12 +365,10 @@ exports.batchAssign = async (req, res) => {
       for (const row of rows) {
         if (Number(row.follower_id) === followerId) continue
         await conn.prepare('UPDATE pms_work_order SET follower_id = ?, updater_id = ?, updated_at = NOW() WHERE id = ?')
-          .run(followerId, updater_id || null, row.id)
-        if (updater_id) {
-          await conn.prepare(
-            'INSERT INTO pms_op_log (user_id, action, module, target_id, field_name, old_value, new_value, ip) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
-          ).run(updater_id, '批量指派', '运维工单', row.id, 'follower_id', row.follower_id, followerId, req.ip)
-        }
+          .run(followerId, operatorId, row.id)
+        await conn.prepare(
+          'INSERT INTO pms_op_log (user_id, action, module, target_id, field_name, old_value, new_value, ip) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+        ).run(operatorId, '批量指派', '运维工单', row.id, 'follower_id', row.follower_id, followerId, req.ip)
         updatedCount += 1
       }
     })
@@ -384,10 +382,9 @@ exports.batchAssign = async (req, res) => {
 
 exports.remove = async (req, res) => {
   try {
-    if (!requireValidBody(res, req.body, { updater_id: { type: 'number', label: '更新人' } })) return
-    const { updater_id } = req.body
-    await db.prepare('UPDATE pms_work_order SET is_deleted = 1, updater_id = ? WHERE id = ?').run(updater_id || null, req.params.id)
-    if (updater_id) await db.writeLog(updater_id, '删除', '运维工单', req.params.id, 'is_deleted', '0', '1', req.ip)
+    const operatorId = req.user.id
+    await db.prepare('UPDATE pms_work_order SET is_deleted = 1, updater_id = ? WHERE id = ?').run(operatorId, req.params.id)
+    await db.writeLog(operatorId, '删除', '运维工单', req.params.id, 'is_deleted', '0', '1', req.ip)
     ok(res, null)
   } catch (err) {
     console.error(err)
