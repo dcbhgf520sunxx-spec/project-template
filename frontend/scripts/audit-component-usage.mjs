@@ -327,6 +327,52 @@ function collectListColumnContractViolations(files) {
   });
 }
 
+function collectListViewTabContractViolations(files) {
+  return files.flatMap((file) => {
+    if (!file.endsWith('ListPage.tsx')) return [];
+    const source = readFileSync(file, 'utf8');
+    if (!source.includes('<TemplateListPage') || !source.includes('<ViewTabs')) return [];
+    const sourceFile = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+    const variables = new Map();
+    const viewTabs = [];
+
+    const visit = (node) => {
+      if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer) {
+        variables.set(node.name.text, node.initializer);
+      }
+      if ((ts.isJsxElement(node) || ts.isJsxSelfClosingElement(node)) && jsxTagName(node, sourceFile) === 'ViewTabs') {
+        viewTabs.push(node);
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(sourceFile);
+
+    const unwrap = (expression) => {
+      if (ts.isParenthesizedExpression(expression) || ts.isAsExpression(expression)
+        || ts.isTypeAssertionExpression(expression) || ts.isSatisfiesExpression(expression)) {
+        return unwrap(expression.expression);
+      }
+      if (ts.isIdentifier(expression) && variables.has(expression.text)) return unwrap(variables.get(expression.text));
+      return expression;
+    };
+
+    return viewTabs.flatMap((node) => {
+      const itemsAttribute = attribute(node, 'items');
+      const expression = itemsAttribute?.initializer && ts.isJsxExpression(itemsAttribute.initializer)
+        ? itemsAttribute.initializer.expression
+        : undefined;
+      const items = expression ? unwrap(expression) : undefined;
+      if (!items || !ts.isArrayLiteralExpression(items)) {
+        return [finding(file, sourceFile, node, '列表数据视图 Tab 的 items 必须是可静态审计的数组，并为每项声明 count')];
+      }
+      return items.elements
+        .filter(ts.isObjectLiteralExpression)
+        .filter((item) => !objectProperty(item, 'count'))
+        .map((item) => finding(file, sourceFile, item, '列表数据视图 Tab 每一项必须声明 count；普通非列表 Tab 不受此约束', 'ViewTabs item'));
+    });
+  });
+}
+
 const files = walk(modulesDir).filter((file) => {
   const normalized = relative(modulesDir, file).split('/');
   return !excludedPathParts.includes(normalized[0]);
@@ -337,17 +383,18 @@ const listTemplateBlocking = collectMatches(files, listTemplateRules, 'BLOCK');
 const pageTemplateBlocking = collectPageTemplateViolations(files);
 const semanticBlocking = collectSemanticViolations(files);
 const listColumnContractBlocking = collectListColumnContractViolations(files);
+const listViewTabContractBlocking = collectListViewTabContractViolations(files);
 const warnings = collectMatches(files, warningRules, 'WARN');
 
 console.log('组件接入审计');
 console.log(`扫描文件：${files.length}`);
-console.log(`阻断项：${blocking.length + listTemplateBlocking.length + pageTemplateBlocking.length + semanticBlocking.length + listColumnContractBlocking.length}`);
+console.log(`阻断项：${blocking.length + listTemplateBlocking.length + pageTemplateBlocking.length + semanticBlocking.length + listColumnContractBlocking.length + listViewTabContractBlocking.length}`);
 console.log(`提醒项：${warnings.length}`);
 
-for (const item of [...blocking, ...listTemplateBlocking, ...pageTemplateBlocking, ...semanticBlocking, ...listColumnContractBlocking, ...warnings]) {
+for (const item of [...blocking, ...listTemplateBlocking, ...pageTemplateBlocking, ...semanticBlocking, ...listColumnContractBlocking, ...listViewTabContractBlocking, ...warnings]) {
   console.log(`${item.level} ${item.file}:${item.line} ${item.token} ${item.reason}`);
 }
 
-if (strict && (blocking.length > 0 || listTemplateBlocking.length > 0 || pageTemplateBlocking.length > 0 || semanticBlocking.length > 0 || listColumnContractBlocking.length > 0)) {
+if (strict && (blocking.length > 0 || listTemplateBlocking.length > 0 || pageTemplateBlocking.length > 0 || semanticBlocking.length > 0 || listColumnContractBlocking.length > 0 || listViewTabContractBlocking.length > 0)) {
   process.exitCode = 1;
 }

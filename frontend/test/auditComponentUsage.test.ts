@@ -221,6 +221,40 @@ test('组件审计允许列行为完整的标准列表', () => {
   assert.equal(result.status, 0, result.stdout);
 });
 
+test('组件审计阻断列表数据视图 Tab 缺少统计', () => {
+  const result = runStrictAudit(
+    `export function CustomerListPage() {
+      const columns = [
+        { title: '客户名称', dataIndex: 'name', width: 180, fixed: 'left', sorter: true }
+      ];
+      return <TemplateListPage
+        titleExtra={<ViewTabs value="all" onChange={() => undefined} items={[
+          { label: '全部客户', value: 'all' },
+          { label: '我负责的', value: 'mine' }
+        ]} />}
+        table={{ columns, dataSource: [], pagination: false, scroll: { x: 400 } }}
+        pagination={{}}
+      />;
+    }`,
+    'CustomerListPage.tsx'
+  );
+  assert.equal(result.status, 1);
+  assert.match(result.stdout, /列表数据视图 Tab.*count/);
+});
+
+test('组件审计允许非列表场景的 ViewTabs 不带统计', () => {
+  const result = runStrictAudit(
+    `export function CustomerDetailPage() {
+      return <ViewTabs value="base" onChange={() => undefined} items={[
+        { label: '基础信息', value: 'base' },
+        { label: '操作记录', value: 'history' }
+      ]} />;
+    }`,
+    'CustomerTabsPanel.tsx'
+  );
+  assert.equal(result.status, 0, result.stdout);
+});
+
 test('组件审计阻断有状态详情缺少标题标签和状态操作', () => {
   const result = runStrictAudit(
     'export function CustomerDetailPage() { return <TemplateDetailPage statusSection={{ items: [] }}><div /></TemplateDetailPage>; }'
