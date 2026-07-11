@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { ReactNode } from 'react';
-import { App, Spin } from 'antd';
+import { App } from 'antd';
 import { ProForm, type ProFormInstance } from '@ant-design/pro-components';
 import { ActionBar } from '../ActionBar';
 import { AdminEmptyState } from '../AdminEmptyState';
@@ -74,6 +74,7 @@ export function TemplateFormPage<T extends Record<string, unknown>>({
     <PageShell
       title={title}
       compact
+      loading={Boolean(loading)}
       titleExtra={titleExtra}
       actions={(
         <ActionBar>
@@ -84,28 +85,26 @@ export function TemplateFormPage<T extends Record<string, unknown>>({
         </ActionBar>
       )}
     >
-      <Spin spinning={Boolean(loading)}>
-        {isUnavailable ? (
-          <div className="admin-template-form-page__state">
-            <AdminEmptyState description={notFound ? '记录不存在或已被删除' : error}>
-              {onRetry ? <AdminButton type="primary" onClick={onRetry}>重新加载</AdminButton> : null}
-            </AdminEmptyState>
+      {isUnavailable ? (
+        <div className="admin-template-form-page__state">
+          <AdminEmptyState description={notFound ? '记录不存在或已被删除' : error}>
+            {onRetry ? <AdminButton type="primary" onClick={onRetry}>重新加载</AdminButton> : null}
+          </AdminEmptyState>
+        </div>
+      ) : (
+        <FormPage<T>
+          id={formId}
+          form={formInstance}
+          initialValues={initialValues}
+          showActions={false}
+          onCancel={onCancel}
+          onSubmit={handleSubmit}
+        >
+          <div className="admin-template-form-page">
+            {children}
           </div>
-        ) : (
-          <FormPage<T>
-            id={formId}
-            form={formInstance}
-            initialValues={initialValues}
-            showActions={false}
-            onCancel={onCancel}
-            onSubmit={handleSubmit}
-          >
-            <div className="admin-template-form-page">
-              {children}
-            </div>
-          </FormPage>
-        )}
-      </Spin>
+        </FormPage>
+      )}
     </PageShell>
   );
 }
