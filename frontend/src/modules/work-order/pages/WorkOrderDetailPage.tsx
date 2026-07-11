@@ -14,7 +14,7 @@ import {
   TemplateDetailSection,
   useDetailNeighbors
 } from '../../../components/admin';
-import { StatusChangeModal } from '../components/StatusChangeModal';
+import { WorkOrderStatusChangeAction } from '../components/WorkOrderStatusChangeAction';
 import { deleteWorkOrder, getWorkOrder, getWorkOrderHistory, getWorkOrderNeighbors, updateWorkOrderStatus } from '../../../api/workOrderApi';
 import type { WorkOrderHistoryItem, WorkOrderRecord, WorkOrderStatus } from '../types';
 import {
@@ -50,8 +50,6 @@ function buildStatusPayload(status: WorkOrderStatus, values: Record<string, unkn
 export function WorkOrderDetailPage() {
   const navigate = useNavigate();
   const params = useParams();
-  const [statusOpen, setStatusOpen] = useState(false);
-  const [targetStatus, setTargetStatus] = useState<WorkOrderStatus | undefined>();
   const [historyExpandedKeys, setHistoryExpandedKeys] = useState<string[]>([]);
   const [detail, setDetail] = useState<WorkOrderRecord>();
   const [history, setHistory] = useState<WorkOrderHistoryItem[]>([]);
@@ -115,7 +113,7 @@ export function WorkOrderDetailPage() {
     <TemplateDetailPage
       title="工单详情"
       onBack={() => navigate('/work-orders')}
-      titleExtra={(
+      titleTags={(
         <Space size={8} className="admin-template-detail-page__title-extra">
           <span className="admin-template-detail-page__code">{detail.code}</span>
           {renderWorkOrderStatus(detail.status)}
@@ -154,33 +152,37 @@ export function WorkOrderDetailPage() {
       }
       statusSection={{
         children: (
-          <>
-            <div className="work-order-detail-page__status-card">
-              <div className="work-order-detail-page__status-row">
-                <span>状态</span>
-                {renderWorkOrderStatus(detail.status)}
-              </div>
-              <div className="work-order-detail-page__status-row">
-                <span>紧急程度</span>
-                {renderUrgency(detail.urgency)}
-              </div>
-              <div className="work-order-detail-page__status-row">
-                <span>逾期</span>
-                {detail.status < 2 ? renderOverdue(detail.isOverdue) : <AdminText type="secondary">-</AdminText>}
-              </div>
+          <div className="work-order-detail-page__status-card">
+            <div className="work-order-detail-page__status-row">
+              <span>状态</span>
+              {renderWorkOrderStatus(detail.status)}
             </div>
-            <Space direction="vertical" size={8} className="work-order-detail-page__side-actions">
-              <AdminButton block type="primary" onClick={() => {
-                setTargetStatus(undefined);
-                setStatusOpen(true);
-              }}
-              >
-                状态变更
-              </AdminButton>
-            </Space>
-          </>
+            <div className="work-order-detail-page__status-row">
+              <span>紧急程度</span>
+              {renderUrgency(detail.urgency)}
+            </div>
+            <div className="work-order-detail-page__status-row">
+              <span>逾期</span>
+              {detail.status < 2 ? renderOverdue(detail.isOverdue) : <AdminText type="secondary">-</AdminText>}
+            </div>
+          </div>
         )
       }}
+      statusAction={(
+        <WorkOrderStatusChangeAction
+          block
+          type="primary"
+          workOrder={detail}
+          statusOptions={nextStatuses}
+          onConfirm={async (target, values) => {
+            await updateWorkOrderStatus(detail.id, buildStatusPayload(target, values));
+            await loadDetail();
+            message.success(`状态已更新为 ${statusText(target)}`);
+          }}
+        >
+          状态变更
+        </WorkOrderStatusChangeAction>
+      )}
       documentSection={{
         items: [
           { label: '创建人', value: detail.creatorName },
@@ -239,25 +241,6 @@ export function WorkOrderDetailPage() {
             />
           </TemplateDetailSection>
 
-      <StatusChangeModal
-        open={statusOpen}
-        workOrder={detail}
-        targetStatus={targetStatus}
-        statusOptions={nextStatuses}
-        onTargetStatusChange={setTargetStatus}
-        onCancel={() => {
-          setStatusOpen(false);
-          setTargetStatus(undefined);
-        }}
-        onConfirm={async (values) => {
-          if (targetStatus === undefined) return;
-          await updateWorkOrderStatus(detail.id, buildStatusPayload(targetStatus, values));
-          await loadDetail();
-          message.success(`状态已更新为 ${statusText(targetStatus)}`);
-          setStatusOpen(false);
-          setTargetStatus(undefined);
-        }}
-      />
     </TemplateDetailPage>
   );
 }

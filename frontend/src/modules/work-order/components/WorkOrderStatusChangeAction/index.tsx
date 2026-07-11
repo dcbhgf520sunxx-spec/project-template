@@ -1,8 +1,14 @@
 import { Form } from 'antd';
 import dayjs from 'dayjs';
 import { useMemo } from 'react';
-import { AdminDatePicker, AdminTextArea, StatusFlowModal } from '../../../../components/admin';
-import type { StatusFlowModalFormValues } from '../../../../components/admin';
+import {
+  AdminDatePicker,
+  AdminTextArea,
+  StatusChangeAction,
+  type StatusChangeActionProps,
+  type StatusChangeOption,
+  type StatusFlowModalFormValues
+} from '../../../../components/admin';
 import type { WorkOrderRecord, WorkOrderStatus } from '../../types';
 import { renderWorkOrderStatus } from '../../helpers';
 
@@ -11,52 +17,47 @@ type StatusOption = {
   value: WorkOrderStatus;
 };
 
-type StatusChangeModalProps = {
-  open: boolean;
-  title?: string;
-  workOrder?: WorkOrderRecord | null;
-  targetStatus?: WorkOrderStatus;
+type WorkOrderStatusChangeActionProps = Omit<
+  StatusChangeActionProps<WorkOrderStatus>,
+  'current' | 'currentValue' | 'formValues' | 'options' | 'renderExtra'
+> & {
+  workOrder: WorkOrderRecord;
   statusOptions: StatusOption[];
   preserveCompletedValues?: boolean;
-  onTargetStatusChange: (status: WorkOrderStatus) => void;
-  onCancel: () => void;
-  onConfirm: (values: StatusFlowModalFormValues) => void;
+  onConfirm: (target: WorkOrderStatus, values: StatusFlowModalFormValues) => Promise<void> | void;
 };
 
-export function StatusChangeModal({
-  open,
-  title = '状态变更',
+const toneByStatus: Record<WorkOrderStatus, StatusChangeOption<WorkOrderStatus>['tone']> = {
+  0: 'normal',
+  1: 'normal',
+  2: 'success',
+  3: 'danger'
+};
+
+export function WorkOrderStatusChangeAction({
   workOrder,
-  targetStatus,
   statusOptions,
   preserveCompletedValues = true,
-  onTargetStatusChange,
-  onCancel,
-  onConfirm
-}: StatusChangeModalProps) {
+  ...props
+}: WorkOrderStatusChangeActionProps) {
   const formValues = useMemo(() => {
-    if (!preserveCompletedValues || !workOrder || workOrder.status !== 3 || targetStatus !== 2) return undefined;
+    if (!preserveCompletedValues || workOrder.status !== 3) return undefined;
     return {
       actualFixedAt: workOrder.resolveDate ? dayjs(workOrder.resolveDate) : undefined,
       result: workOrder.resultDesc || undefined
     };
-  }, [preserveCompletedValues, targetStatus, workOrder]);
+  }, [preserveCompletedValues, workOrder]);
 
   return (
-    <StatusFlowModal<WorkOrderStatus>
-      title={title}
-      open={open}
-      currentValue={workOrder ? renderWorkOrderStatus(workOrder.status) : '-'}
-      targetValue={targetStatus}
+    <StatusChangeAction<WorkOrderStatus>
+      {...props}
+      current={workOrder.status}
+      currentValue={renderWorkOrderStatus(workOrder.status)}
       formValues={formValues}
-      targetOptions={statusOptions}
-      targetText={targetStatus !== undefined ? renderWorkOrderStatus(targetStatus) : '-'}
-      onTargetChange={onTargetStatusChange}
-      onCancel={onCancel}
-      onConfirm={onConfirm}
-      renderExtra={(expandedStatus) => (
+      options={statusOptions.map((item) => ({ ...item, tone: toneByStatus[item.value] }))}
+      renderExtra={(target) => (
         <>
-          {expandedStatus === 2 ? (
+          {target === 2 ? (
             <Form.Item
               name="actualFixedAt"
               label="实际修复时间"
@@ -65,7 +66,7 @@ export function StatusChangeModal({
               <AdminDatePicker placeholder="请选择实际修复时间" />
             </Form.Item>
           ) : null}
-          {expandedStatus === 3 ? (
+          {target === 3 ? (
             <Form.Item
               name="closedAt"
               label="关闭时间"
@@ -74,7 +75,7 @@ export function StatusChangeModal({
               <AdminDatePicker placeholder="请选择关闭时间" />
             </Form.Item>
           ) : null}
-          {expandedStatus === 2 ? (
+          {target === 2 ? (
             <Form.Item
               name="result"
               label="处置结果"

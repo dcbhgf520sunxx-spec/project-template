@@ -11,17 +11,15 @@ import {
   useCommittedFilters,
   ViewTabs
 } from '../../../components/admin';
-import { StatusChangeModal } from '../components/StatusChangeModal';
 import { deleteWorkOrder, updateWorkOrderStatus } from '../../../api/workOrderApi';
 import { buildWorkOrderQueryParams } from '../../../api/workOrderQueryParams';
 import { useAuthStore } from '../../../stores/authStore';
-import type { WorkOrderRecord, WorkOrderStatus } from '../types';
+import type { WorkOrderRecord } from '../types';
 import type { WorkOrderViewKey } from './workOrderList.types';
-import { statusOptions, statusText } from '../helpers';
+import { statusText } from '../helpers';
 import {
   buildStatusPayload,
   defaultWorkOrderListFilters,
-  statusTransitions,
   toDateText
 } from './workOrderList.constants';
 import { createWorkOrderColumns } from './WorkOrderListColumns';
@@ -37,8 +35,6 @@ export function WorkOrderListPage() {
   const [viewKey, setViewKey] = useState<WorkOrderViewKey>('mine');
   const { draftFilters, appliedFilters, revision: filterRevision, setDraftFilters, commitFilters, resetFilters } = useCommittedFilters(defaultWorkOrderListFilters);
   const [selectedRowKeys, setSelectedRowKeys] = useState<Key[]>([]);
-  const [activeOrder, setActiveOrder] = useState<WorkOrderRecord | null>(null);
-  const [targetStatus, setTargetStatus] = useState<WorkOrderStatus | undefined>();
 
   const {
     workOrders,
@@ -103,9 +99,10 @@ export function WorkOrderListPage() {
     userOptions,
     viewKey,
     onOpenDetail: openDetail,
-    onStatusChange: (record) => {
-      setTargetStatus(undefined);
-      setActiveOrder(record);
+    onStatusChange: async (record, target, values) => {
+      await updateWorkOrderStatus(record.id, buildStatusPayload(target, values));
+      await reload();
+      message.success(`状态已更新为 ${statusText(target)}`);
     },
     onDelete: async (record) => {
       await deleteWorkOrder(record.id);
@@ -122,7 +119,6 @@ export function WorkOrderListPage() {
     reload
   });
 
-  const availableNextStatuses = statusOptions.filter((item) => activeOrder ? statusTransitions[activeOrder.status].includes(item.value) : false);
   const handleViewChange = (nextViewKey: WorkOrderViewKey) => {
     setViewKey(nextViewKey);
     clearSelection();
@@ -196,25 +192,6 @@ export function WorkOrderListPage() {
 
       {batch.modals}
 
-      <StatusChangeModal
-        open={Boolean(activeOrder)}
-        workOrder={activeOrder}
-        targetStatus={targetStatus}
-        statusOptions={availableNextStatuses}
-        onTargetStatusChange={setTargetStatus}
-        onCancel={() => {
-          setActiveOrder(null);
-          setTargetStatus(undefined);
-        }}
-        onConfirm={async (values) => {
-          if (targetStatus === undefined || !activeOrder) return;
-          await updateWorkOrderStatus(activeOrder.id, buildStatusPayload(targetStatus, values));
-          await reload();
-          message.success(`状态已更新为 ${statusText(targetStatus)}`);
-          setActiveOrder(null);
-          setTargetStatus(undefined);
-        }}
-      />
     </>
   );
 }

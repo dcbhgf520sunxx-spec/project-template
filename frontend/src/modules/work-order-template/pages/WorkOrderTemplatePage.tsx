@@ -4,7 +4,6 @@ import type { ProColumns } from '@ant-design/pro-components';
 import { useNavigate } from 'react-router-dom';
 import {
   ActionBar,
-  AdminActionDropdown,
   AdminButton,
   AdminInput,
   AdminRangePicker,
@@ -14,7 +13,7 @@ import {
   AdminTextAction,
   AdminModal,
   CompactFilterBar,
-  ConfirmAction,
+  DeleteConfirmAction,
   createListFilterItems,
   createListSorters,
   DetailLinkCell,
@@ -26,9 +25,9 @@ import {
   useTemplateListPageData,
   ViewTabs
 } from '../../../components/admin';
-import { StatusChangeModal } from '../../work-order/components/StatusChangeModal';
+import { WorkOrderStatusChangeAction } from '../../work-order/components/WorkOrderStatusChangeAction';
 import { mockWorkOrders, workOrderUsers } from '../../work-order/mock';
-import type { WorkOrderRecord, WorkOrderStatus } from '../../work-order/types';
+import type { WorkOrderRecord } from '../../work-order/types';
 import {
   problemTypeOptions,
   problemTypeText,
@@ -39,6 +38,7 @@ import {
   statusText,
   urgencyOptions
 } from '../../work-order/helpers';
+import { statusTransitions } from '../../work-order/pages/workOrderList.constants';
 import '../../work-order/pages/WorkOrderListPage.css';
 
 type ViewKey = 'all' | 'mine';
@@ -102,9 +102,6 @@ export function WorkOrderTemplatePage() {
   const { draftFilters, appliedFilters, revision: filterRevision, setDraftFilters, commitFilters, resetFilters } = useCommittedFilters(defaultFilters);
   const [selectedRowKeys, setSelectedRowKeys] = useState<Key[]>([]);
   const [selectedRows, setSelectedRows] = useState<WorkOrderRecord[]>([]);
-  const [activeOrder, setActiveOrder] = useState<WorkOrderRecord | null>(null);
-  const [deleteOrder, setDeleteOrder] = useState<WorkOrderRecord | null>(null);
-  const [targetStatus, setTargetStatus] = useState<WorkOrderStatus | undefined>();
   const [batchStatusOpen, setBatchStatusOpen] = useState(false);
 
   const visibleRows = useMemo(() => {
@@ -383,31 +380,30 @@ export function WorkOrderTemplatePage() {
       render: (_, record) => (
         <OperationColumnActions>
           <AdminTextAction onClick={() => navigate(`/samples/work-order/${record.id}/edit`)}>编辑</AdminTextAction>
-          <AdminTextAction
-            onClick={() => {
-              setTargetStatus(undefined);
-              setActiveOrder(record);
-            }}
+          <WorkOrderStatusChangeAction
+            variant="text"
+            workOrder={record}
+            statusOptions={statusOptions.filter((item) => statusTransitions[record.status].includes(item.value))}
+            onConfirm={() => undefined}
           >
             状态变更
-          </AdminTextAction>
-          <AdminActionDropdown
-            items={[
-              { key: 'copy', label: '复制' },
-              { key: 'delete', label: '删除', danger: true }
-            ]}
-            onClick={(key) => {
-              if (key === 'copy') navigate(`/samples/work-order/${record.id}/copy`);
-              if (key === 'delete') setDeleteOrder(record);
-            }}
-          />
+          </WorkOrderStatusChangeAction>
+          <AdminTextAction onClick={() => navigate(`/samples/work-order/${record.id}/copy`)}>复制</AdminTextAction>
+          <DeleteConfirmAction
+            variant="text"
+            entityName="工单"
+            targetName={record.code}
+            successMessage="工单已删除"
+            onConfirm={() => undefined}
+          >
+            删除
+          </DeleteConfirmAction>
         </OperationColumnActions>
       )
     }
   ], [navigate, renderIndex, sortState]);
 
   const sameStatus = selectedRows.length === 0 || selectedRows.every((item) => item.status === selectedRows[0].status);
-  const availableNextStatuses = statusOptions.filter((item) => activeOrder ? item.value > activeOrder.status : false);
   const handleViewChange = (nextViewKey: ViewKey) => {
     setViewKey(nextViewKey);
     setSelectedRowKeys([]);
@@ -488,12 +484,12 @@ export function WorkOrderTemplatePage() {
             <AdminButton size="small" disabled={selectedRows.length === 0} onClick={() => setBatchStatusOpen(true)}>
               批量状态变更
             </AdminButton>
-            <ConfirmAction
-              danger
+            <DeleteConfirmAction
               size="small"
               disabled={selectedRows.length === 0}
-              title="确认批量删除"
-              description={`删除后选中的 ${selectedRows.length} 项工单将无法恢复，确认删除？`}
+              entityName="选中的"
+              targetName={`${selectedRows.length} 项工单`}
+              title="确认批量删除工单"
               successMessage={`已删除 ${selectedRows.length} 项工单`}
               onConfirm={() => {
                 setSelectedRowKeys([]);
@@ -501,7 +497,7 @@ export function WorkOrderTemplatePage() {
               }}
             >
               批量删除
-            </ConfirmAction>
+            </DeleteConfirmAction>
           </>
         )
       }}
@@ -531,35 +527,6 @@ export function WorkOrderTemplatePage() {
         )}
       </AdminModal>
 
-      <AdminModal
-        title="确认删除"
-        open={Boolean(deleteOrder)}
-        size="small"
-        okText="删除"
-        okButtonProps={{ danger: true }}
-        onCancel={() => setDeleteOrder(null)}
-        onOk={() => setDeleteOrder(null)}
-      >
-        <div className="work-order-list-page__delete-confirm">
-          <div>删除后该运维工单及其处理记录将无法恢复，确认删除？</div>
-        </div>
-      </AdminModal>
-
-      <StatusChangeModal
-        open={Boolean(activeOrder)}
-        workOrder={activeOrder}
-        targetStatus={targetStatus}
-        statusOptions={availableNextStatuses}
-        onTargetStatusChange={setTargetStatus}
-        onCancel={() => {
-          setActiveOrder(null);
-          setTargetStatus(undefined);
-        }}
-        onConfirm={() => {
-          setActiveOrder(null);
-          setTargetStatus(undefined);
-        }}
-      />
     </>
   );
 }

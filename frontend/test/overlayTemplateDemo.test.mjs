@@ -16,9 +16,12 @@ test('页面模式的弹窗抽屉区域接入真实 OverlayTemplateDemo', () => 
 
 test('弹窗抽屉模板展示真实可运行组件组合', () => {
   assert.ok(demoSource.includes('<AdminModal'));
-  assert.ok(demoSource.includes('<StatusFlowModal'));
+  assert.ok(demoSource.includes('<StatusChangeAction'));
+  assert.ok(demoSource.includes("tone: 'normal'"));
+  assert.ok(demoSource.includes("tone: 'success'"));
+  assert.ok(demoSource.includes("tone: 'danger'"));
   assert.ok(demoSource.includes('<DeleteConfirmAction'));
   assert.ok(demoSource.includes('<AdminDrawer'));
   assert.ok(demoSource.includes('<TemplateDrawerTable<OverlayTableRecord>'));
-  assert.ok(demoSource.includes('ComponentEntry name="AdminModal / StatusFlowModal / DeleteConfirmAction / AdminDrawer / TemplateDrawerTable"'));
+  assert.ok(demoSource.includes('ComponentEntry name="AdminModal / StatusChangeAction / DeleteConfirmAction / AdminDrawer / TemplateDrawerTable"'));
 });

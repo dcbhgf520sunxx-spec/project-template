@@ -176,9 +176,10 @@ function collectSemanticViolations(files) {
         if (!ts.isJsxElement(node) && !ts.isJsxSelfClosingElement(node)) return;
         const name = jsxTagName(node, sourceFile);
         if (name && name !== 'OperationColumnActions') {
-          if (!allowedOperationActions.has(name)) {
+          const isStatusChangeAction = name.endsWith('StatusChangeAction');
+          if (!allowedOperationActions.has(name) && !isStatusChangeAction) {
             violations.push(finding(file, sourceFile, node, '操作列只允许统一文字操作组件，普通按钮应改为文字操作'));
-          } else if (textVariantActions.has(name) && attributeText(node, 'variant', sourceFile) !== '"text"') {
+          } else if ((textVariantActions.has(name) || isStatusChangeAction) && attributeText(node, 'variant', sourceFile) !== '"text"') {
             violations.push(finding(file, sourceFile, node, `${name} 在操作列中必须声明 variant="text"`));
           }
           if (name === 'ConfirmAction' && (/删除/.test(node.getText(sourceFile)) || attribute(node, 'danger'))) {

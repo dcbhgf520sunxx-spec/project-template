@@ -23,10 +23,11 @@ type TemplateDetailPageProps = {
   onRetry?: () => void;
   onBack?: () => void;
   backText?: string;
-  titleExtra?: ReactNode;
+  titleTags?: ReactNode;
   titleCenter?: ReactNode;
   actions?: ReactNode;
   statusSection?: TemplateDetailSideSection | null;
+  statusAction?: ReactNode;
   documentSection?: TemplateDetailSideSection | null;
   aside?: ReactNode;
   children: ReactNode;
@@ -46,10 +47,11 @@ export function TemplateDetailPage({
   onRetry,
   onBack,
   backText = '返回列表',
-  titleExtra,
+  titleTags,
   titleCenter,
   actions,
   statusSection,
+  statusAction,
   documentSection,
   aside,
   children
@@ -57,7 +59,7 @@ export function TemplateDetailPage({
   const isUnavailable = Boolean(error) || Boolean(notFound);
   const standardAside = statusSection || documentSection ? (
     <>
-      {statusSection ? <TemplateDetailSideSection section={statusSection} defaultTitle="当前状态" /> : null}
+      {statusSection ? <TemplateDetailSideSection section={statusSection} defaultTitle="当前状态" action={statusAction} /> : null}
       {documentSection ? <TemplateDetailSideSection section={documentSection} defaultTitle="单据信息" /> : null}
       {aside}
     </>
@@ -70,7 +72,7 @@ export function TemplateDetailPage({
   ) : null;
 
   return (
-    <PageShell title={title} compact titleExtra={titleExtra} titleCenter={titleCenter} actions={headerActions} loading={loading}>
+    <PageShell title={title} compact titleExtra={titleTags} titleCenter={titleCenter} actions={headerActions} loading={loading}>
       {isUnavailable ? (
         <div className="admin-template-detail-page__state">
           <AdminEmptyState description={notFound ? '记录不存在或已被删除' : error}>
@@ -100,10 +102,12 @@ export function TemplateDetailSection({ title, inlineExtra, children }: Template
 
 function TemplateDetailSideSection({
   section,
-  defaultTitle
+  defaultTitle,
+  action
 }: {
   section: TemplateDetailSideSection;
   defaultTitle: string;
+  action?: ReactNode;
 }) {
   return (
     <TemplateDetailSection title={section.title || defaultTitle}>
@@ -113,6 +117,7 @@ function TemplateDetailSideSection({
           items={section.items || []}
         />
       )}
+      {action ? <div className="admin-template-detail-page__status-action">{action}</div> : null}
     </TemplateDetailSection>
   );
 }

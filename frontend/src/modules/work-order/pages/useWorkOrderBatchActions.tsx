@@ -9,8 +9,8 @@ import {
   DeleteConfirmAction
 } from '../../../components/admin';
 import { batchAssignWorkOrders, deleteWorkOrder, updateWorkOrderStatus } from '../../../api/workOrderApi';
-import { StatusChangeModal } from '../components/StatusChangeModal';
-import type { WorkOrderRecord, WorkOrderStatus } from '../types';
+import { WorkOrderStatusChangeAction } from '../components/WorkOrderStatusChangeAction';
+import type { WorkOrderRecord } from '../types';
 import { statusOptions } from '../helpers';
 import { buildStatusPayload, statusTransitions } from './workOrderList.constants';
 
@@ -31,7 +31,6 @@ export function useWorkOrderBatchActions({
   setSelectedRowKeys,
   reload
 }: UseWorkOrderBatchActionsParams) {
-  const [batchTargetStatus, setBatchTargetStatus] = useState<WorkOrderStatus | undefined>();
   const [batchStatusOpen, setBatchStatusOpen] = useState(false);
   const [batchAssignTarget, setBatchAssignTarget] = useState<string>();
   const [batchAssignSubmitting, setBatchAssignSubmitting] = useState(false);
@@ -70,9 +69,26 @@ export function useWorkOrderBatchActions({
         >
           批量指派
         </AdminSearchDropdown>
-        <AdminButton size="small" disabled={selectedRecords.length === 0} onClick={() => setBatchStatusOpen(true)}>
-          批量状态变更
-        </AdminButton>
+        {selectedRecords[0] && sameStatus ? (
+          <WorkOrderStatusChangeAction
+            size="small"
+            workOrder={selectedRecords[0]}
+            statusOptions={batchStatusOptions}
+            preserveCompletedValues={false}
+            onConfirm={async (target, values) => {
+              await Promise.all(selectedRecords.map((row) => updateWorkOrderStatus(row.id, buildStatusPayload(target, values))));
+              await reload();
+              message.success(`成功变更 ${selectedRecords.length} 项工单状态`);
+              setSelectedRowKeys([]);
+            }}
+          >
+            批量状态变更
+          </WorkOrderStatusChangeAction>
+        ) : (
+          <AdminButton size="small" disabled={selectedRecords.length === 0} onClick={() => setBatchStatusOpen(true)}>
+            批量状态变更
+          </AdminButton>
+        )}
         <DeleteConfirmAction
           size="small"
           disabled={selectedRecords.length === 0}
@@ -141,28 +157,6 @@ export function useWorkOrderBatchActions({
           />
         </AdminModal>
 
-        <StatusChangeModal
-          title="批量状态变更"
-          open={batchStatusOpen && sameStatus && selectedRecords.length > 0}
-          workOrder={selectedRecords[0]}
-          targetStatus={batchTargetStatus}
-          statusOptions={batchStatusOptions}
-          preserveCompletedValues={false}
-          onTargetStatusChange={setBatchTargetStatus}
-          onCancel={() => {
-            setBatchStatusOpen(false);
-            setBatchTargetStatus(undefined);
-          }}
-          onConfirm={async (values) => {
-            if (batchTargetStatus === undefined) return;
-            await Promise.all(selectedRecords.map((row) => updateWorkOrderStatus(row.id, buildStatusPayload(batchTargetStatus, values))));
-            await reload();
-            message.success(`成功变更 ${selectedRecords.length} 项工单状态`);
-            setSelectedRowKeys([]);
-            setBatchStatusOpen(false);
-            setBatchTargetStatus(undefined);
-          }}
-        />
       </>
     )
   };

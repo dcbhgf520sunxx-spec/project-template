@@ -5,14 +5,14 @@ import {
   AdminButton,
   AdminText,
   AdminTextAction,
-  ConfirmAction,
+  DeleteConfirmAction,
   DetailMetaList,
   HistoryTimeline,
   RichTextViewer,
   TemplateDetailPage,
   TemplateDetailSection
 } from '../../../components/admin';
-import { StatusChangeModal } from '../../work-order/components/StatusChangeModal';
+import { WorkOrderStatusChangeAction } from '../../work-order/components/WorkOrderStatusChangeAction';
 import { mockWorkOrderHistory, mockWorkOrders } from '../../work-order/mock';
 import type { WorkOrderStatus } from '../../work-order/types';
 import {
@@ -28,8 +28,6 @@ import '../../work-order/pages/WorkOrderDetailPage.css';
 export function WorkOrderTemplateDetailPage() {
   const navigate = useNavigate();
   const params = useParams();
-  const [statusOpen, setStatusOpen] = useState(false);
-  const [targetStatus, setTargetStatus] = useState<WorkOrderStatus | undefined>();
   const [historyExpandedKeys, setHistoryExpandedKeys] = useState<string[]>([]);
   const detail = mockWorkOrders.find((item) => item.id === params.id);
   if (!detail) {
@@ -52,7 +50,7 @@ export function WorkOrderTemplateDetailPage() {
     <TemplateDetailPage
       title="工单详情样板"
       onBack={() => navigate('/samples/work-order')}
-      titleExtra={(
+      titleTags={(
         <Space size={8} className="admin-template-detail-page__title-extra">
           <span className="admin-template-detail-page__code">{detail.code}</span>
           {renderWorkOrderStatus(detail.status)}
@@ -64,10 +62,9 @@ export function WorkOrderTemplateDetailPage() {
         <>
           <AdminButton type="primary" onClick={() => navigate(`/samples/work-order/${detail.id}/edit`)}>编辑</AdminButton>
           <AdminButton onClick={() => navigate(`/samples/work-order/${detail.id}/copy`)}>复制</AdminButton>
-          <ConfirmAction
-            danger
-            title="确认删除"
-            description="样板页不执行真实删除，确认后返回列表。"
+          <DeleteConfirmAction
+            entityName="工单"
+            targetName={detail.code}
             onConfirm={() => {
               message.success('样板工单已删除');
               navigate('/samples/work-order');
@@ -75,38 +72,40 @@ export function WorkOrderTemplateDetailPage() {
             successMessage={false}
           >
             删除
-          </ConfirmAction>
+          </DeleteConfirmAction>
         </>
       }
       statusSection={{
         children: (
-          <>
-            <div className="work-order-detail-page__status-card">
-              <div className="work-order-detail-page__status-row">
-                <span>状态</span>
-                {renderWorkOrderStatus(detail.status)}
-              </div>
-              <div className="work-order-detail-page__status-row">
-                <span>紧急程度</span>
-                {renderUrgency(detail.urgency)}
-              </div>
-              <div className="work-order-detail-page__status-row">
-                <span>逾期</span>
-                {detail.status < 2 ? renderOverdue(detail.isOverdue) : <AdminText type="secondary">-</AdminText>}
-              </div>
+          <div className="work-order-detail-page__status-card">
+            <div className="work-order-detail-page__status-row">
+              <span>状态</span>
+              {renderWorkOrderStatus(detail.status)}
             </div>
-            <Space direction="vertical" size={8} className="work-order-detail-page__side-actions">
-              <AdminButton block type="primary" onClick={() => {
-                setTargetStatus(undefined);
-                setStatusOpen(true);
-              }}
-              >
-                状态变更
-              </AdminButton>
-            </Space>
-          </>
+            <div className="work-order-detail-page__status-row">
+              <span>紧急程度</span>
+              {renderUrgency(detail.urgency)}
+            </div>
+            <div className="work-order-detail-page__status-row">
+              <span>逾期</span>
+              {detail.status < 2 ? renderOverdue(detail.isOverdue) : <AdminText type="secondary">-</AdminText>}
+            </div>
+          </div>
         )
       }}
+      statusAction={(
+        <WorkOrderStatusChangeAction
+          block
+          type="primary"
+          workOrder={detail}
+          statusOptions={nextStatuses}
+          onConfirm={(target) => {
+            message.success(`状态已更新为 ${statusText(target)}`);
+          }}
+        >
+          状态变更
+        </WorkOrderStatusChangeAction>
+      )}
       documentSection={{
         items: [
           { label: '创建人', value: detail.creatorName },
@@ -165,23 +164,6 @@ export function WorkOrderTemplateDetailPage() {
             />
           </TemplateDetailSection>
 
-      <StatusChangeModal
-        open={statusOpen}
-        workOrder={detail}
-        targetStatus={targetStatus}
-        statusOptions={nextStatuses}
-        onTargetStatusChange={setTargetStatus}
-        onCancel={() => {
-          setStatusOpen(false);
-          setTargetStatus(undefined);
-        }}
-        onConfirm={() => {
-          if (targetStatus === undefined) return;
-          message.success(`状态已更新为 ${statusText(targetStatus)}`);
-          setStatusOpen(false);
-          setTargetStatus(undefined);
-        }}
-      />
     </TemplateDetailPage>
   );
 }

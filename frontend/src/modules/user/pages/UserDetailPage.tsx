@@ -45,36 +45,36 @@ export function UserDetailPage() {
       notFound={notFound}
       onRetry={() => setReloadRevision((value) => value + 1)}
       onBack={() => navigate('/users')}
+      titleTags={user ? <StatusTag status={user.status} /> : null}
       actions={
-        <>
-          {user ? (
-            <PermissionButton type="primary" permission="user" onClick={() => navigate(`/users/${user.id}/edit`)}>
-              编辑
-            </PermissionButton>
-          ) : null}
-          {user ? (
-            <StatusConfirmAction
-              action={user.status === 'enabled' ? 'disable' : 'enable'}
-              entityName="用户"
-              targetName={user.realName}
-              onConfirm={async () => {
-                const nextStatus = user.status === 'enabled' ? 'disabled' : 'enabled';
-                await toggleUserStatus(user.id, nextStatus);
-                setUser({ ...user, status: nextStatus });
-                message.success(`${nextStatus === 'enabled' ? '启用' : '停用'}成功`);
-              }}
-              successMessage={false}
-            >
-              {user.status === 'enabled' ? '停用' : '启用'}
-            </StatusConfirmAction>
-          ) : null}
-        </>
+        user ? (
+          <PermissionButton type="primary" permission="user" onClick={() => navigate(`/users/${user.id}/edit`)}>
+            编辑
+          </PermissionButton>
+        ) : null
       }
       statusSection={user ? {
         items: [
           { label: '状态', value: <StatusTag status={user.status} />, wide: true }
         ]
       } : null}
+      statusAction={user ? (
+        <StatusConfirmAction
+          block
+          action={user.status === 'enabled' ? 'disable' : 'enable'}
+          entityName="用户"
+          targetName={user.realName}
+          onConfirm={async () => {
+            const nextStatus = user.status === 'enabled' ? 'disabled' : 'enabled';
+            await toggleUserStatus(user.id, nextStatus);
+            setUser({ ...user, status: nextStatus });
+            message.success(`${nextStatus === 'enabled' ? '启用' : '停用'}成功`);
+          }}
+          successMessage={false}
+        >
+          {user.status === 'enabled' ? '停用' : '启用'}
+        </StatusConfirmAction>
+      ) : null}
       documentSection={user ? {
         items: [
           { label: '创建人', value: user.creatorName || '-' },

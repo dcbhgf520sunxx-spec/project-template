@@ -51,6 +51,14 @@
   font-size: 12px;
 }
 
+.admin-template-detail-page__status-action {
+  margin-top: 10px;
+}
+
+.admin-template-detail-page__status-action > * {
+  width: 100%;
+}
+
 @media (max-width: 1180px) {
   .admin-template-detail-page {
     grid-template-columns: 1fr;

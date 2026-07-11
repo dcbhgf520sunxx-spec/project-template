@@ -18,7 +18,7 @@ export function DetailTemplateDemo() {
       <div className="design-system-page__input-panel-head">
         <h3>TemplateDetailPage</h3>
         <ComponentEntry name="TemplateDetailPage / DetailNeighborNav / TemplateDetailSection / DetailMetaList" />
-        <p>详情页统一从这个入口接入。上一条/下一条放标题栏中间，左侧保留标题和状态，右侧保留页面操作。</p>
+        <p>详情页统一从这个入口接入。标题标签、上一条/下一条、记录操作和状态操作分别由模板固定位置。</p>
         <div className="design-system-page__template-mode-switch">
           <AdminSegmented
             size="small"
@@ -41,7 +41,7 @@ export function DetailTemplateDemo() {
           notFound={demoState === 'notFound'}
           onRetry={() => setDemoState('normal')}
           onBack={() => {}}
-          titleExtra={<StatusTag status="enabled" />}
+          titleTags={<StatusTag status="enabled" />}
           titleCenter={(
             <DetailNeighborNav
               placement="title"
@@ -59,6 +59,7 @@ export function DetailTemplateDemo() {
               { label: '最近登录', value: '2026-07-04 09:30', wide: true }
             ]
           }}
+          statusAction={<AdminButton block type="primary">状态变更</AdminButton>}
           documentSection={{
             items: [
               { label: '创建人', value: '系统管理员' },

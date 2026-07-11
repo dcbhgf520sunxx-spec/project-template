@@ -12,7 +12,7 @@ import {
   createListSorters,
   DeleteConfirmAction,
   listSorters,
-  StatusFlowModal,
+  StatusChangeAction,
   TemplateDrawerTable,
   useAdminFeedback,
   useTemplateListPageData
@@ -50,8 +50,6 @@ const overlayTableSorters = createListSorters<OverlayTableRecord>({
 export function OverlayTemplateDemo() {
   const { message } = useAdminFeedback();
   const [modalOpen, setModalOpen] = useState(false);
-  const [statusOpen, setStatusOpen] = useState(false);
-  const [targetStatus, setTargetStatus] = useState<string>();
   const [formDrawerOpen, setFormDrawerOpen] = useState(false);
   const [tableDrawerOpen, setTableDrawerOpen] = useState(false);
   const [draftKeyword, setDraftKeyword] = useState('');
@@ -79,7 +77,7 @@ export function OverlayTemplateDemo() {
     <div className="design-system-page__layout-pattern-template overlay-template-demo">
       <div className="design-system-page__input-panel-head">
         <h3>弹窗 / 抽屉模板</h3>
-        <ComponentEntry name="AdminModal / StatusFlowModal / DeleteConfirmAction / AdminDrawer / TemplateDrawerTable" />
+        <ComponentEntry name="AdminModal / StatusChangeAction / DeleteConfirmAction / AdminDrawer / TemplateDrawerTable" />
         <p>页面模式展示完整业务组合：弹窗负责短流程和确认，抽屉负责侧向表单与关联列表。</p>
       </div>
 
@@ -91,8 +89,27 @@ export function OverlayTemplateDemo() {
         </section>
         <section>
           <h4>状态变更弹窗</h4>
-          <p>列表与详情共用同一状态流转结构。</p>
-          <AdminButton onClick={() => setStatusOpen(true)}>打开状态变更</AdminButton>
+          <p>目标状态决定普通蓝色、正向绿色和危险红色语义。</p>
+          <AdminSpace wrap>
+            <StatusChangeAction
+              current="pending"
+              currentValue="待处理"
+              options={[{ label: '处理中', value: 'processing', tone: 'normal' }]}
+              onConfirm={() => { message.success('普通状态变更已确认'); }}
+            >普通状态</StatusChangeAction>
+            <StatusChangeAction
+              current="processing"
+              currentValue="处理中"
+              options={[{ label: '已完成', value: 'completed', tone: 'success' }]}
+              onConfirm={() => { message.success('正向状态变更已确认'); }}
+            >正向状态</StatusChangeAction>
+            <StatusChangeAction
+              current="processing"
+              currentValue="处理中"
+              options={[{ label: '已关闭', value: 'closed', tone: 'danger' }]}
+              onConfirm={() => { message.success('危险状态变更已确认'); }}
+            >危险状态</StatusChangeAction>
+          </AdminSpace>
         </section>
         <section>
           <h4>删除确认弹窗</h4>
@@ -130,29 +147,6 @@ export function OverlayTemplateDemo() {
       >
         <AdminTextArea rows={4} placeholder="请输入处理说明" />
       </AdminModal>
-
-      <StatusFlowModal<string>
-        title="状态变更"
-        open={statusOpen}
-        currentValue="待处理"
-        targetValue={targetStatus}
-        targetOptions={[
-          { label: '处理中', value: 'processing' },
-          { label: '已完成', value: 'completed' },
-          { label: '已关闭', value: 'closed' }
-        ]}
-        targetText={targetStatus === 'processing' ? '处理中' : targetStatus === 'completed' ? '已完成' : targetStatus === 'closed' ? '已关闭' : '-'}
-        onTargetChange={setTargetStatus}
-        onCancel={() => {
-          setStatusOpen(false);
-          setTargetStatus(undefined);
-        }}
-        onConfirm={() => {
-          setStatusOpen(false);
-          setTargetStatus(undefined);
-          message.success('状态变更模板已确认');
-        }}
-      />
 
       <AdminDrawer
         title="编辑补充信息"

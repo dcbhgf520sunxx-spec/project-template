@@ -8,8 +8,10 @@ import {
   DetailLinkCell,
   OperationColumnActions
 } from '../../../components/admin';
+import type { StatusFlowModalFormValues } from '../../../components/admin';
+import { WorkOrderStatusChangeAction } from '../components/WorkOrderStatusChangeAction';
 import { richTextToSummary } from '../../../utils/richText';
-import type { WorkOrderRecord } from '../types';
+import type { WorkOrderRecord, WorkOrderStatus } from '../types';
 import {
   problemTypeText,
   renderOverdue,
@@ -19,6 +21,7 @@ import {
   urgencyOptions
 } from '../helpers';
 import type { WorkOrderViewKey } from './workOrderList.types';
+import { statusTransitions } from './workOrderList.constants';
 
 type Option = { label: string; value: string };
 type SortState = { field?: string; order?: 'ascend' | 'descend' | null };
@@ -31,7 +34,7 @@ type CreateWorkOrderColumnsParams = {
   problemTypeOptions: Option[];
   userOptions: Option[];
   viewKey: WorkOrderViewKey;
-  onStatusChange: (record: WorkOrderRecord) => void;
+  onStatusChange: (record: WorkOrderRecord, target: WorkOrderStatus, values: StatusFlowModalFormValues) => Promise<void> | void;
   onOpenDetail: (record: WorkOrderRecord) => void;
   onDelete: (record: WorkOrderRecord) => Promise<void> | void;
 };
@@ -207,9 +210,14 @@ export function createWorkOrderColumns({
           <AdminTextAction onClick={() => navigate(`/work-orders/${record.id}/edit`)}>
             编辑
           </AdminTextAction>
-          <AdminTextAction onClick={() => onStatusChange(record)}>
+          <WorkOrderStatusChangeAction
+            variant="text"
+            workOrder={record}
+            statusOptions={statusOptions.filter((item) => statusTransitions[record.status].includes(item.value))}
+            onConfirm={(target, values) => onStatusChange(record, target, values)}
+          >
             状态变更
-          </AdminTextAction>
+          </WorkOrderStatusChangeAction>
           <AdminTextAction onClick={() => navigate(`/work-orders/${record.id}/copy`)}>
             复制
           </AdminTextAction>

@@ -202,3 +202,11 @@ test('组件审计允许完整的通用详情语义结构', () => {
   );
   assert.equal(result.status, 0, result.stdout);
 });
+
+test('组件审计允许基于标准状态动作扩展的业务状态动作', () => {
+  const result = runStrictAudit(
+    'export function CustomerPage() { return <OperationColumnActions><CustomerStatusChangeAction variant="text" /></OperationColumnActions>; }',
+    'CustomerPage.tsx'
+  );
+  assert.equal(result.status, 0, result.stdout);
+});
