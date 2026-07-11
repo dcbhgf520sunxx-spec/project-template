@@ -48,6 +48,8 @@ function ResizeHeaderCell({
   children,
   ...restProps
 }: ResizeHeaderCellProps) {
+  const [isResizing, setIsResizing] = useState(false);
+
   const handleHeaderClickCapture: React.MouseEventHandler<HTMLTableCellElement> = (event) => {
     if (Date.now() < suppressHeaderClickUntil) {
       event.preventDefault();
@@ -83,6 +85,7 @@ function ResizeHeaderCell({
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', cleanup);
       document.body.classList.remove('admin-table-resizing');
+      setIsResizing(false);
       if (hasDragged) {
         suppressHeaderClickUntil = Date.now() + 160;
       }
@@ -91,6 +94,7 @@ function ResizeHeaderCell({
 
     activeResizeCleanup?.();
     activeResizeCleanup = cleanup;
+    setIsResizing(true);
     document.body.classList.add('admin-table-resizing');
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', cleanup);
@@ -101,7 +105,7 @@ function ResizeHeaderCell({
       {children}
       {width && onColumnResize ? (
         <span
-          className="admin-table-resize-handle"
+          className={isResizing ? 'admin-table-resize-handle is-resizing' : 'admin-table-resize-handle'}
           onClick={stopResizeHandleEvent}
           onDoubleClick={stopResizeHandleEvent}
           onMouseDown={handleMouseDown}
@@ -192,6 +196,7 @@ export function SearchTable<
     const canLockWidth = Number.isFinite(width) && !column.hideInTable && column.valueType === 'option';
     const canResize = Number.isFinite(width)
       && !column.hideInTable
+      && column.title !== '序号'
       && column.valueType !== 'index'
       && column.valueType !== 'option';
 
@@ -259,6 +264,7 @@ export function SearchTable<
         const width = typeof column.width === 'number' ? column.width : Number(column.width);
         return Number.isFinite(width)
           && !column.hideInTable
+          && column.title !== '序号'
           && column.valueType !== 'index'
           && column.valueType !== 'option'
           && !column.fixed;

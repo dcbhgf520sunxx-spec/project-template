@@ -44,3 +44,16 @@ test('组件已接入响应式容量和受控列状态', () => {
   assert.match(table, /columnsState=\{/);
   assert.match(table, /key: columnKey/);
 });
+
+test('列宽拖拽只高亮当前列并避免手柄被表头裁剪', () => {
+  const table = readFileSync(new URL('../src/components/admin/SearchTable/index.tsx', import.meta.url), 'utf8');
+  const styles = readFileSync(new URL('../src/components/admin/SearchTable/index.css', import.meta.url), 'utf8');
+
+  assert.match(table, /is-resizing/);
+  assert.match(table, /column\.title !== '序号'/);
+  assert.match(styles, /\.admin-table-resize-handle\.is-resizing/);
+  assert.doesNotMatch(styles, /\.admin-table-resizing \.admin-table-resize-handle::after/);
+  assert.match(styles, /right:\s*0/);
+  assert.match(styles, /\.admin-table-resize-handle::after\s*\{[\s\S]*?right:\s*0;[\s\S]*?width:\s*4px/);
+  assert.match(styles, /radial-gradient/);
+});
