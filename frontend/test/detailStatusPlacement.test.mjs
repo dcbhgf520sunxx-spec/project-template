@@ -8,7 +8,7 @@ test('详情模板由右侧状态项自动生成完整标题标签', () => {
   const source = read('src/components/admin/TemplateDetailPage/index.tsx');
   assert.match(source, /titleCode\?: ReactNode/);
   assert.match(source, /statusAction\?: ReactNode/);
-  assert.match(source, /statusSection\?\.items\.map/);
+  assert.match(source, /visibleStatusTitleItems/);
   assert.match(source, /titleExtra=\{resolvedTitleTags\}/);
   assert.match(source, /admin-template-detail-page__status-list/);
   assert.doesNotMatch(source, /titleTags\?: ReactNode/);

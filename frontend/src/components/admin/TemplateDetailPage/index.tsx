@@ -10,6 +10,7 @@ import { HistoryTimeline, type HistoryTimelineItem } from '../HistoryTimeline';
 import { AdminTextAction } from '../AdminTextAction';
 import { PageShell } from '../PageShell';
 import { SectionTitle } from '../SectionTitle';
+import { visibleStatusTitleItems } from './statusTitleItems';
 import './index.css';
 
 type TemplateDetailSideSection = {
@@ -111,10 +112,11 @@ export function TemplateDetailPage({
       {!isUnavailable ? actions : null}
     </ActionBar>
   ) : null;
-  const resolvedTitleTags = titleCode || statusSection?.items.length ? (
+  const visibleTitleStatusItems = visibleStatusTitleItems(statusSection?.items || []);
+  const resolvedTitleTags = titleCode || visibleTitleStatusItems.length ? (
     <div className="admin-template-detail-page__title-extra">
       {titleCode ? <span className="admin-template-detail-page__code">{titleCode}</span> : null}
-      {statusSection?.items.map((item) => <Fragment key={item.label}>{item.value}</Fragment>)}
+      {visibleTitleStatusItems.map((item) => <Fragment key={item.label}>{item.value}</Fragment>)}
     </div>
   ) : null;
 

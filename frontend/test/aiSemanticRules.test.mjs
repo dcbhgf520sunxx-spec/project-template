@@ -18,7 +18,8 @@ test('AI 交付链路要求语义审计和浏览器检查', () => {
   const flow = read('../../docs/ai-delivery-flow.md');
   const template = read('../../docs/ai-delivery-template.md');
   assert.match(flow, /JSX 语义审计/);
-  assert.match(flow, /标题与右侧当前状态区数量、顺序和内容一致/);
+  assert.match(flow, /标题与右侧非空状态项的数量、顺序和内容一致/);
+  assert.match(flow, /空值、空字符串和 `-` 不显示标题标签/);
   assert.match(template, /操作列文字动作/);
   assert.match(template, /状态操作位置/);
 });
