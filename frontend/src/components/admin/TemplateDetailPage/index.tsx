@@ -226,11 +226,14 @@ export function HistoryTimelineSection({ items, sectionKey }: { items: HistoryTi
       title="变更历史"
       sectionKey={sectionKey}
       inlineExtraPlacement="after-title"
-      inlineExtra={expandableKeys.length ? (
-        <AdminTextAction onClick={() => setExpandedKeys(isAllExpanded ? [] : expandableKeys)}>
+      inlineExtra={(
+        <AdminTextAction
+          disabled={expandableKeys.length === 0}
+          onClick={() => setExpandedKeys(isAllExpanded ? [] : expandableKeys)}
+        >
           {isAllExpanded ? '全部收起' : '全部展开'}
         </AdminTextAction>
-      ) : null}
+      )}
     >
       <HistoryTimeline items={items} expandedKeys={expandedKeys} onExpandedKeysChange={setExpandedKeys} showBulkToggle={false} />
     </TemplateDetailSection>

@@ -30,6 +30,11 @@ test('HistoryTimelineSection 把批量按钮放在变更历史标题后', () => 
   assert.match(sectionTitleCss, /flex:\s*0 0 auto/);
 });
 
+test('HistoryTimelineSection 没有可展开明细时仍展示禁用的全部展开按钮', () => {
+  assert.doesNotMatch(section, /inlineExtra=\{expandableKeys\.length\s*\?/);
+  assert.match(section, /disabled=\{expandableKeys\.length === 0\}/);
+});
+
 test('业务详情和页面样板不再手工维护历史批量展开', () => {
   for (const source of [workOrder, template]) {
     assert.doesNotMatch(source, /historyExpandedKeys/);
