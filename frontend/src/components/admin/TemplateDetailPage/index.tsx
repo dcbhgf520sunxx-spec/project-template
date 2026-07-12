@@ -42,6 +42,7 @@ type TemplateDetailSectionProps = {
   title: string;
   sectionKey?: string;
   inlineExtra?: ReactNode;
+  inlineExtraPlacement?: 'after-title';
   children: ReactNode;
 };
 
@@ -203,14 +204,14 @@ export function TemplateDetailPage({
   );
 }
 
-export function TemplateDetailSection({ title, sectionKey, inlineExtra, children }: TemplateDetailSectionProps) {
+export function TemplateDetailSection({ title, sectionKey, inlineExtra, inlineExtraPlacement, children }: TemplateDetailSectionProps) {
   return (
     <section
       id={sectionKey ? `detail-section-${sectionKey}` : undefined}
       data-detail-section-key={sectionKey}
       className="admin-template-detail-page__panel"
     >
-      <SectionTitle title={title} inlineExtra={inlineExtra} />
+      <SectionTitle title={title} inlineExtra={inlineExtra} inlineExtraPlacement={inlineExtraPlacement} />
       {children}
     </section>
   );
@@ -224,6 +225,7 @@ export function HistoryTimelineSection({ items, sectionKey }: { items: HistoryTi
     <TemplateDetailSection
       title="变更历史"
       sectionKey={sectionKey}
+      inlineExtraPlacement="after-title"
       inlineExtra={expandableKeys.length ? (
         <AdminTextAction onClick={() => setExpandedKeys(isAllExpanded ? [] : expandableKeys)}>
           {isAllExpanded ? '全部收起' : '全部展开'}
