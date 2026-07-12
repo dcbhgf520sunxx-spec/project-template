@@ -176,6 +176,7 @@ CREATE INDEX IF NOT EXISTS idx_role_deleted ON pms_role(is_deleted);
 CREATE INDEX IF NOT EXISTS idx_menu_path ON pms_menu(path);
 CREATE INDEX IF NOT EXISTS idx_work_order_status ON pms_work_order(status, is_deleted);
 CREATE INDEX IF NOT EXISTS idx_work_order_follower ON pms_work_order(follower_id);
+CREATE UNIQUE INDEX IF NOT EXISTS uk_work_order_problem_desc_active ON pms_work_order(md5(problem_desc)) WHERE is_deleted = 0;
 CREATE INDEX IF NOT EXISTS idx_archive_type ON pms_archive(archive_type_id, is_deleted);
 CREATE INDEX IF NOT EXISTS idx_op_log_target ON pms_op_log(module, target_id);
 CREATE INDEX IF NOT EXISTS idx_op_log_module_created_at ON pms_op_log(module, created_at DESC);
