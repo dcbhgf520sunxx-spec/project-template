@@ -28,6 +28,7 @@ const SESSION_IDLE_TIMEOUT_MS = 30 * 60 * 1000;
 const SESSION_IDLE_CHECK_MS = 30 * 1000;
 const SESSION_HEARTBEAT_THROTTLE_MS = 60 * 1000;
 const SESSION_ACTIVITY_EVENTS = ['mousedown', 'keydown', 'scroll', 'touchstart'] as const;
+const DEFAULT_HEADER_SUBTITLE = '欢迎回来，今天也请从容处理每一项工作。';
 
 type AdminMenuItems = NonNullable<MenuProps['items']>;
 
@@ -203,27 +204,15 @@ function sameStringArray(left: string[], right: string[]) {
 }
 
 function getHeaderIntro(pathname: string) {
-  if (pathname.startsWith('/home')) {
-    return {
-      title: '首页',
-      subtitle: '欢迎回来，今天也请从容处理每一项工作。'
-    };
-  }
   if (pathname.startsWith('/system/design-system')) {
     return {
       title: '组件工作台',
       subtitle: '主题与组件库优先'
     };
   }
-  if (pathname.startsWith('/samples/work-order')) {
-    return {
-      title: '页面样板',
-      subtitle: '列表表单详情统一构建'
-    };
-  }
   return {
     title: '',
-    subtitle: '欢迎回来，今天也请从容处理每一项工作。'
+    subtitle: DEFAULT_HEADER_SUBTITLE
   };
 }
 
