@@ -36,6 +36,17 @@ test('开发规则明确普通分类标签不得自行映射颜色', () => {
   assert.doesNotMatch(workbench, /<AdminTag\s+color=/);
 });
 
+test('开发规则要求变更历史在进入组件前完成中文转译', () => {
+  const rules = read('../../docs/ai-development-rules.md');
+  const flow = read('../../docs/ai-delivery-flow.md');
+  const template = read('../../docs/ai-delivery-template.md');
+  const workbench = read('../src/modules/design-system/pages/DesignSystemPage.tsx');
+  assert.match(rules, /变更历史.*中文字段名.*业务展示值/);
+  assert.match(flow, /变更历史转译/);
+  assert.match(template, /变更历史中文化/);
+  assert.match(workbench, /字段名和值必须是最终中文展示文本/);
+});
+
 test('统一门禁包含新增的语义约束测试', () => {
   const gate = read('../../scripts/verify-change.mjs');
   assert.match(gate, /readdirSync/);

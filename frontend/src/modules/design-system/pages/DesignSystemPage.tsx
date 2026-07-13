@@ -1219,7 +1219,7 @@ export function DesignSystemPage() {
                   <div className="design-system-page__input-panel-head">
                     <h3>时间线与日志</h3>
                     <ComponentEntry name="HistoryTimeline" />
-                    <p>用于记录数据产生、流转和变更过程，必须包含动作、人员和时间。</p>
+                    <p>用于记录数据产生、流转和变更过程。字段名和值必须是最终中文展示文本，不接收数据库字段名、关联 ID 或枚举编码。</p>
                   </div>
                   <HistoryTimeline items={mockWorkOrderHistory} />
                 </section>
