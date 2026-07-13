@@ -92,6 +92,23 @@ test('组件审计阻断业务页直接使用 antd Button', () => {
   }
 });
 
+test('组件审计阻断业务模块直接使用原生 Tag', () => {
+  const modulesDir = mkdtempSync(join(tmpdir(), 'component-audit-'));
+  const pagePath = join(modulesDir, 'TaskListPage.tsx');
+  writeFileSync(pagePath, 'export function TaskListPage() { return <Tag color="purple">需求</Tag>; }');
+
+  try {
+    const result = spawnSync(process.execPath, [scriptPath, '--strict', '--modules-dir', modulesDir], {
+      encoding: 'utf8',
+      stdio: 'pipe'
+    });
+    assert.equal(result.status, 1);
+    assert.match(result.stdout, /AdminTag/);
+  } finally {
+    rmSync(modulesDir, { recursive: true, force: true });
+  }
+});
+
 test('组件审计阻断业务页直接使用 Typography.Text', () => {
   const modulesDir = mkdtempSync(join(tmpdir(), 'component-audit-'));
   const pagePath = join(modulesDir, 'WorkOrderTemplatePage.tsx');
@@ -166,6 +183,23 @@ function runStrictAuditFiles(files: Record<string, string>) {
   rmSync(modulesDir, { recursive: true, force: true });
   return result;
 }
+
+test('组件审计阻断普通分类标签自行指定颜色', () => {
+  const result = runStrictAudit(
+    'export function TaskSourceTag() { return <AdminTag color="purple">需求</AdminTag>; }',
+    'TaskSourceTag.tsx'
+  );
+  assert.equal(result.status, 1);
+  assert.match(result.stdout, /普通分类标签.*不得自行指定 color/);
+});
+
+test('组件审计允许普通分类使用默认 AdminTag', () => {
+  const result = runStrictAudit(
+    'export function TaskSourceTag() { return <AdminTag>需求</AdminTag>; }',
+    'TaskSourceTag.tsx'
+  );
+  assert.equal(result.status, 0, result.stdout);
+});
 
 test('组件审计阻断操作列中的普通按钮形态', () => {
   const result = runStrictAudit(

@@ -24,6 +24,18 @@ test('AI 交付链路要求语义审计和浏览器检查', () => {
   assert.match(template, /状态操作位置/);
 });
 
+test('开发规则明确普通分类标签不得自行映射颜色', () => {
+  const rules = read('../../docs/ai-development-rules.md');
+  const flow = read('../../docs/ai-delivery-flow.md');
+  const template = read('../../docs/ai-delivery-template.md');
+  const workbench = read('../src/modules/design-system/pages/DesignSystemPage.tsx');
+  assert.match(rules, /普通分类标签.*AdminTag.*不得.*color/);
+  assert.match(flow, /普通分类标签.*不得自行指定颜色/);
+  assert.match(template, /普通分类标签.*默认样式/);
+  assert.match(workbench, /普通分类统一使用默认样式/);
+  assert.doesNotMatch(workbench, /<AdminTag\s+color=/);
+});
+
 test('统一门禁包含新增的语义约束测试', () => {
   const gate = read('../../scripts/verify-change.mjs');
   assert.match(gate, /readdirSync/);

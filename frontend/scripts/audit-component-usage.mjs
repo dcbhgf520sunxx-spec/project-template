@@ -35,7 +35,8 @@ const blockingRules = [
   { pattern: /<ProForm(\s|>)/g, reason: '表单容器应优先使用 TemplateFormPage' },
   { pattern: /<ProCard(\s|>)/g, reason: '卡片应优先使用页面样板或 AdminCard' },
   { pattern: /<Dropdown(\s|>)/g, reason: '动作下拉应优先使用 AdminActionDropdown / AdminSearchDropdown' },
-  { pattern: /<Typography\.Text(\s|>)/g, reason: '文本状态应优先使用 AdminText' }
+  { pattern: /<Typography\.Text(\s|>)/g, reason: '文本状态应优先使用 AdminText' },
+  { pattern: /<Tag(\s|>)/g, reason: '标签应使用 AdminTag 或状态、紧急程度、逾期等统一语义标签' }
 ];
 
 const warningRules = [];
@@ -249,6 +250,9 @@ function collectSemanticViolations(files) {
         }
         if (name === 'StatusFlowAction') {
           violations.push(finding(file, sourceFile, node, 'StatusFlowAction 已废弃，必须使用 StatusChangeAction'));
+        }
+        if (name === 'AdminTag' && attribute(node, 'color')) {
+          violations.push(finding(file, sourceFile, node, '普通分类标签统一使用 AdminTag 默认样式，不得自行指定 color；状态语义应使用对应统一标签'));
         }
         if (name === 'OperationColumnActions') inspectOperationChildren(node);
         if (name === 'TemplateDetailPage') {
