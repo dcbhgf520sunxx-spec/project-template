@@ -1,10 +1,9 @@
-import { useLayoutEffect, useRef } from 'react';
+import { useLayoutEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 
 const prefix = 'project-template:list-scroll:';
 
 export function useListScrollRestoration(enabled: boolean) {
-  const rootRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const key = `${prefix}${location.pathname}${location.search}`;
 
@@ -16,7 +15,7 @@ export function useListScrollRestoration(enabled: boolean) {
       try {
         const value = JSON.parse(raw) as { top?: number; left?: number };
         window.scrollTo({ top: value.top || 0 });
-        const body = rootRef.current?.querySelector<HTMLElement>('.ant-table-body');
+        const body = document.querySelector<HTMLElement>('.page-shell__body .admin-data-list-page .ant-table-body');
         if (body) body.scrollLeft = value.left || 0;
       } catch {
         window.sessionStorage.removeItem(key);
@@ -24,10 +23,8 @@ export function useListScrollRestoration(enabled: boolean) {
     });
     return () => {
       window.cancelAnimationFrame(frame);
-      const body = rootRef.current?.querySelector<HTMLElement>('.ant-table-body');
+      const body = document.querySelector<HTMLElement>('.page-shell__body .admin-data-list-page .ant-table-body');
       window.sessionStorage.setItem(key, JSON.stringify({ top: window.scrollY, left: body?.scrollLeft || 0 }));
     };
   }, [enabled, key]);
-
-  return rootRef;
 }

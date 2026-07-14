@@ -61,7 +61,7 @@ export function TemplateListPage<
     onRetry,
     ...restProps
   } = props;
-  const scrollRootRef = useListScrollRestoration(!embedded);
+  useListScrollRestoration(!embedded);
   const dataListProps = { ...restProps } as TemplateListPageBaseProps<T, P> & { batch?: TemplateListBatchMode['batch'] };
   delete dataListProps.batch;
   delete dataListProps.error;
@@ -101,7 +101,7 @@ export function TemplateListPage<
 
   return (
     <PageShell title={title || ''} compact titleExtra={titleExtra} actions={actions}>
-      <div ref={scrollRootRef}>{content}</div>
+      {content}
     </PageShell>
   );
 }

@@ -11,3 +11,7 @@ test('标准列表按完整地址恢复纵向和表格横向位置', () => {
   assert.match(hook, /window\.scrollTo/);
   assert.match(hook, /\.ant-table-body/);
 });
+
+test('滚动恢复不得在页面壳与列表主体之间增加布局容器', () => {
+  assert.doesNotMatch(template, /<div ref=\{scrollRootRef\}>\{content\}<\/div>/);
+});
