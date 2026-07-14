@@ -1,5 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import type { SearchTableProps } from '../SearchTable';
+import { decodeListRouteState, encodeListRouteState } from '../TemplateListPage/listRouteState';
 
 type SortOrder = 'ascend' | 'descend';
 
@@ -15,6 +17,7 @@ type UseListPageDataOptions<T extends Record<string, unknown>> = {
   resetOn?: unknown[];
   total?: number;
   serverPaging?: boolean;
+  urlSync?: boolean;
 };
 
 type TableSorter = {
@@ -53,11 +56,54 @@ export function useListPageData<T extends Record<string, unknown>>({
   defaultPageSize = getStoredDefaultPageSize(),
   resetOn = [],
   total,
-  serverPaging = false
+  serverPaging = false,
+  urlSync = false
 }: UseListPageDataOptions<T>) {
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(defaultPageSize);
-  const [sortState, setSortState] = useState<SortState>({});
+  const location = useLocation();
+  const navigate = useNavigate();
+  const initialRouteState = () => decodeListRouteState(location.search, { pageSize: defaultPageSize });
+  const initial = initialRouteState();
+  const [currentPage, setCurrentPageState] = useState(urlSync ? initial.page : 1);
+  const [pageSize, setPageSizeState] = useState(urlSync ? initial.pageSize : defaultPageSize);
+  const [sortState, setSortStateState] = useState<SortState>(urlSync ? {
+    field: initial.sortField,
+    order: initial.sortOrder
+  } : {});
+
+  const syncRoute = useCallback((next: Partial<{ page: number; pageSize: number; sortState: SortState }>) => {
+    if (!urlSync) return;
+    const route = decodeListRouteState(location.search, { pageSize: defaultPageSize });
+    const nextSort = next.sortState || { field: route.sortField, order: route.sortOrder };
+    const search = encodeListRouteState(location.search, {
+      ...route,
+      page: next.page ?? route.page,
+      pageSize: next.pageSize ?? route.pageSize,
+      sortField: nextSort.field,
+      sortOrder: nextSort.order
+    }, { pageSize: defaultPageSize });
+    if (search !== location.search) navigate(`${location.pathname}${search}${location.hash}`);
+  }, [defaultPageSize, location.hash, location.pathname, location.search, navigate, urlSync]);
+
+  const setCurrentPage = useCallback((page: number) => {
+    setCurrentPageState(page);
+    syncRoute({ page });
+  }, [syncRoute]);
+  const setPageSize = useCallback((size: number) => {
+    setPageSizeState(size);
+    syncRoute({ pageSize: size });
+  }, [syncRoute]);
+  const setSortState = useCallback((state: SortState) => {
+    setSortStateState(state);
+    syncRoute({ sortState: state });
+  }, [syncRoute]);
+
+  useEffect(() => {
+    if (!urlSync) return;
+    const route = initialRouteState();
+    setCurrentPageState(route.page);
+    setPageSizeState(route.pageSize);
+    setSortStateState({ field: route.sortField, order: route.sortOrder });
+  }, [location.search, urlSync]);
 
   const sortedRows = useMemo(() => {
     if (serverPaging) return rows;
@@ -91,8 +137,10 @@ export function useListPageData<T extends Record<string, unknown>>({
   }, [currentPage, pageSize, serverPaging, sortedRows]);
 
   const handleTableChange: NonNullable<SearchTableProps<T>['onChange']> = (_, __, sorter) => {
-    setSortState(normalizeSorter(sorter));
-    setCurrentPage(1);
+    const nextSort = normalizeSorter(sorter);
+    setSortStateState(nextSort);
+    setCurrentPageState(1);
+    syncRoute({ page: 1, sortState: nextSort });
   };
 
   const pagination = {
@@ -100,12 +148,14 @@ export function useListPageData<T extends Record<string, unknown>>({
     pageSize,
     total: serverPaging ? total || 0 : sortedRows.length,
     onChange: (page: number, size: number) => {
-      setCurrentPage(page);
-      setPageSize(size);
+      setCurrentPageState(page);
+      setPageSizeState(size);
+      syncRoute({ page, pageSize: size });
     },
     onShowSizeChange: (_: number, size: number) => {
-      setCurrentPage(1);
-      setPageSize(size);
+      setCurrentPageState(1);
+      setPageSizeState(size);
+      syncRoute({ page: 1, pageSize: size });
     }
   };
 

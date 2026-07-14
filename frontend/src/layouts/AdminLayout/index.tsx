@@ -14,6 +14,7 @@ import { Avatar, Button, Dropdown, Layout, Menu, message, Space } from 'antd';
 import type { MenuProps } from 'antd';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { currentRelativePath, saveLoginReturnTo } from '../../components/admin/PageNavigation';
 import { heartbeatAccessSession, logoutAccessSession } from '../../api/accessLogApi';
 import { getMessages, markAllMessagesRead, markMessageRead, type MessageRecord } from '../../api/messageApi';
 import { AdminFloatingAssistant, AdminMessageCenter } from '../../components/admin';
@@ -289,7 +290,9 @@ export function AdminLayout() {
       const logoutPromise = logoutAccessSession(accessSessionId, { preserveLastActive: true }).catch(() => undefined);
       clearAuth();
       message.warning('长时间未操作，已自动退出');
-      navigate('/login', { replace: true });
+      const returnTo = currentRelativePath(location);
+      saveLoginReturnTo(returnTo);
+      navigate('/login', { replace: true, state: { returnTo } });
       await logoutPromise;
     };
 
@@ -317,7 +320,7 @@ export function AdminLayout() {
       });
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [accessSessionId, clearAuth, navigate, token]);
+  }, [accessSessionId, clearAuth, location, navigate, token]);
 
   useEffect(() => {
     if (!token) {
@@ -369,7 +372,9 @@ export function AdminLayout() {
   };
 
   if (!token) {
-    return <Navigate to="/login" replace />;
+    const returnTo = currentRelativePath(location);
+    saveLoginReturnTo(returnTo);
+    return <Navigate to="/login" replace state={{ returnTo }} />;
   }
 
   if (shouldRedirectUnauthorizedPage) {
