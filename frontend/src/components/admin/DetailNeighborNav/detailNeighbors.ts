@@ -30,12 +30,14 @@ export function isDetailNeighborContextFresh(context: DetailNeighborContext, now
 export function createDetailNeighborContext({
   moduleKey,
   routeBase,
-  params
+  params,
+  sourcePath
 }: Omit<DetailNeighborContext, 'savedAt'>): DetailNeighborContext {
   return {
     moduleKey,
     routeBase: normalizeRouteBase(routeBase),
     params,
+    sourcePath,
     savedAt: Date.now()
   };
 }

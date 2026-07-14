@@ -11,6 +11,7 @@ test('详情邻居上下文保留模块、路由和查询参数', () => {
   const context = createDetailNeighborContext({
     moduleKey: 'work-order',
     routeBase: '/work-orders',
+    sourcePath: '/work-orders?view=all&q_problemTypes=1%2C2&sort=problemDesc&order=ascend',
     params: {
       status: 1,
       sort_field: 'submit_time',
@@ -20,6 +21,7 @@ test('详情邻居上下文保留模块、路由和查询参数', () => {
 
   assert.equal(context.moduleKey, 'work-order');
   assert.equal(context.routeBase, '/work-orders');
+  assert.equal(context.sourcePath, '/work-orders?view=all&q_problemTypes=1%2C2&sort=problemDesc&order=ascend');
   assert.deepEqual(context.params, {
     status: 1,
     sort_field: 'submit_time',
