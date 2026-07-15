@@ -11,10 +11,16 @@
 }
 
 .admin-modal .ant-modal-body {
+  flex: 1 1 auto;
   min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
+}
+
+.admin-modal .ant-modal-header,
+.admin-modal .ant-modal-footer {
+  flex: 0 0 auto;
 }
 
 .admin-modal .ant-modal-header {
@@ -50,4 +56,11 @@
 
 .admin-modal .ant-modal-footer {
   margin-top: 16px;
+}
+
+@media (max-width: 767px), (max-height: 639px) {
+  .admin-modal .ant-modal-content {
+    max-height: calc(100vh - 16px);
+    max-height: calc(100dvh - 16px);
+  }
 }
