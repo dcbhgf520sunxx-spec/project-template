@@ -10,6 +10,10 @@ const statusTagStyles = await readFile(
 test('状态标签图标与文字保持紧凑间距', () => {
   assert.match(
     statusTagStyles,
-    /\.admin-status-tag \.anticon\s*\{[^}]*margin-inline-end:\s*2px;/s
+    /\.admin-status-tag \.anticon\s*\{[^}]*margin-inline-end:\s*4px;/s
+  );
+  assert.match(
+    statusTagStyles,
+    /\.admin-status-tag\.ant-tag \.anticon \+ span\s*\{[^}]*margin-inline-start:\s*0;/s
   );
 });

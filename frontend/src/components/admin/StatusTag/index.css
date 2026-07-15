@@ -13,7 +13,11 @@
 
 .admin-status-tag .anticon {
   font-size: 14px;
-  margin-inline-end: 2px;
+  margin-inline-end: 4px;
+}
+
+.admin-status-tag.ant-tag .anticon + span {
+  margin-inline-start: 0;
 }
 
 .admin-status-tag--positive.ant-tag {
