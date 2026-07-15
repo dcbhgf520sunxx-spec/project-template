@@ -1,6 +1,6 @@
 import type { ProColumns, ProTableProps } from '@ant-design/pro-components';
 import { ProTable } from '@ant-design/pro-components';
-import { SettingOutlined, UndoOutlined } from '@ant-design/icons';
+import { SettingOutlined, TableOutlined, UndoOutlined } from '@ant-design/icons';
 import { Popover, Space } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
@@ -296,7 +296,12 @@ export function SearchTable<
       className={['admin-search-table', className].filter(Boolean).join(' ')}
       columns={adjustedColumns}
       search={{ labelWidth: 88, defaultCollapsed: true }}
-      options={{ density: true, fullScreen: true, reload: false, setting: true }}
+      options={{
+        density: true,
+        fullScreen: true,
+        reload: false,
+        setting: { settingIcon: <TableOutlined /> }
+      }}
       optionsRender={(_, defaultDoms) => [
         <Popover
           key="table-settings"
