@@ -5,7 +5,7 @@ import test from 'node:test';
 const detailDemoSource = readFileSync(new URL('../src/modules/design-system/pages/demos/DetailTemplateDemo.tsx', import.meta.url), 'utf8');
 const displaySectionSource = readFileSync(new URL('../src/modules/design-system/pages/sections/DisplaySection.tsx', import.meta.url), 'utf8');
 const baseSectionSource = readFileSync(new URL('../src/modules/design-system/pages/sections/BaseSection.tsx', import.meta.url), 'utf8');
-const designSystemStyles = readFileSync(new URL('../src/modules/design-system/pages/DesignSystemPage.css', import.meta.url), 'utf8');
+const designSystemStyles = readFileSync(new URL('../src/modules/design-system/pages/DesignSystemShared.css', import.meta.url), 'utf8');
 
 test('详情页模板示例展示中间位置的上一条下一条切换', () => {
   assert.ok(detailDemoSource.includes('DetailNeighborNav'), '详情页模板示例应展示 DetailNeighborNav');

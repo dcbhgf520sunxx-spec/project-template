@@ -11,7 +11,7 @@ const hierarchyCell = readIfPresent('src/components/admin/HierarchyListCell/inde
 const hierarchyCellStyles = readIfPresent('src/components/admin/HierarchyListCell/index.css');
 const componentExports = readIfPresent('src/components/admin/index.ts');
 const templateListSource = readIfPresent('src/components/admin/TemplateListPage/index.tsx');
-const layoutSectionSource = readIfPresent('src/modules/design-system/pages/sections/LayoutSection.tsx');
+const layoutSectionSource = readIfPresent('src/modules/design-system/pages/sections/layout/ListTemplateDemo.tsx');
 const developmentRules = readIfPresent('../docs/ai-development-rules.md');
 
 test('层级列表把方框开关和主子标识固定在名称单元格内', () => {

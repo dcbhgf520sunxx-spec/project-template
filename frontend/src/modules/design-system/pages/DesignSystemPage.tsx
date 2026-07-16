@@ -10,6 +10,8 @@ import { InputSection } from './sections/InputSection';
 import { LayoutSection } from './sections/LayoutSection';
 import { OverviewSection } from './sections/OverviewSection';
 import './DesignSystemPage.css';
+import './DesignSystemShared.css';
+import './DesignSystemUtilities.css';
 
 export function DesignSystemPage() {
   const [searchParams, setSearchParams] = useSearchParams();
