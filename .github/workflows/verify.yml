@@ -23,6 +23,8 @@ jobs:
           --health-retries 5
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v5
         with:
           node-version: 22.18.0
@@ -49,6 +51,7 @@ jobs:
         working-directory: backend
       - name: Verify
         env:
+          DELIVERY_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
           RUN_DB_INTEGRATION: 1
           INTEGRATION_DB_ISOLATED: 1
           DB_HOST: 127.0.0.1

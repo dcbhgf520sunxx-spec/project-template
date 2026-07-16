@@ -69,9 +69,17 @@ function gitOutput(args) {
 
 const currentRoutes = readFileSync(join(rootDir, 'frontend/src/app/routes.tsx'), 'utf8');
 const hasGitBaseline = Boolean(gitOutput(['rev-parse', '--verify', 'HEAD']).trim());
+const configuredBaseRevision = process.env.DELIVERY_BASE_SHA?.trim();
+const baseRevision = configuredBaseRevision
+  && gitOutput(['rev-parse', '--verify', `${configuredBaseRevision}^{commit}`]).trim()
+  ? configuredBaseRevision
+  : 'HEAD';
 const { changedFiles, changedRouteRoots } = resolveDeliveryChangeContext({
   currentRoutes,
-  baseRoutes: hasGitBaseline ? gitOutput(['show', 'HEAD:frontend/src/app/routes.tsx']) : currentRoutes,
+  baseRoutes: hasGitBaseline ? gitOutput(['show', `${baseRevision}:frontend/src/app/routes.tsx`]) : currentRoutes,
+  diffOutput: hasGitBaseline && baseRevision !== 'HEAD'
+    ? gitOutput(['diff', '--name-only', '--diff-filter=ACMR', `${baseRevision}...HEAD`])
+    : '',
   statusOutput: hasGitBaseline ? gitOutput(['status', '--porcelain']) : '',
   hasGitBaseline
 });
