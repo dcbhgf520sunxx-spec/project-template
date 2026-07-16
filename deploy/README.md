@@ -4,7 +4,7 @@
 
 ## 1. 环境要求
 
-- Node.js >= 20.19
+- Node.js >= 22.18
 - PostgreSQL 16
 - Nginx
 - PM2

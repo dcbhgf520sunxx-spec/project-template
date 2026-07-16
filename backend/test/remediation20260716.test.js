@@ -40,14 +40,18 @@ test('事务内日志使用事务连接', () => {
   assert.match(saveMenusBody, /await conn\.writeLog/)
 })
 
-test('部署版本和头像代理大小与运行时一致', () => {
+test('本地、部署和远程检查使用兼容 TypeScript 测试的 Node 版本', () => {
   const deploy = read('deploy/README.md')
   const nginx = read('deploy/nginx.conf')
+  const workflow = read('.github/workflows/verify.yml')
   const frontendPackage = JSON.parse(read('frontend/package.json'))
   const backendPackage = JSON.parse(read('backend/package.json'))
-  assert.match(deploy, /Node\.js\s*>=\s*20\.19/)
-  assert.equal(frontendPackage.engines.node, '>=20.19.0')
-  assert.equal(backendPackage.engines.node, '>=20.19.0')
+  assert.match(deploy, /Node\.js\s*>=\s*22\.18/)
+  assert.equal(frontendPackage.engines.node, '>=22.18.0')
+  assert.equal(backendPackage.engines.node, '>=22.18.0')
+  assert.match(workflow, /node-version:\s*22\.18\.0/)
+  assert.match(workflow, /actions\/checkout@v5/)
+  assert.match(workflow, /actions\/setup-node@v5/)
   assert.match(nginx, /client_max_body_size\s+8m;/)
 })
 
