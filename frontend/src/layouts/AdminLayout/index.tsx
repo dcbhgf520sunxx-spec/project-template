@@ -10,7 +10,7 @@ import {
   ToolOutlined,
   UserOutlined
 } from '@ant-design/icons';
-import { Avatar, Button, Dropdown, Layout, Menu, message, Space } from 'antd';
+import { App, Avatar, Button, Dropdown, Layout, Menu, Space } from 'antd';
 import type { MenuProps } from 'antd';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
@@ -227,6 +227,7 @@ function getAvatarSrc(avatarUrl?: string) {
 }
 
 export function AdminLayout() {
+  const { message } = App.useApp();
   const navigate = useNavigate();
   const location = useLocation();
   const user = useAuthStore((state) => state.user);
@@ -318,7 +319,7 @@ export function AdminLayout() {
       });
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [accessSessionId, clearAuth, mustChangePassword, navigate, token]);
+  }, [accessSessionId, clearAuth, message, mustChangePassword, navigate, token]);
 
   useEffect(() => {
     if (!token || mustChangePassword) {
@@ -342,7 +343,7 @@ export function AdminLayout() {
     return () => {
       ignore = true;
     };
-  }, [mustChangePassword, token]);
+  }, [message, mustChangePassword, token]);
 
   const reloadMessages = async () => {
     const rows = await getMessages();

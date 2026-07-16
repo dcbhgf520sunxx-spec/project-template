@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS pms_user (
 
 CREATE TABLE IF NOT EXISTS pms_role (
   id BIGSERIAL PRIMARY KEY,
-  code VARCHAR(50) NOT NULL UNIQUE,
+  code VARCHAR(50) NOT NULL,
   name VARCHAR(50) NOT NULL,
   description VARCHAR(200),
   creator_id BIGINT,
@@ -88,8 +88,8 @@ CREATE TABLE IF NOT EXISTS pms_work_order (
 
 CREATE TABLE IF NOT EXISTS pms_archive_type (
   id BIGSERIAL PRIMARY KEY,
-  code VARCHAR(50) NOT NULL UNIQUE,
-  code_prefix VARCHAR(20) NOT NULL UNIQUE,
+  code VARCHAR(50) NOT NULL,
+  code_prefix VARCHAR(20) NOT NULL,
   name VARCHAR(100) NOT NULL,
   status SMALLINT NOT NULL DEFAULT 1,
   creator_id BIGINT,
@@ -112,6 +112,29 @@ CREATE TABLE IF NOT EXISTS pms_archive (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'fk_pms_work_order_system'
+      AND conrelid = 'pms_work_order'::regclass
+  ) THEN
+    ALTER TABLE pms_work_order
+      ADD CONSTRAINT fk_pms_work_order_system
+      FOREIGN KEY (system_id) REFERENCES pms_archive(id);
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'fk_pms_work_order_problem_type'
+      AND conrelid = 'pms_work_order'::regclass
+  ) THEN
+    ALTER TABLE pms_work_order
+      ADD CONSTRAINT fk_pms_work_order_problem_type
+      FOREIGN KEY (problem_type) REFERENCES pms_archive(id);
+  END IF;
+END $$;
 
 CREATE TABLE IF NOT EXISTS pms_op_log (
   id BIGSERIAL PRIMARY KEY,
@@ -174,11 +197,14 @@ CREATE TABLE IF NOT EXISTS pms_message (
 
 CREATE INDEX IF NOT EXISTS idx_user_status_deleted ON pms_user(status, is_deleted);
 CREATE INDEX IF NOT EXISTS idx_role_deleted ON pms_role(is_deleted);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_pms_role_code_active ON pms_role(code) WHERE is_deleted = 0;
 CREATE INDEX IF NOT EXISTS idx_menu_path ON pms_menu(path);
 CREATE INDEX IF NOT EXISTS idx_work_order_status ON pms_work_order(status, is_deleted);
 CREATE INDEX IF NOT EXISTS idx_work_order_follower ON pms_work_order(follower_id);
 CREATE UNIQUE INDEX IF NOT EXISTS uk_work_order_problem_desc_active ON pms_work_order(md5(problem_desc)) WHERE is_deleted = 0;
 CREATE INDEX IF NOT EXISTS idx_archive_type ON pms_archive(archive_type_id, is_deleted);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_pms_archive_type_code_active ON pms_archive_type(code) WHERE is_deleted = 0;
+CREATE UNIQUE INDEX IF NOT EXISTS ux_pms_archive_type_prefix_active ON pms_archive_type(code_prefix) WHERE is_deleted = 0;
 CREATE INDEX IF NOT EXISTS idx_op_log_target ON pms_op_log(module, target_id);
 CREATE INDEX IF NOT EXISTS idx_op_log_operation ON pms_op_log(operation_id);
 CREATE INDEX IF NOT EXISTS idx_op_log_module_created_at ON pms_op_log(module, created_at DESC);
@@ -190,12 +216,12 @@ CREATE INDEX IF NOT EXISTS idx_message_recipient_read ON pms_message(recipient_u
 CREATE INDEX IF NOT EXISTS idx_message_created_at ON pms_message(created_at);
 
 INSERT INTO pms_user (id, employee_no, real_name, phone, password, status, first_login)
-VALUES (1, 'admin', '管理员', '13800000000', '$2b$10$sJ8gCvuCgJQbcihvZEIWheUQEq1oIyVVh3EZa8fSlpOy80ihQ5UPi', 1, 0)
+VALUES (1, 'admin', '管理员', '13800000000', '$2b$10$sJ8gCvuCgJQbcihvZEIWheUQEq1oIyVVh3EZa8fSlpOy80ihQ5UPi', 1, 1)
 ON CONFLICT (employee_no) DO NOTHING;
 
 INSERT INTO pms_role (id, code, name, description, creator_id, updater_id)
 VALUES (1, 'admin', '管理员', '系统管理员，拥有所有权限', 1, 1)
-ON CONFLICT (code) DO NOTHING;
+ON CONFLICT (code) WHERE is_deleted = 0 DO NOTHING;
 
 INSERT INTO pms_user_role (user_id, role_id)
 VALUES (1, 1)
@@ -238,7 +264,7 @@ INSERT INTO pms_archive_type (id, code, code_prefix, name, creator_id, updater_i
 VALUES
   (1, '001', 'SYS', '系统', 1, 1),
   (2, '002', 'PT', '问题类型', 1, 1)
-ON CONFLICT (code) DO UPDATE SET
+ON CONFLICT (code) WHERE is_deleted = 0 DO UPDATE SET
   name = EXCLUDED.name,
   code_prefix = EXCLUDED.code_prefix,
   updater_id = EXCLUDED.updater_id,

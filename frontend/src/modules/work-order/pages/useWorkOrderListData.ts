@@ -66,9 +66,9 @@ export function useWorkOrderListData({
   });
 
   useEffect(() => {
-    getUserOptions().then(setUserOptions);
-    getArchiveOptionsByTypeName('系统').then(setSystemOptions);
-    getArchiveOptionsByTypeName('问题类型').then(setProblemTypeOptions);
+    getUserOptions().then(setUserOptions).catch(() => undefined);
+    getArchiveOptionsByTypeName('系统').then(setSystemOptions).catch(() => undefined);
+    getArchiveOptionsByTypeName('问题类型').then(setProblemTypeOptions).catch(() => undefined);
   }, []);
 
   return {

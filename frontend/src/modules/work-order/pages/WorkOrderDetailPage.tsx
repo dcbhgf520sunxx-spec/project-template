@@ -15,7 +15,7 @@ import {
 } from '../../../components/admin';
 import { WorkOrderStatusChangeAction } from '../components/WorkOrderStatusChangeAction';
 import { deleteWorkOrder, getWorkOrder, getWorkOrderHistory, getWorkOrderNeighbors, updateWorkOrderStatus } from '../../../api/workOrderApi';
-import type { WorkOrderHistoryItem, WorkOrderRecord, WorkOrderStatus } from '../types';
+import type { WorkOrderHistoryItem, WorkOrderRecord } from '../types';
 import {
   problemTypeText,
   renderOverdue,
