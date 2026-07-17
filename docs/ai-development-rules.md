@@ -129,6 +129,7 @@ API 接入保持统一：
 - 详情页变更历史统一使用 `HistoryTimelineSection`，由它把“全部展开/全部收起”紧跟在“变更历史”标题之后并承接单条展开；业务页面不得使用 `TemplateDetailSection + HistoryTimeline` 拼装，不得维护 `expandedKeys`、`onExpandedKeysChange` 或通过 `inlineExtra` 重复实现。
 - 同一次保存或状态变更产生的多字段日志必须共享 `pms_op_log.operation_id`，历史接口按该标识聚合为一个节点；聚合节点内的字段顺序必须复用对应详情页的字段顺序，禁止按日志写入顺序、数据库返回顺序或字段名排序。没有 `operation_id` 的历史日志按单条兼容展示，不能按“同一秒”猜测聚合。
 - 变更历史进入 `HistoryTimeline` 前必须完成转译，使用中文字段名和业务展示值：人员和关联对象 ID 转为名称，枚举和状态码转为中文含义，日期使用页面统一格式。后端优先复用 `formatHistoryChanges` 并显式声明 `fieldLabels`、`valueLookups` 和 `dateFields`；不得把 `field_name`、`*_id`、枚举编码等数据库原始值直接交给前端或组件。
+- 变更历史中的问题描述、Bug 描述、任务描述、需求描述等描述类富文本统一由 `HistoryTimeline` 生成纯文字摘要；内容包含图片时只追加 `〔图片〕` 标记，不在时间线中直接渲染图片或富文本源码，业务页面不得重复实现字段特判。
 - 长详情页存在较多分类且需要快速定位时，必须使用 `TemplateDetailPage.sectionNavigation` 以及 `TemplateDetailSection.sectionKey` / `TemplateDetailTableSection.sectionKey` 提供的顶部分类导航；开启分类导航后，每个参与导航的详情分组都必须声明唯一 `sectionKey`。不得在业务页重复维护分类数组、自建锚点或滚动监听，窄屏下拉定位由模板自动承接。
 - 详情页返回、编辑等动作通过 `ActionBar` 和现有按钮组件组合。
 - 不在业务页临时重做详情卡片、字段栅格、状态展示和历史记录样式。
