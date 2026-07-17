@@ -64,7 +64,7 @@ npm run db:migrate -- --baseline
 ```bash
 cd backend
 npm run db:migrate -- --check
-npm run db:migrate
+npm run db:migrate -- --apply --user-approved
 ```
 
 ## 4. 安装依赖

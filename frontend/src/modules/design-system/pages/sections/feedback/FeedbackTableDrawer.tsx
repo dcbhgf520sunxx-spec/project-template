@@ -360,7 +360,7 @@ export function FeedbackTableDrawer({ open, onClose }: FeedbackTableDrawerProps)
         />
       )
     }
-  ]), [tableDrawerDraftFilters]);
+  ]), [setTableDrawerCurrentPage, tableDrawerDraftFilters]);
 
   return (
       <TemplateDrawerTable<DrawerTableRecord>

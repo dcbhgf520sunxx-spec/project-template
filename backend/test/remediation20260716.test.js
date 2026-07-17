@@ -135,7 +135,7 @@ test('前后端 lint 纳入统一门禁且 GitHub 自动执行', () => {
   const verify = read('scripts/verify-change.mjs')
   const workflow = read('.github/workflows/verify.yml')
   assert.equal(backendPackage.scripts.lint, 'eslint .')
-  assert.equal(frontendPackage.scripts.lint, 'eslint .')
+  assert.match(frontendPackage.scripts.lint, /^eslint \. .*--max-warnings=0$/)
   assert.match(verify, /'run', 'lint'/)
   assert.match(workflow, /node scripts\/verify-change\.mjs/)
 })

@@ -84,6 +84,18 @@ test('生产构建产物有可重复执行的体积预算', () => {
   assert.match(verify, /'run', 'audit:build-budget'/);
 });
 
+test('前端 lint 门禁不允许遗留任何警告', () => {
+  const packageJson = JSON.parse(read('../package.json'));
+  assert.match(packageJson.scripts.lint, /--max-warnings=0/);
+});
+
+test('工单详情相邻记录上下文保留当前分页', () => {
+  const page = read('../src/modules/work-order/pages/WorkOrderListPage.tsx');
+
+  assert.match(page, /current:\s*currentPage/);
+  assert.match(page, /pageSize,/);
+});
+
 test('前后端依赖只自动跟进同主版本更新', () => {
   const configUrl = new URL('../../.github/dependabot.yml', import.meta.url);
   assert.equal(existsSync(configUrl), true);
