@@ -69,6 +69,39 @@ test('requires a migration when a new business route is added', () => {
   assert.ok(errors.includes('新增业务路由 /orders 未同时新增 migration'));
 });
 
+test('requires a migration when the database initialization schema changes', () => {
+  const root = createProject();
+  const errors = checkDeliveryContract(root, {
+    changedFiles: ['backend/db/init/001_schema.sql']
+  });
+
+  assert.ok(errors.includes('初始化数据库脚本已变更，但未同时新增 migration'));
+});
+
+test('requires the database initialization schema when a migration is added', () => {
+  const root = createProject();
+  write(root, 'backend/db/migrations/20260716_orders.sql', 'ALTER TABLE pms_order ADD COLUMN remark TEXT;');
+  const errors = checkDeliveryContract(root, {
+    changedFiles: ['backend/db/migrations/20260716_orders.sql']
+  });
+
+  assert.ok(errors.includes('新增 migration，但未同步修改初始化数据库脚本'));
+});
+
+test('requires both database structure documents for a structural migration', () => {
+  const root = createProject();
+  write(root, 'backend/db/migrations/20260716_orders.sql', 'ALTER TABLE pms_order ADD COLUMN remark TEXT;');
+  const errors = checkDeliveryContract(root, {
+    changedFiles: [
+      'backend/db/init/001_schema.sql',
+      'backend/db/migrations/20260716_orders.sql'
+    ]
+  });
+
+  assert.ok(errors.includes('数据库结构已变更，但未同步修改 docs/数据库表结构.md'));
+  assert.ok(errors.includes('数据库结构已变更，但未同步修改 docs/数据库表结构.xlsx'));
+});
+
 test('requires the new route path inside its migration', () => {
   const root = createProject();
   write(root, 'backend/db/migrations/20260710_orders.sql', 'SELECT 1;');

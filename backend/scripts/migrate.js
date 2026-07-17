@@ -2,6 +2,17 @@ const fs = require('node:fs')
 const path = require('node:path')
 const { pool } = require('../src/db')
 
+function resolveMigrationMode(args = []) {
+  if (args.includes('--baseline')) return 'baseline'
+  if (args.includes('--apply')) {
+    if (!args.includes('--user-approved')) {
+      throw new Error('执行数据库迁移缺少 --user-approved，请先取得用户明确确认')
+    }
+    return 'apply'
+  }
+  return 'check'
+}
+
 function listMigrationFiles(directory) {
   const files = fs.readdirSync(directory).filter((file) => file.endsWith('.sql'))
   const invalid = files.filter((file) => !/^\d{8}_[a-z0-9_]+\.sql$/.test(file))
@@ -18,6 +29,11 @@ async function ensureMigrationsTable(client) {
       applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `)
+}
+
+async function migrationsTableExists(client) {
+  const result = await client.query("SELECT to_regclass('public.pms_migrations') AS name")
+  return Boolean(result.rows[0]?.name)
 }
 
 async function getPendingMigrations(client, files) {
@@ -86,21 +102,27 @@ async function applyMigrations({ client, files, readFile }) {
   return applied
 }
 
-async function run() {
-  const directory = path.join(__dirname, '../db/migrations')
-  const client = await pool.connect()
+async function runMigrationCommand({
+  args = process.argv.slice(2),
+  directory = path.join(__dirname, '../db/migrations'),
+  connectionPool = pool,
+  log = console.log
+} = {}) {
+  const mode = resolveMigrationMode(args)
+  const client = await connectionPool.connect()
   try {
     const files = listMigrationFiles(directory)
-    await ensureMigrationsTable(client)
-    if (process.argv.includes('--baseline')) {
+    if (mode === 'baseline') {
       await assertBaselineReady(client)
       const recorded = await baselineMigrations(client, files)
-      console.log(recorded.length ? `已建立迁移基线：${recorded.join(', ')}` : '迁移基线已存在')
+      log(recorded.length ? `已建立迁移基线：${recorded.join(', ')}` : '迁移基线已存在')
       return
     }
-    if (process.argv.includes('--check')) {
-      const pending = await getPendingMigrations(client, files)
-      console.log(pending.length ? `待执行迁移：${pending.join(', ')}` : '没有待执行迁移')
+    if (mode === 'check') {
+      const pending = await migrationsTableExists(client)
+        ? await getPendingMigrations(client, files)
+        : files
+      log(pending.length ? `待执行迁移：${pending.join(', ')}` : '没有待执行迁移')
       return
     }
     const applied = await applyMigrations({
@@ -108,18 +130,25 @@ async function run() {
       files,
       readFile: (file) => fs.readFileSync(path.join(directory, file), 'utf8')
     })
-    console.log(applied.length ? `已执行迁移：${applied.join(', ')}` : '没有待执行迁移')
+    log(applied.length ? `已执行迁移：${applied.join(', ')}` : '没有待执行迁移')
   } finally {
     client.release()
-    await pool.end()
+    await connectionPool.end()
   }
 }
 
 if (require.main === module) {
-  run().catch((error) => {
+  runMigrationCommand().catch((error) => {
     console.error(error.message)
     process.exitCode = 1
   })
 }
 
-module.exports = { applyMigrations, baselineMigrations, getPendingMigrations, listMigrationFiles }
+module.exports = {
+  applyMigrations,
+  baselineMigrations,
+  getPendingMigrations,
+  listMigrationFiles,
+  resolveMigrationMode,
+  runMigrationCommand
+}

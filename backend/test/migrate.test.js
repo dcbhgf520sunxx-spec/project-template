@@ -3,7 +3,46 @@ const fs = require('node:fs')
 const os = require('node:os')
 const path = require('node:path')
 const test = require('node:test')
-const { applyMigrations, baselineMigrations, getPendingMigrations, listMigrationFiles } = require('../scripts/migrate')
+const { applyMigrations, baselineMigrations, getPendingMigrations, listMigrationFiles, resolveMigrationMode, runMigrationCommand } = require('../scripts/migrate')
+
+test('defaults the migration command to check-only mode', () => {
+  assert.equal(resolveMigrationMode([]), 'check')
+})
+
+test('rejects apply mode without an explicit user approval flag', () => {
+  assert.throws(
+    () => resolveMigrationMode(['--apply']),
+    /缺少 --user-approved/
+  )
+})
+
+test('allows apply mode only with an explicit user approval flag', () => {
+  assert.equal(resolveMigrationMode(['--apply', '--user-approved']), 'apply')
+})
+
+test('runs the migration command in check-only mode when no arguments are provided', async () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'migrations-'))
+  fs.writeFileSync(path.join(directory, '20260716_01_pending.sql'), 'SELECT 42;')
+  const queries = []
+  const client = {
+    async query(sql) {
+      queries.push(sql)
+      if (sql.includes("to_regclass('public.pms_migrations')")) return { rows: [{ name: 'pms_migrations' }] }
+      return sql.includes('SELECT 1 FROM pms_migrations') ? { rows: [] } : { rows: [] }
+    },
+    release() {}
+  }
+  const connectionPool = {
+    async connect() { return client },
+    async end() {}
+  }
+
+  await runMigrationCommand({ args: [], directory, connectionPool, log() {} })
+
+  assert.ok(queries.some((sql) => sql.includes('SELECT 1 FROM pms_migrations')))
+  assert.ok(!queries.includes('SELECT 42;'))
+  assert.ok(!queries.some((sql) => sql.includes('CREATE TABLE')))
+})
 
 test('lists SQL migration files in lexical order', () => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'migrations-'))

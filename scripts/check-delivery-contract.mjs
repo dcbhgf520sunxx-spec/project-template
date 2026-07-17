@@ -8,6 +8,7 @@ const AUTHENTICATED_ONLY_API_PATHS = new Set([
   '/api/archive-options/by-type-name',
   '/api/messages'
 ]);
+const DATABASE_STRUCTURE_SQL = /\b(?:CREATE\s+(?:UNIQUE\s+)?INDEX|CREATE\s+TABLE|ALTER\s+TABLE|DROP\s+(?:TABLE|INDEX))\b/i;
 
 function read(rootDir, file) {
   const path = join(rootDir, file);
@@ -89,6 +90,20 @@ export function checkDeliveryContract(rootDir, { changedFiles = [], changedRoute
     }
   }
   const migrationFiles = changedFiles.filter((file) => /^backend\/db\/migrations\/[^/]+\.sql$/.test(file));
+  if (changedFiles.includes('backend/db/init/001_schema.sql') && !migrationFiles.length) {
+    errors.push('初始化数据库脚本已变更，但未同时新增 migration');
+  }
+  if (migrationFiles.length && !changedFiles.includes('backend/db/init/001_schema.sql')) {
+    errors.push('新增 migration，但未同步修改初始化数据库脚本');
+  }
+  if (migrationFiles.some((file) => DATABASE_STRUCTURE_SQL.test(read(rootDir, file)))) {
+    if (!changedFiles.includes('docs/数据库表结构.md')) {
+      errors.push('数据库结构已变更，但未同步修改 docs/数据库表结构.md');
+    }
+    if (!changedFiles.includes('docs/数据库表结构.xlsx')) {
+      errors.push('数据库结构已变更，但未同步修改 docs/数据库表结构.xlsx');
+    }
+  }
   if (changedRouteRoots.length && !migrationFiles.length) {
     for (const route of changedRouteRoots) errors.push(`新增业务路由 ${route} 未同时新增 migration`);
   }

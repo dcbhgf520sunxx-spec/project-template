@@ -287,7 +287,7 @@ export function WorkOrderTemplatePage() {
         )
       }
     ]);
-  }, [draftFilters, viewKey]);
+  }, [commitFilters, draftFilters, setDraftFilters, viewKey]);
 
   const columns = useMemo<ProColumns<WorkOrderRecord>[]>(() => [
     {

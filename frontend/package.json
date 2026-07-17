@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "lint": "eslint .",
+    "lint": "eslint . --max-warnings=0",
     "test:e2e": "playwright test",
     "audit:build-budget": "node scripts/check-build-budget.mjs",
     "audit:components": "node scripts/audit-component-usage.mjs",

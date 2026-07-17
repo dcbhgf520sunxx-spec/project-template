@@ -17,7 +17,7 @@
 2. AI 按样板和组件规则实现；涉及路由、菜单、权限、接口或数据库时同步处理对应层。
 3. AI 运行 `node scripts/verify-change.mjs`，完成组件扫描、JSX 语义审计、接口运行时契约审计和本地后端运行态新鲜度检查；后端源码晚于当前服务启动时间时必须重启后端并重新执行门禁，未通过不得交付。随后使用浏览器实际打开受影响页面，完成对应的列表、查询、表单、权限拒绝或接口错误冒烟检查。
 4. AI 输出 `docs/ai-delivery-template.md` 规定的交付单，并标明是否需要表结构确认。
-5. 用户确认表结构后，AI 执行 `cd backend && npm run db:migrate`，再验证接口读写。
+5. 用户确认表结构后，AI 执行 `cd backend && npm run db:migrate -- --apply --user-approved`，再验证接口读写。
 6. AI 提供可验收环境；用户完成最终业务验收并确认发布后，AI 部署并验证线上健康检查和核心流程。
 
 ## 自动门禁
@@ -56,10 +56,10 @@
 node scripts/verify-change.mjs
 node scripts/check-backend-runtime-freshness.mjs
 cd backend && npm run db:migrate -- --check
-cd backend && npm run db:migrate
+cd backend && npm run db:migrate -- --apply --user-approved
 ```
 
-`--check` 只显示待执行 migration；不改数据库。`db:migrate` 只能在用户已确认本次表结构后执行，并将已执行文件记录到 `pms_migrations`。
+无参数或 `--check` 只显示待执行 migration，不改数据库。真正执行必须同时携带 `--apply` 和 `--user-approved`，只能在用户已确认本次表结构后使用，并将已执行文件记录到 `pms_migrations`。
 
 ## 浏览器冒烟验收
 
