@@ -68,13 +68,13 @@ export function useTemplateServerListData<T extends Record<string, unknown>, M =
     if (queryContextChanged) {
       previousQueryContextRef.current = queryContextSignature;
       pendingQueryContextRef.current = currentPage === 1 ? undefined : queryContextSignature;
-      if (!urlSync && currentPage !== 1) setCurrentPage(1);
+      if (currentPage !== 1) setCurrentPage(1);
       return;
     }
     if (pendingQueryContextRef.current === queryContextSignature && currentPage === 1) {
       pendingQueryContextRef.current = undefined;
     }
-  }, [currentPage, queryContextChanged, queryContextSignature, setCurrentPage, urlSync]);
+  }, [currentPage, queryContextChanged, queryContextSignature, setCurrentPage]);
 
   const rows = query.data?.list ?? [];
   const total = query.data?.total ?? 0;

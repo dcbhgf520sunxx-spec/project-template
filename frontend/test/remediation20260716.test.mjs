@@ -89,6 +89,13 @@ test('前端 lint 门禁不允许遗留任何警告', () => {
   assert.match(packageJson.scripts.lint, /--max-warnings=0/);
 });
 
+test('工单详情相邻记录上下文保留当前分页', () => {
+  const page = read('../src/modules/work-order/pages/WorkOrderListPage.tsx');
+
+  assert.match(page, /current:\s*currentPage/);
+  assert.match(page, /pageSize,/);
+});
+
 test('前后端依赖只自动跟进同主版本更新', () => {
   const configUrl = new URL('../../.github/dependabot.yml', import.meta.url);
   assert.equal(existsSync(configUrl), true);

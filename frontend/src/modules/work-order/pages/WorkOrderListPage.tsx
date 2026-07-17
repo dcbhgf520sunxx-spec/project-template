@@ -64,6 +64,7 @@ export function WorkOrderListPage() {
     filterRevision,
     viewKey
   });
+  const { current: currentPage, pageSize } = listData.pagination;
 
   const selectedRecords = useMemo(() => {
     const rowMap = new Map(listData.sortedRows.map((row) => [row.id, row]));
@@ -80,6 +81,8 @@ export function WorkOrderListPage() {
       problemDesc: appliedFilters.problemDesc || undefined,
       systemId: appliedFilters.systemId || undefined,
       problemType: appliedFilters.problemTypes,
+      current: currentPage,
+      pageSize,
       urgency: appliedFilters.urgency,
       status: appliedFilters.status,
       isOverdue: appliedFilters.isOverdue,
@@ -101,7 +104,7 @@ export function WorkOrderListPage() {
       sourcePath: currentPath
     }));
     navigateWithReturn(`/work-orders/${record.id}`);
-  }, [appliedFilters, currentFollowerId, currentPath, listData.sortState.field, listData.sortState.order, navigateWithReturn, viewKey]);
+  }, [appliedFilters, currentFollowerId, currentPage, currentPath, listData.sortState.field, listData.sortState.order, navigateWithReturn, pageSize, viewKey]);
 
   const columns = useMemo(() => createWorkOrderColumns({
     navigate: navigateWithReturn,

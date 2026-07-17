@@ -10,6 +10,12 @@ const AUTHENTICATED_ONLY_API_PATHS = new Set([
 ]);
 const DATABASE_STRUCTURE_SQL = /\b(?:CREATE\s+(?:UNIQUE\s+)?INDEX|CREATE\s+TABLE|ALTER\s+TABLE|DROP\s+(?:TABLE|INDEX))\b/i;
 
+function stripSqlComments(source) {
+  return source
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/--[^\r\n]*/g, '');
+}
+
 function read(rootDir, file) {
   const path = join(rootDir, file);
   return existsSync(path) ? readFileSync(path, 'utf8') : '';
@@ -96,7 +102,7 @@ export function checkDeliveryContract(rootDir, { changedFiles = [], changedRoute
   if (migrationFiles.length && !changedFiles.includes('backend/db/init/001_schema.sql')) {
     errors.push('新增 migration，但未同步修改初始化数据库脚本');
   }
-  if (migrationFiles.some((file) => DATABASE_STRUCTURE_SQL.test(read(rootDir, file)))) {
+  if (migrationFiles.some((file) => DATABASE_STRUCTURE_SQL.test(stripSqlComments(read(rootDir, file))))) {
     if (!changedFiles.includes('docs/数据库表结构.md')) {
       errors.push('数据库结构已变更，但未同步修改 docs/数据库表结构.md');
     }

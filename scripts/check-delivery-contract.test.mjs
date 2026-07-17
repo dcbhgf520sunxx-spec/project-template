@@ -102,6 +102,24 @@ test('requires both database structure documents for a structural migration', ()
   assert.ok(errors.includes('数据库结构已变更，但未同步修改 docs/数据库表结构.xlsx'));
 });
 
+test('ignores structural SQL keywords that only appear in comments', () => {
+  const root = createProject();
+  write(root, 'backend/db/migrations/20260716_orders.sql', [
+    '-- ALTER TABLE pms_order ADD COLUMN remark TEXT;',
+    '/* DROP TABLE pms_order; */',
+    'SELECT 1;'
+  ].join('\n'));
+  const errors = checkDeliveryContract(root, {
+    changedFiles: [
+      'backend/db/init/001_schema.sql',
+      'backend/db/migrations/20260716_orders.sql'
+    ]
+  });
+
+  assert.ok(!errors.includes('数据库结构已变更，但未同步修改 docs/数据库表结构.md'));
+  assert.ok(!errors.includes('数据库结构已变更，但未同步修改 docs/数据库表结构.xlsx'));
+});
+
 test('requires the new route path inside its migration', () => {
   const root = createProject();
   write(root, 'backend/db/migrations/20260710_orders.sql', 'SELECT 1;');
