@@ -15,6 +15,16 @@
 
 业务页面只负责传字段、传数据、处理接口和业务动作，不负责重新定义通用视觉、交互节奏、空状态、错误态、按钮样式和下拉样式。
 
+## 能力检索与用户说法映射
+
+用户通常描述界面效果，代码则使用组件名和属性名，两者可能不一样。AI 在判断“底座没有这个能力”之前，必须按“用户说法和同义词 → 下表能力映射 → 组件入口 → 组件工作台示例 → 实际行为和测试”的顺序核对，不能只搜索一个技术关键词。确认已有能力时直接复用；确认缺失时，结论中必须列出已核对的组件入口和工作台示例。
+
+| 用户常用说法 | 底座能力与调用方式 | 实际行为 | 组件工作台示例 |
+|---|---|---|---|
+| 详情页 Tab、顶部页签、详情分类、锚点导航、点击定位 | `TemplateDetailPage.sectionNavigation`；参与导航的 `TemplateDetailSection`、`TemplateDetailTableSection`、`HistoryTimelineSection` 传唯一 `sectionKey` | 顶部生成分类标签，点击后定位到对应详情区域；它不是切换或隐藏内容的传统 Tab，窄屏时自动改为下拉定位 | `frontend/src/modules/design-system/pages/demos/DetailTemplateDemo.tsx` |
+
+用户明确要求“点击后只显示当前内容、隐藏其他内容”时，才属于传统内容切换 Tab；不得因为分类导航的代码名称不是 `Tabs`，就误判底座不支持截图中的顶部页签效果。
+
 ## 新业务接入样板
 
 新增后台业务模块默认遵循当前架构：React / Vite 前端、Express REST API、PostgreSQL 数据库。常规目录如下：
