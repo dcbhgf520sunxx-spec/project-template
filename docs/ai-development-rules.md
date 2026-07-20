@@ -21,9 +21,10 @@
 
 | 用户常用说法 | 底座能力与调用方式 | 实际行为 | 组件工作台示例 |
 |---|---|---|---|
-| 详情页 Tab、顶部页签、详情分类、锚点导航、点击定位 | `TemplateDetailPage.sectionNavigation`；参与导航的 `TemplateDetailSection`、`TemplateDetailTableSection`、`HistoryTimelineSection` 传唯一 `sectionKey` | 顶部生成分类标签，点击后定位到对应详情区域；它不是切换或隐藏内容的传统 Tab，窄屏时自动改为下拉定位 | `frontend/src/modules/design-system/pages/demos/DetailTemplateDemo.tsx` |
+| 详情页 Tab、顶部页签、详情分类、锚点导航、点击定位 | `TemplateDetailPage.sectionNavigation`；参与导航的 `TemplateDetailSection`、`TemplateDetailTableSection`、`HistoryTimelineSection` 传唯一 `sectionKey` | 顶部生成分类标签，点击后定位到对应详情区域；它不是切换或隐藏内容的页面切换 Tab，窄屏时自动改为下拉定位 | `frontend/src/modules/design-system/pages/demos/DetailTemplateDemo.tsx` |
+| 页面切换 Tab、跨页面页签、分类页面切换、路由页签 | 使用 `ViewTabs`；由业务层在 `onChange` 中调用 `navigate(targetPath)`，并根据当前路由或查询参数传入选中项 | 点击后切换到不同页面或路由，只展示目标页面内容，不执行详情分组滚动定位；列表数据视图也可复用该组件，但必须遵守列表统计规则 | `frontend/src/modules/design-system/pages/sections/BaseSection.tsx` 的“切换组件”示例 |
 
-用户明确要求“点击后只显示当前内容、隐藏其他内容”时，才属于传统内容切换 Tab；不得因为分类导航的代码名称不是 `Tabs`，就误判底座不支持截图中的顶部页签效果。
+判断标准固定为：同一页面内定位（所有分组仍在当前页面，只需要点击后快速定位）时使用 `sectionNavigation`；点击后需要切换页面或路由、只展示目标页面内容时使用 `ViewTabs`。不得用 `ViewTabs` 重做同一页面内定位，也不得用 `sectionNavigation` 冒充页面切换；不能因为代码名称不是 `Tabs`，就误判底座不支持用户所说的页签效果。
 
 ## 新业务接入样板
 
