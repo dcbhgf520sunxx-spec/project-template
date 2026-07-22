@@ -30,6 +30,16 @@ test('底座提供完整附件组件并保持业务限制可选', () => {
   assert.doesNotMatch(validation, /20\s*\*\s*1024|MAX_FILE_SIZE|MAX_ATTACHMENT_COUNT/);
 });
 
+test('已有附件的预览和下载必须成对接入', () => {
+  const source = read('src/components/admin/AdminAttachmentUpload/index.tsx');
+  const rules = read('../docs/ai-development-rules.md');
+
+  assert.match(source, /type AdminAttachmentAccessProps/);
+  assert.match(source, /onPreview:\s*AttachmentPreviewHandler/);
+  assert.match(source, /onDownload:\s*AttachmentDownloadHandler/);
+  assert.match(rules, /提供下载时必须同时传入 `onPreview`/);
+});
+
 test('两个附件组件共用上传状态、失败重试、预览、下载和删除能力', () => {
   const source = read('src/components/admin/AdminAttachmentUpload/index.tsx');
   const styles = read('src/components/admin/AdminAttachmentUpload/index.css');
