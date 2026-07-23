@@ -1,8 +1,8 @@
-import { Form } from 'antd';
 import dayjs from 'dayjs';
 import { useMemo } from 'react';
 import {
   AdminDatePicker,
+  AdminFormItem,
   AdminTextArea,
   StatusChangeAction,
   type StatusChangeActionProps,
@@ -62,31 +62,31 @@ export function WorkOrderStatusChangeAction({
       renderExtra={(target) => (
         <>
           {target === 2 ? (
-            <Form.Item
+            <AdminFormItem
               name="actualFixedAt"
               label="实际修复时间"
               rules={[{ required: true, message: '请选择实际修复时间' }]}
             >
               <AdminDatePicker placeholder="请选择实际修复时间" />
-            </Form.Item>
+            </AdminFormItem>
           ) : null}
           {target === 3 ? (
-            <Form.Item
+            <AdminFormItem
               name="closedAt"
               label="关闭时间"
               rules={[{ required: true, message: '请选择关闭时间' }]}
             >
               <AdminDatePicker placeholder="请选择关闭时间" />
-            </Form.Item>
+            </AdminFormItem>
           ) : null}
           {target === 2 ? (
-            <Form.Item
+            <AdminFormItem
               name="result"
               label="处置结果"
               rules={[{ required: true, whitespace: true, message: '请输入处置结果' }]}
             >
               <AdminTextArea rows={3} placeholder="请输入处置结果" />
-            </Form.Item>
+            </AdminFormItem>
           ) : null}
         </>
       )}
