@@ -5,6 +5,7 @@ import {
   CloseCircleFilled,
   CloudUploadOutlined,
   DownloadOutlined,
+  ExportOutlined,
   FileExcelOutlined,
   FileImageOutlined,
   FileOutlined,
@@ -384,7 +385,23 @@ function AttachmentUpload({
 
       <AdminModal
         className="admin-attachment-upload__preview-modal"
-        title={preview ? `附件预览：${preview.name}` : '附件预览'}
+        title={(
+          <div className="admin-attachment-upload__preview-title">
+            <span title={preview?.name}>
+              {preview ? `附件预览：${preview.name}` : '附件预览'}
+            </span>
+            {preview ? (
+              <AdminIconAction
+                className="admin-attachment-upload__open-window"
+                label="新窗口打开"
+                icon={<ExportOutlined />}
+                href={preview.url}
+                target="_blank"
+                rel="noopener noreferrer"
+              />
+            ) : null}
+          </div>
+        )}
         open={Boolean(preview)}
         width={920}
         footer={null}
