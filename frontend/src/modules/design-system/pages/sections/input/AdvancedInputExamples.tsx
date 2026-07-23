@@ -91,7 +91,7 @@ export function AdvancedInputExamples({ richText, setRichText }: AdvancedInputEx
                 <h4>基础上传</h4>
                 <ComponentEntry name="AdminAttachmentUpload" />
                 <p className="design-system-page__input-demo-description">
-                  按钮选择文件；已有附件和新附件统一展示，点击名称预览，图标操作用于下载和删除。
+                  按钮选择文件；已有附件和新附件统一展示，点击名称弹窗预览图片或 PDF，需要大画面时可从弹窗右上角新窗口打开。
                 </p>
                 <AdminAttachmentUpload
                   value={attachments}
