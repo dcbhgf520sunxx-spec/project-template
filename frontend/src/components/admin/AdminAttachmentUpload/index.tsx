@@ -23,7 +23,11 @@ import { AdminDeleteIconAction, AdminIconAction } from '../AdminIconAction';
 import { AdminModal } from '../AdminModal';
 import { AdminButton } from '../AdminPrimitives';
 import { useAdminFeedback } from '../AdminFeedback';
-import { formatAttachmentSize, validateAttachmentFile } from './validation';
+import {
+  ADMIN_ATTACHMENT_IMAGE_FORMATS,
+  formatAttachmentSize,
+  validateAttachmentFile
+} from './validation';
 import './index.css';
 
 export type AdminAttachmentStatus = 'uploading' | 'done' | 'error';
@@ -82,6 +86,7 @@ function errorMessageOf(error: unknown, fallback: string) {
 }
 
 type AttachmentUploadVariant = 'button' | 'dragger';
+const DEFAULT_UPLOAD_HINT = `可选择一个或多个文件；图片支持 ${ADMIN_ATTACHMENT_IMAGE_FORMATS.join('、')}`;
 
 function attachmentKind(attachment: AdminAttachment) {
   const name = attachment.name.toLowerCase();
@@ -275,7 +280,7 @@ function AttachmentUpload({
     commit(attachmentsRef.current.filter((item) => item.id !== attachment.id));
   };
 
-  const uploadHint = hint || '可选择一个或多个文件';
+  const uploadHint = hint || DEFAULT_UPLOAD_HINT;
   const beforeUpload = (file: RcFile) => {
     void uploadFile(file);
     return Upload.LIST_IGNORE;
@@ -309,7 +314,7 @@ function AttachmentUpload({
           >
             <AdminButton disabled={disabled} icon={<CloudUploadOutlined />}>选择文件</AdminButton>
           </Upload>
-          <span>{hint || '可选择一个或多个文件'}</span>
+          <span>{uploadHint}</span>
         </div>
       )}
 
@@ -429,4 +434,9 @@ export function AdminAttachmentDragger(props: AdminAttachmentUploadProps) {
   return <AttachmentUpload {...props} variant="dragger" />;
 }
 
-export { formatAttachmentSize, matchesAttachmentAccept, validateAttachmentFile } from './validation';
+export {
+  ADMIN_ATTACHMENT_IMAGE_FORMATS,
+  formatAttachmentSize,
+  matchesAttachmentAccept,
+  validateAttachmentFile
+} from './validation';
