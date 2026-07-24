@@ -7,12 +7,13 @@ const inputSource = readFileSync(new URL('../src/components/admin/AdminInput/ind
 const inputStyles = readFileSync(new URL('../src/components/admin/AdminInput/index.css', import.meta.url), 'utf8');
 const feedbackOverlaysSource = readFileSync(new URL('../src/modules/design-system/pages/sections/feedback/FeedbackOverlays.tsx', import.meta.url), 'utf8');
 
-test('AdminModal 将长内容限制在视口内并只滚动正文', () => {
+test('AdminModal 保持统一最小高度，长内容限制在视口内并只滚动正文', () => {
+  assert.match(modalStyles, /\.admin-modal \.ant-modal-content\s*\{[\s\S]*min-height:\s*min\(280px,\s*calc\(100(?:dvh|vh)\s*-\s*32px\)\)/);
   assert.match(modalStyles, /\.admin-modal \.ant-modal-content\s*\{[\s\S]*max-height:\s*calc\(100(?:dvh|vh)\s*-\s*32px\)/);
   assert.match(modalStyles, /\.admin-modal \.ant-modal-content\s*\{[\s\S]*display:\s*flex[\s\S]*flex-direction:\s*column[\s\S]*overflow:\s*hidden/);
-  assert.match(modalStyles, /\.admin-modal \.ant-modal-body\s*\{[\s\S]*flex:\s*0 1 auto[\s\S]*min-height:\s*0[\s\S]*overflow-y:\s*auto/);
+  assert.match(modalStyles, /\.admin-modal \.ant-modal-body\s*\{[\s\S]*flex:\s*1 1 auto[\s\S]*min-height:\s*0[\s\S]*overflow-y:\s*auto/);
   assert.match(modalStyles, /\.admin-modal \.ant-modal-header,[\s\S]*\.admin-modal \.ant-modal-footer\s*\{[\s\S]*flex:\s*0 0 auto/);
-  assert.match(modalStyles, /@media[^\{]*(?:max-width|max-height)[\s\S]*\.admin-modal \.ant-modal-content\s*\{[\s\S]*max-height:\s*calc\(100dvh\s*-\s*16px\)/);
+  assert.match(modalStyles, /@media[^\{]*(?:max-width|max-height)[\s\S]*\.admin-modal \.ant-modal-content\s*\{[\s\S]*min-height:\s*min\(280px,\s*calc\(100dvh\s*-\s*16px\)\)[\s\S]*max-height:\s*calc\(100dvh\s*-\s*16px\)/);
 });
 
 test('日期类浮层挂到页面顶层并在极小视口内滚动', () => {
