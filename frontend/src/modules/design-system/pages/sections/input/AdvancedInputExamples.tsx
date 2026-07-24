@@ -84,7 +84,7 @@ export function AdvancedInputExamples({ richText, setRichText }: AdvancedInputEx
           <section className="design-system-page__input-panel is-wide">
             <div className="design-system-page__input-panel-head">
               <h3>上传</h3>
-              <p>用于附件、截图、导入文件，上传入口要清晰，限制条件写在提示里。</p>
+              <p>用于附件、截图、导入文件。图片明确支持 JPG、JPEG、PNG、GIF、WEBP、BMP、SVG、AVIF、HEIC，其他文件格式默认不限制。</p>
             </div>
             <div className="design-system-page__input-demo-list design-system-page__input-demo-list--stack">
               <div className="design-system-page__input-demo">
