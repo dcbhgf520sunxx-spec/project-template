@@ -375,8 +375,15 @@ function collectSemanticViolations(files) {
 
     const inspectOperationChildren = (container) => {
       const inspect = (node) => {
-        if (!ts.isJsxElement(node) && !ts.isJsxSelfClosingElement(node)) return;
+        if (!ts.isJsxElement(node) && !ts.isJsxSelfClosingElement(node)) {
+          ts.forEachChild(node, inspect);
+          return;
+        }
         const name = jsxTagName(node, sourceFile);
+        if (name === 'Fragment' || name === 'React.Fragment') {
+          ts.forEachChild(node, inspect);
+          return;
+        }
         if (name && name !== 'OperationColumnActions') {
           const isStatusChangeAction = name.endsWith('StatusChangeAction');
           if (!allowedOperationActions.has(name) && !isStatusChangeAction) {
