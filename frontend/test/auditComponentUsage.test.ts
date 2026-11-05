@@ -923,3 +923,13 @@ test('组件审计阻断只改名字但未调用公共组件的业务状态动�
   assert.equal(result.status, 1);
   assert.match(result.stdout, /公共 StatusChangeAction/);
 });
+
+test('操作列条件渲染与分组中的动作仍受统一文字动作审计', () => {
+  for (const children of ['{allowed ? <AdminButton>编辑</AdminButton> : null}', '<><AdminButton>编辑</AdminButton></>']) {
+    const result = runStrictAudit(`export function CustomerListPage() { return <OperationColumnActions>${children}</OperationColumnActions>; }`, 'CustomerListPage.tsx');
+    assert.equal(result.status, 1);
+    assert.match(result.stdout, /操作列.*文字操作/);
+  }
+  const valid = runStrictAudit('export function CustomerListPage() { return <OperationColumnActions>{allowed ? <AdminTextAction>编辑</AdminTextAction> : null}<><AdminTextAction>跟进</AdminTextAction></></OperationColumnActions>; }', 'CustomerListPage.tsx');
+  assert.equal(valid.status, 0, valid.stdout);
+});

@@ -42,3 +42,37 @@ test('运维工单操作列只传动作顺序，不再手写更多规则', () =>
   assert.match(source, /<DeleteConfirmAction/);
   assert.doesNotMatch(source, /AdminActionDropdown/, '业务页不应自己决定更多下拉');
 });
+
+test('隐藏、无权限和分组操作先过滤，后续动作补位且不重复', async () => {
+  const { createElement: h, Fragment } = await import('react');
+  const { visibleOperationActions } = await import('../src/components/admin/OperationColumnActions/visibleActions.ts');
+  const action = (name, props = {}) => h('button', { key: name, ...props }, name);
+  const children = [action('编辑'), null, false, action('状态', { hidden: true }),
+    action('授权动作', { permission: 'edit' }),
+    h(Fragment, { key: 'group' }, action('跟进'), h(Fragment, null, action('复制'))), action('删除')];
+  const names = (permissions) => visibleOperationActions(children, permissions).map(item => item.props.children);
+  assert.deepEqual(names([]), ['编辑', '跟进', '复制', '删除']);
+  assert.deepEqual(names(['edit']), ['编辑', '授权动作', '跟进', '复制', '删除']);
+  const items = visibleOperationActions(children, []);
+  assert.equal(new Set(items.map(item => item.key)).size, 4);
+  assert.equal(visibleOperationActions([false, null, action('隐藏', { hidden: true })], []).length, 0);
+});
+
+test('无权限但保留禁用入口仍占位，显式隐藏优先', async () => {
+  const { createElement: h } = await import('react');
+  const { visibleOperationActions } = await import('../src/components/admin/OperationColumnActions/visibleActions.ts');
+  const disabled = h('button', { permission: 'edit', unauthorizedMode: 'disabled' }, '编辑');
+  assert.equal(visibleOperationActions([disabled], []).length, 1);
+  assert.equal(visibleOperationActions([h('button', { ...disabled.props, hidden: true })], []).length, 0);
+});
+
+test('空字符串和零值不占操作名额，分组中的空项同样排除', async () => {
+  const { createElement: h, Fragment } = await import('react');
+  const { visibleOperationActions } = await import('../src/components/admin/OperationColumnActions/visibleActions.ts');
+  const children = [h('button', { key: 'edit' }, '编辑'), '', 0,
+    h(Fragment, { key: 'group' }, '', h('button', null, '跟进')),
+    h('button', { key: 'delete' }, '删除')];
+  const actions = visibleOperationActions(children, []);
+  assert.equal(actions.length, 3);
+  assert.deepEqual(actions.map(action => action.props.children), ['编辑', '跟进', '删除']);
+});

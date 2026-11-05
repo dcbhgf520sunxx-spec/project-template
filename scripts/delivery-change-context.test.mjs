@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import test from 'node:test';
-import { resolveDeliveryChangeContext } from './delivery-change-context.mjs';
+import { readDeliveryGitOutput, resolveDeliveryChangeContext } from './delivery-change-context.mjs';
 
 test('treats an exported project without Git history as its own baseline', () => {
   const context = resolveDeliveryChangeContext({
@@ -45,6 +48,35 @@ test('includes files already committed on the current branch', () => {
     ],
     changedRouteRoots: ['/users']
   });
+});
+
+test('recognizes Chinese document paths in committed and working-tree changes', () => {
+  const cwd = mkdtempSync(join(tmpdir(), 'delivery-chinese-paths-'));
+  const git = (...args) => execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+  try {
+    git('init', '--quiet');
+    git('config', 'user.name', 'Delivery regression');
+    git('config', 'user.email', 'delivery-test@example.invalid');
+    git('config', 'core.quotePath', 'true');
+    git('commit', '--quiet', '--allow-empty', '-m', 'baseline');
+    const base = git('rev-parse', 'HEAD').trim();
+    const files = ['docs/数据库表结构.md', 'docs/数据库表结构.xlsx'];
+    mkdirSync(join(cwd, 'docs'));
+    for (const file of files) writeFileSync(join(cwd, file), 'filename fixture');
+    git('add', 'docs');
+    git('commit', '--quiet', '-m', 'database documentation');
+    writeFileSync(join(cwd, files[0]), 'working-tree change');
+    const context = resolveDeliveryChangeContext({
+      currentRoutes: '',
+      hasGitBaseline: true,
+      diffOutput: readDeliveryGitOutput(cwd, ['diff', '--name-only', '--diff-filter=ACMR', base, 'HEAD']),
+      statusOutput: readDeliveryGitOutput(cwd, ['status', '--porcelain'])
+    });
+    assert.deepEqual(context.changedFiles, files);
+    assert.equal(git('config', 'core.quotePath').trim(), 'true');
+  } finally {
+    rmSync(cwd, { recursive: true, force: true });
+  }
 });
 
 test('remote verification checks out history and supplies the previous revision', () => {
