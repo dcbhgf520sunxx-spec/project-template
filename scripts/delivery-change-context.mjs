@@ -12,6 +12,10 @@ export function readDeliveryGitOutput(cwd, args) {
   }
 }
 
+export function readDeliveryDiff(cwd, baseRevision) {
+  return readDeliveryGitOutput(cwd, ['diff', '--name-only', '--diff-filter=ACMRD', `${baseRevision}...HEAD`]);
+}
+
 function routeRoots(source = '') {
   return new Set([...source.matchAll(/path:\s*'([^/'][^']*)'/g)]
     .map((match) => match[1])

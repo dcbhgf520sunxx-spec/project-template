@@ -3,7 +3,7 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { checkDeliveryContract } from './check-delivery-contract.mjs';
-import { readDeliveryGitOutput, resolveDeliveryChangeContext } from './delivery-change-context.mjs';
+import { readDeliveryDiff, readDeliveryGitOutput, resolveDeliveryChangeContext } from './delivery-change-context.mjs';
 import { getNpmCommandEnv, shouldUseArm64Node } from './npm-command-env.mjs';
 
 const rootDir = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -40,6 +40,8 @@ const frontendTests = readdirSync(join(rootDir, 'frontend/test'))
   .map((name) => `test/${name}`);
 const commands = [
   { cwd: '.', command: 'node', args: ['--test', 'scripts/check-delivery-contract.test.mjs'] },
+  { cwd: '.', command: 'node', args: ['--test', 'scripts/check-release-notes.test.mjs'] },
+  { cwd: '.', command: 'node', args: ['scripts/check-release-notes.mjs'] },
   { cwd: '.', command: 'node', args: ['--test', 'scripts/delivery-change-context.test.mjs'] },
   { cwd: '.', command: 'node', args: ['--test', 'scripts/backend-runtime-freshness.test.mjs'] },
   { cwd: 'frontend', command: 'node', args: ['--experimental-strip-types', '--test', ...frontendTests] },
@@ -68,9 +70,9 @@ const { changedFiles, changedRouteRoots } = resolveDeliveryChangeContext({
   currentRoutes,
   baseRoutes: hasGitBaseline ? gitOutput(['show', `${baseRevision}:frontend/src/app/routes.tsx`]) : currentRoutes,
   diffOutput: hasGitBaseline && baseRevision !== 'HEAD'
-    ? gitOutput(['diff', '--name-only', '--diff-filter=ACMR', `${baseRevision}...HEAD`])
+    ? readDeliveryDiff(rootDir, baseRevision)
     : '',
-  statusOutput: hasGitBaseline ? gitOutput(['status', '--porcelain']) : '',
+  statusOutput: hasGitBaseline ? gitOutput(['status', '--porcelain', '--untracked-files=all']) : '',
   hasGitBaseline
 });
 const errors = checkDeliveryContract(rootDir, { changedFiles, changedRouteRoots });

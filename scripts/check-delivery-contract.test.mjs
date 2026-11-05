@@ -69,6 +69,27 @@ test('requires a migration when a new business route is added', () => {
   assert.ok(errors.includes('新增业务路由 /orders 未同时新增 migration'));
 });
 
+test('allows the shared authenticated release-notes page without a business menu or migration', () => {
+  const root = createProject();
+  write(root, 'frontend/src/app/routes.tsx', "{ path: 'orders', element: <Orders /> }, { path: 'release-notes', element: <ReleaseNotes /> }");
+  assert.deepEqual(checkDeliveryContract(root, { changedRouteRoots: ['/release-notes'] }), []);
+});
+
+test('requires project release notes when product runtime files change', () => {
+  for (const file of ['frontend/src/modules/orders/OrderPage.tsx', 'backend/src/controllers/orderController.js', 'backend/db/init/001_schema.sql', 'backend/db/migrations/20261105_orders.sql', 'deploy/nginx.conf', 'deploy/pm2.config.js']) {
+    const errors = checkDeliveryContract(createProject(), { changedFiles: [file] });
+    assert.ok(errors.includes('产品代码已变更，但未同步更新版本发布记录'), file);
+  }
+});
+
+test('accepts release notes updated with product changes and permits documentation-only changes', () => {
+  const root = createProject();
+  assert.deepEqual(checkDeliveryContract(root, {
+    changedFiles: ['frontend/src/modules/orders/OrderPage.tsx', 'frontend/src/modules/release-notes/release-notes.json']
+  }), []);
+  assert.deepEqual(checkDeliveryContract(root, { changedFiles: ['docs/交付说明.md'] }), []);
+});
+
 test('requires a migration when the database initialization schema changes', () => {
   const root = createProject();
   const errors = checkDeliveryContract(root, {

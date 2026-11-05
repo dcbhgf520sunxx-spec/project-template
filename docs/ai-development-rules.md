@@ -240,6 +240,10 @@ API 接入保持统一：
 
 ## 验收要求
 
+版本更新模块沿用 `frontend/src/modules/release-notes/pages/ReleaseNotesPage.tsx`，使用 `TemplateDetailPage`、`TemplateDetailSection`、`CategoryTag` 和 `AdminCollapse`。分类标签和折叠行为分别对应工作台数据展示中的“标签、徽标与头像”和“折叠展示”，页面结构对应详情页样板。内容从本项目 `release-notes.json` 读取，版本维护和交付检查以 `docs/ai-delivery-flow.md` 为准。
+
+`/release-notes` 只要求登录，由头像菜单进入，进入后不高亮任一业务侧栏菜单。新增其他业务路由仍须遵守原有菜单、权限和迁移要求。
+
 每次业务页面变更后，必须完成：
 
 - `npm run audit:components`
