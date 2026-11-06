@@ -2,6 +2,7 @@ import {
   DownOutlined,
   ExperimentOutlined,
   HomeOutlined,
+  HistoryOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
@@ -109,7 +110,7 @@ function collectAllowedMenuKeys(items: UserMenuItem[]): Set<string> {
 }
 
 function collectAllowedMenuPaths(items: UserMenuItem[]): Set<string> {
-  const paths = new Set<string>(['/home']);
+  const paths = new Set<string>(['/home', '/release-notes']);
   const collect = (menu: UserMenuItem) => {
     if (menu.path) paths.add(menu.path);
     menu.children?.forEach(collect);
@@ -259,7 +260,9 @@ export function AdminLayout() {
     ? `admin_floating_assistant_position_${user.id || user.employee_no}`
     : 'admin_floating_assistant_position_guest';
 
-  const selectedKey = location.pathname.startsWith('/system/design-system')
+  const selectedKey = location.pathname === '/release-notes'
+    ? ''
+    : location.pathname.startsWith('/system/design-system')
     ? `/system/design-system?category=${selectedDesignCategory}`
     : findSelectedMenuKey(visibleMenuItems, location.pathname) || '/home';
   const headerIntro = getHeaderIntro(location.pathname);
@@ -447,6 +450,7 @@ export function AdminLayout() {
                   { key: 'profile', icon: <UserOutlined />, label: '个人信息' },
                   { key: 'preferences', icon: <SettingOutlined />, label: '偏好设置' },
                   { key: 'password', icon: <LockOutlined />, label: '修改密码' },
+                  { key: 'release-notes', icon: <HistoryOutlined />, label: '版本更新' },
                   { type: 'divider' },
                   { key: 'logout', danger: true, icon: <LogoutOutlined />, label: '退出登录' }
                 ],
@@ -459,6 +463,9 @@ export function AdminLayout() {
                   }
                   if (key === 'password') {
                     setAccountDrawer('password');
+                  }
+                  if (key === 'release-notes') {
+                    navigate('/release-notes');
                   }
                   if (key === 'logout') {
                     const logoutPromise = logoutAccessSession(accessSessionId).catch(() => undefined);

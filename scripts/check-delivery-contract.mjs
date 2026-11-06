@@ -8,6 +8,9 @@ const AUTHENTICATED_ONLY_API_PATHS = new Set([
   '/api/archive-options/by-type-name',
   '/api/messages'
 ]);
+const AUTHENTICATED_ONLY_PAGE_PATHS = new Set(['/release-notes']);
+const RELEASE_NOTES_PATH = 'frontend/src/modules/release-notes/release-notes.json';
+const RELEASE_RELEVANT_FILE = /^(?:backend\/src\/|backend\/db\/(?:init\/|migrations\/)|frontend\/src\/|deploy\/(?:nginx\.conf|pm2\.config\.js)$)/;
 const DATABASE_STRUCTURE_SQL = /\b(?:CREATE\s+(?:UNIQUE\s+)?INDEX|CREATE\s+TABLE|ALTER\s+TABLE|DROP\s+(?:TABLE|INDEX))\b/i;
 
 function stripSqlComments(source) {
@@ -36,6 +39,11 @@ export function checkDeliveryContract(rootDir, { changedFiles = [], changedRoute
   const deployReadme = read(rootDir, 'deploy/README.md');
   const nginx = read(rootDir, 'deploy/nginx.conf');
 
+  const hasProductRuntimeChange = changedFiles.some((file) => file !== RELEASE_NOTES_PATH && RELEASE_RELEVANT_FILE.test(file));
+  if (hasProductRuntimeChange && !changedFiles.includes(RELEASE_NOTES_PATH)) {
+    errors.push('产品代码已变更，但未同步更新版本发布记录');
+  }
+
   if (!flow) errors.push('缺少 docs/ai-delivery-flow.md');
   if (!agents.includes('docs/ai-delivery-flow.md')) errors.push('AGENTS.md 未声明 AI 交付流程入口');
   if (!flow.includes('业务接口必须同时挂载 `verifyToken` 和 `checkPermission`')) {
@@ -57,7 +65,7 @@ export function checkDeliveryContract(rootDir, { changedFiles = [], changedRoute
   const permissionPaths = paths(app, /checkPermission\('([^']+)'\)/g);
   const routeDirectory = join(rootDir, 'backend/src/routes');
 
-  for (const route of new Set(businessRoutes)) {
+  for (const route of new Set(businessRoutes.filter((route) => !AUTHENTICATED_ONLY_PAGE_PATHS.has(route)))) {
     if (!sidebarPaths.has(route)) errors.push(`业务路由 ${route} 未配置侧栏菜单`);
     if (!schemaPaths.has(route)) errors.push(`业务路由 ${route} 未配置 pms_menu.path`);
   }
@@ -110,10 +118,11 @@ export function checkDeliveryContract(rootDir, { changedFiles = [], changedRoute
       errors.push('数据库结构已变更，但未同步修改 docs/数据库表结构.xlsx');
     }
   }
-  if (changedRouteRoots.length && !migrationFiles.length) {
-    for (const route of changedRouteRoots) errors.push(`新增业务路由 ${route} 未同时新增 migration`);
+  const changedBusinessRouteRoots = changedRouteRoots.filter((route) => !AUTHENTICATED_ONLY_PAGE_PATHS.has(route));
+  if (changedBusinessRouteRoots.length && !migrationFiles.length) {
+    for (const route of changedBusinessRouteRoots) errors.push(`新增业务路由 ${route} 未同时新增 migration`);
   }
-  for (const route of changedRouteRoots) {
+  for (const route of changedBusinessRouteRoots) {
     if (migrationFiles.length && !migrationFiles.some((file) => read(rootDir, file).includes(route))) {
       errors.push(`新增业务路由 ${route} 的 migration 未写入对应 pms_menu.path`);
     }

@@ -30,6 +30,11 @@ const DesignSystemPage = lazy(() =>
     default: module.DesignSystemPage
   }))
 );
+const ReleaseNotesPage = lazy(() =>
+  import('../modules/release-notes/pages/ReleaseNotesPage').then((module) => ({
+    default: module.ReleaseNotesPage
+  }))
+);
 const UserListPage = lazy(() =>
   import('../modules/user/pages/UserListPage').then((module) => ({
     default: module.UserListPage
@@ -112,6 +117,7 @@ export const routes: RouteObject[] = [
     children: [
       { index: true, element: <DefaultEntryRedirect /> },
       { path: 'home', element: withRouteSuspense(<HomePage />) },
+      { path: 'release-notes', element: withRouteSuspense(<ReleaseNotesPage />) },
       { path: 'roles', element: withRouteSuspense(<RoleListPage />) },
       { path: 'roles/new', element: withRouteSuspense(<RoleFormPage mode="create" />) },
       { path: 'roles/:id/edit', element: withRouteSuspense(<RoleFormPage mode="edit" />) },
