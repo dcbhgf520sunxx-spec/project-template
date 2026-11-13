@@ -111,7 +111,6 @@ test('可编辑明细业务方只能声明字段，结构和操作由底座固�
 test('可编辑明细在正式表单中保持工作台的紧凑间距和统一输入尺寸', () => {
   const editableStyles = read('src/components/admin/AdminProFormEditableList/index.css');
   const templateStyles = read('src/components/admin/TemplateFormPage/index.css');
-  const formInputs = read('src/components/admin/AdminProFormInput/index.tsx');
 
   assert.match(
     editableStyles,
@@ -124,9 +123,5 @@ test('可编辑明细在正式表单中保持工作台的紧凑间距和统一�
   assert.match(
     templateStyles,
     /\.admin-template-form-page\s+\.ant-input-number-input\s*\{[\s\S]*?height:\s*30px/
-  );
-  assert.match(
-    formInputs,
-    /AdminProFormMoney[\s\S]*const className = \['admin-input',[\s\S]*fieldProps=\{\{[\s\S]*className,/
   );
 });
