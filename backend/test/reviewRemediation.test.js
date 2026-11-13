@@ -33,7 +33,7 @@ test('审查项配置和数据库优化已落地', () => {
   const app = read('backend/src/app.js')
   const users = read('backend/src/controllers/userController.js')
   const migration = read('backend/db/migrations/20260711_optimize_review_findings.sql')
-  assert.match(app, /app\.set\('trust proxy', 1\)/)
+  assert.match(app, /app\.set\('trust proxy', 'loopback'\)/)
   assert.match(users, /error\?\.code === '23505'/)
   assert.doesNotMatch(users, /172\.16\.0\.45/)
   assert.match(migration, /idx_op_log_module_created_at/)

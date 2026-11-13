@@ -24,7 +24,7 @@ const messageRoutes = require('./routes/message')
 const app = express()
 const { allowedOrigin } = validateRuntimeConfig()
 // 生产只经过一层本机 Nginx，避免任意客户端伪造 X-Forwarded-For。
-app.set('trust proxy', 1)
+app.set('trust proxy', 'loopback')
 app.use(requestContext)
 app.use(attachResponseHelpers)
 app.use(cors({ origin: allowedOrigin, credentials: true }))

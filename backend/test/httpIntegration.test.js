@@ -12,6 +12,7 @@ async function readJson(response) {
 test('真实 HTTP、PostgreSQL 和核心业务流程', { skip: !enabled }, async (t) => {
   assert.equal(process.env.INTEGRATION_DB_ISOLATED, '1', '真实集成测试只能连接明确标记的隔离数据库')
 
+  const getCaptcha = require('../test-support/loginCaptcha').captureLoginCaptcha(t)
   const app = require('../src/app')
   const db = require('../src/db')
   const server = app.listen(0)
@@ -46,7 +47,7 @@ test('真实 HTTP、PostgreSQL 和核心业务流程', { skip: !enabled }, async
       const login = await request('/api/auth/login', {
         method: 'POST',
         auth: false,
-        body: { account: 'admin', password: 'vv123456' }
+        body: { account: 'admin', password: 'vv123456', ...await getCaptcha(baseUrl) }
       })
       assert.equal(login.response.status, 200)
       assert.equal(login.body.data.first_login, 1)

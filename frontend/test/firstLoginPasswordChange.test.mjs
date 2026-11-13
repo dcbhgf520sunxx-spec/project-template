@@ -15,9 +15,10 @@ test('首次登录必须完成改密后才能进入业务页面', () => {
   assert.match(adminLayout, /if \(mustChangePassword\)[\s\S]*<Navigate to="\/login" replace/);
 });
 
-test('首次登录改密弹窗不能被关闭或绕过', () => {
-  assert.match(passwordModal, /closable=\{!forced\}/);
-  assert.match(passwordModal, /maskClosable=\{!forced\}/);
-  assert.match(passwordModal, /keyboard=\{!forced\}/);
+test('首次改密允许关闭并退出登录，保存时禁用关闭', () => {
+  assert.match(passwordModal, /closable=\{!saving\}/);
+  assert.match(passwordModal, /maskClosable=\{!forced && !saving\}/);
+  assert.match(passwordModal, /cancelText=\{forced \? '退出登录'/);
+  assert.match(loginPage, /onCancel=\{exitFirstLogin\}/);
   assert.match(passwordModal, /changeCurrentPassword/);
 });

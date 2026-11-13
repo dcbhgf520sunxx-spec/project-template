@@ -1,4 +1,4 @@
-import { type FormEvent, type MouseEvent, useState } from 'react';
+import { type FormEvent, type MouseEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { App, Button, Card, Input, Typography } from 'antd';
 import {
@@ -11,13 +11,16 @@ import {
   ThunderboltOutlined,
   UserOutlined
 } from '@ant-design/icons';
-import { derivePermissions, getUserPreference, login } from '../../../api/authApi';
+import { derivePermissions, getLoginCaptcha, getUserPreference, login, type LoginCaptcha } from '../../../api/authApi';
+import { ApiError } from '../../../api/apiError';
+import { logoutAccessSession } from '../../../api/accessLogApi';
+import { AdminInput } from '../../../components/admin';
 import { PasswordChangeModal } from '../../account/components/PasswordChangeModal';
 import { useAuthStore } from '../../../stores/authStore';
 import robotMini from '../../../assets/login/robot-mini.png';
 import './LoginPage.css';
 
-type FocusedField = 'account' | 'password' | null;
+type FocusedField = 'account' | 'password' | 'captcha' | null;
 
 type Ripple = {
   id: number;
@@ -29,6 +32,8 @@ type Ripple = {
 export function LoginPage() {
   const navigate = useNavigate();
   const { message } = App.useApp();
+  const clearAuth = useAuthStore((state) => state.clearAuth);
+  const accessSessionId = useAuthStore((state) => state.accessSessionId);
   const setAuth = useAuthStore((state) => state.setAuth);
   const setPreference = useAuthStore((state) => state.setPreference);
   const mustChangePassword = useAuthStore((state) => state.mustChangePassword);
@@ -39,6 +44,47 @@ export function LoginPage() {
   const [ripples, setRipples] = useState<Ripple[]>([]);
   const [buttonPressed, setButtonPressed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  const [captcha, setCaptcha] = useState<LoginCaptcha | null>(null);
+  const [captchaCode, setCaptchaCode] = useState('');
+  const [captchaLoading, setCaptchaLoading] = useState(false);
+  const [captchaError, setCaptchaError] = useState('');
+  const captchaRequest = useRef(0);
+
+  const refreshCaptcha = useCallback(async () => {
+    const requestId = ++captchaRequest.current;
+    setCaptcha(null);
+    setCaptchaCode('');
+    setCaptchaLoading(true);
+    try {
+      const result = await getLoginCaptcha();
+      if (requestId === captchaRequest.current) setCaptcha(result);
+    } catch (error) {
+      if (requestId === captchaRequest.current) {
+        setCaptchaError(error instanceof Error ? error.message : '验证码获取失败，请重试');
+      }
+    } finally {
+      if (requestId === captchaRequest.current) setCaptchaLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const sequence = captchaRequest;
+    void refreshCaptcha();
+    return () => { sequence.current++; };
+  }, [refreshCaptcha]);
+
+  const exitFirstLogin = () => {
+    const token = useAuthStore.getState().token;
+    void logoutAccessSession(accessSessionId, { token }).catch(() => {
+      message.warning('退出请求未完成，已清除本地登录状态');
+    });
+    clearAuth();
+    setPassword('');
+    setCaptchaError('');
+    void refreshCaptcha();
+    navigate('/login', { replace: true });
+  };
 
   const enterPreferredPage = async () => {
     const preference = await getUserPreference();
@@ -79,11 +125,19 @@ export function LoginPage() {
       return;
     }
 
+    if (!captcha || !captchaCode.trim()) {
+      setCaptchaError('请输入图形验证码');
+      return;
+    }
+
+    setCaptchaError('');
     setSubmitting(true);
     try {
       const result = await login({
         account: account.trim(),
-        password
+        password,
+        captcha_id: captcha.captcha_id,
+        captcha_code: captchaCode.trim()
       });
       const firstLogin = result.first_login === 1;
       setAuth({
@@ -100,7 +154,12 @@ export function LoginPage() {
       }
       await enterPreferredPage();
     } catch (error) {
-      message.error(error instanceof Error ? error.message : '登录失败');
+      if (error instanceof ApiError && error.fieldErrors?.captcha_code) {
+        setCaptchaError(error.fieldErrors.captcha_code.join('；'));
+      } else {
+        message.error(error instanceof Error ? error.message : '登录失败');
+      }
+      void refreshCaptcha();
     } finally {
       setSubmitting(false);
     }
@@ -193,6 +252,41 @@ export function LoginPage() {
               value={password}
             />
           </label>
+          <div>
+            <div className="login-captcha-row">
+              <label
+                className={`login-field ${focusedField === 'captcha' ? 'is-focused' : ''}`}
+                htmlFor="login-captcha"
+              >
+                <AdminInput
+                  id="login-captcha"
+                  aria-label="图形验证码"
+                  aria-invalid={Boolean(captchaError)}
+                  aria-describedby={`login-captcha-hint${captchaError ? ' login-captcha-error' : ''}`}
+                  autoComplete="off"
+                  maxLength={5}
+                  onBlur={() => setFocusedField(null)}
+                  onChange={(event) => { setCaptchaCode(event.target.value); setCaptchaError(''); }}
+                  onFocus={() => setFocusedField('captcha')}
+                  placeholder="请输入验证码"
+                  prefix={<SafetyCertificateOutlined />}
+                  value={captchaCode}
+                />
+              </label>
+              <Button
+                className="login-captcha-refresh"
+                aria-label="刷新验证码"
+                title="看不清？点击刷新验证码"
+                disabled={submitting}
+                loading={captchaLoading}
+                onClick={() => { setCaptchaError(''); void refreshCaptcha(); }}
+              >
+                {captcha ? <img src={captcha.image} alt="图形验证码" width={150} height={44} /> : '获取验证码'}
+              </Button>
+            </div>
+            <p className="login-captcha-hint" id="login-captcha-hint">不区分大小写，点击图片可换一张</p>
+            {captchaError && <div className="login-field-error" id="login-captcha-error" role="alert">{captchaError}</div>}
+          </div>
           <Button
             className={`login-submit ${buttonPressed ? 'is-pressed' : ''}`}
             htmlType="submit"
@@ -217,6 +311,7 @@ export function LoginPage() {
       <PasswordChangeModal
         open={mustChangePassword}
         forced
+        onCancel={exitFirstLogin}
         onSuccess={() => {
           setMustChangePassword(false);
           void enterPreferredPage();

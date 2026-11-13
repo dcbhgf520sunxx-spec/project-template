@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { App, Form } from 'antd';
 import { AdminFormItem, AdminModal, AdminPasswordInput } from '../../../components/admin';
 import { changeCurrentPassword } from '../../../api/authApi';
@@ -13,7 +13,7 @@ type PasswordFormValues = {
 type PasswordChangeModalProps = {
   open: boolean;
   forced?: boolean;
-  onCancel?: () => void;
+  onCancel?: () => void | Promise<void>;
   onSuccess?: () => void;
 };
 
@@ -26,21 +26,31 @@ export function PasswordChangeModal({
   const { message } = App.useApp();
   const [form] = Form.useForm<PasswordFormValues>();
   const [saving, setSaving] = useState(false);
+  const busy = useRef(false);
 
   useEffect(() => {
     if (open) form.resetFields();
   }, [form, open]);
 
-  const handleCancel = () => {
-    if (forced) return;
-    form.resetFields();
-    onCancel?.();
+  const handleCancel = async () => {
+    if (busy.current) return;
+    busy.current = true;
+    setSaving(true);
+    try {
+      await onCancel?.();
+      form.resetFields();
+    } finally {
+      busy.current = false;
+      setSaving(false);
+    }
   };
 
   const handleChangePassword = async () => {
-    const values = await form.validateFields();
+    if (busy.current) return;
+    busy.current = true;
     setSaving(true);
     try {
+      const values = await form.validateFields();
       await changeCurrentPassword({
         oldPassword: values.oldPassword,
         newPassword: values.newPassword
@@ -49,8 +59,11 @@ export function PasswordChangeModal({
       form.resetFields();
       onSuccess?.();
     } catch (error) {
-      message.error(error instanceof Error ? error.message : '修改失败');
+      if (!(error && typeof error === 'object' && 'errorFields' in error)) {
+        message.error(error instanceof Error ? error.message : '修改失败');
+      }
     } finally {
+      busy.current = false;
       setSaving(false);
     }
   };
@@ -60,10 +73,11 @@ export function PasswordChangeModal({
       title={forced ? '首次登录请修改密码' : '修改密码'}
       open={open}
       width={420}
-      closable={!forced}
-      maskClosable={!forced}
-      keyboard={!forced}
-      cancelButtonProps={forced ? { style: { display: 'none' } } : undefined}
+      closable={!saving}
+      maskClosable={!forced && !saving}
+      keyboard={!saving}
+      cancelText={forced ? '退出登录' : '取消'}
+      cancelButtonProps={{ disabled: saving }}
       confirmLoading={saving}
       okText={forced ? '确认修改并进入系统' : '确认'}
       onCancel={handleCancel}

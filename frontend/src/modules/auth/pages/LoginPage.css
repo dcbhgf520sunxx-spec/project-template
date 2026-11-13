@@ -208,6 +208,11 @@
   padding: 0 12px 0 14px;
 }
 
+.login-field .admin-input.ant-input-affix-wrapper:not(.ant-input-textarea-affix-wrapper) {
+  height: 44px;
+  font-size: 14px;
+}
+
 .login-field .ant-input-prefix {
   margin-inline-end: 10px;
   color: #8da0bc;
@@ -324,4 +329,38 @@
   .login-field {
     transition: none;
   }
+}
+
+.login-captcha-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) min(150px, 47%);
+  gap: 10px;
+}
+
+.login-captcha-refresh.ant-btn {
+  height: 46px;
+  padding: 0;
+  overflow: hidden;
+  border-color: #d6e1f0;
+  border-radius: 6px;
+  background: #f0f5ff;
+}
+
+.login-captcha-refresh img {
+  display: block;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+.login-captcha-hint {
+  margin: 4px 0 0;
+  color: #7a8ba5;
+  font-size: 12px;
+  line-height: 20px;
+}
+
+.login-field-error {
+  margin-top: 6px;
+  color: var(--ant-color-error, #ff4d4f);
+  font-size: 12px;
 }

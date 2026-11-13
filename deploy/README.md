@@ -150,12 +150,14 @@ sudo nginx -s reload
 curl http://localhost:3101/api/health
 ```
 
-登录接口：
+登录接口（先获取图片，识别后填写验证码；每次尝试后重新获取）：
 
 ```bash
+curl http://localhost:3101/api/auth/captcha
+
 curl http://localhost:3101/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"account":"admin","password":"vv123456"}'
+  -d '{"account":"admin","password":"vv123456","captcha_id":"获取到的captcha_id","captcha_code":"图片中的字符"}'
 ```
 
 浏览器访问：
@@ -185,3 +187,12 @@ sudo nginx -s reload
 - 每个项目实例必须使用独立 `DB_NAME`
 - `backend/.env` 不得提交
 - 默认账号为 `admin / vv123456`
+
+### 登录保护
+
+- 密码登录必须提交图形验证码；图片有效期 2 分钟，校验一次即失效，字符不区分大小写。验证码错误不计入账号失败次数。
+- 同一账号（工号和手机号共用）15 分钟内失败 5 次，锁定该账号 15 分钟。锁定到期清空旧失败；其他账号不受该锁定影响。
+- IP 只做短时高频保护：密码登录每分钟 120 次、验证码获取每分钟 300 次，超限返回 429 和 Retry-After。
+- 保护缓存与验证码适用于当前 PM2 单进程配置。扩展多实例前须改为共享存储和原子操作；进程重启会清空短期状态。
+- 只信任本机回环代理提供的客户端 IP，与当前 Nginx 配置一致。远程代理接入须明确可信代理地址，不能恢复任意来源转发头信任。
+- 首次改密窗口关闭或点击退出登录时清除本地登录并结束当前会话；改密成功之前仍禁止访问业务接口。网络异常时本地退出，服务端会话撤销可能未完成。
