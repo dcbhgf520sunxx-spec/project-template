@@ -7,23 +7,13 @@ const { requestTicket } = require('../services/ssoService')
 const { verifyToken } = require('../middleware/auth')
 const accessLogService = require('../services/accessLogService')
 const accountService = require('../services/accountService')
-const { ok, fail } = require('../utils/response')
+const { ok, fail, failField } = require('../utils/response')
 const { includeParentMenus } = require('../services/menuHierarchy')
 
-// Simple in-memory rate limiter for login
-const loginAttempts = new Map()
-const MAX_ATTEMPTS = 5
-const LOCKOUT_MS = 15 * 60 * 1000 // 15 minutes
-const CLEANUP_MS = 60 * 60 * 1000 // 1 hour
-
-// 定期清理超过 1 小时未活动的条目，防止内存泄漏
-const cleanupTimer = setInterval(() => {
-  const now = Date.now()
-  for (const [ip, data] of loginAttempts) {
-    if (now - data.lastAttempt > CLEANUP_MS) loginAttempts.delete(ip)
-  }
-}, CLEANUP_MS)
-cleanupTimer.unref()
+const { createLoginRateLimitService } = require('../services/loginRateLimitService')
+const { createLoginCaptchaService } = require('../services/loginCaptchaService')
+const loginProtection = createLoginRateLimitService()
+const loginCaptcha = createLoginCaptchaService()
 
 async function safeRecordLoginFailure(payload) {
   try {
@@ -42,54 +32,68 @@ async function safeRecordLoginSuccess(payload) {
   }
 }
 
-// Login
-router.post('/login', async (req, res) => {
+router.get('/captcha', (req, res) => {
+  res.set('Cache-Control', 'no-store')
   try {
-    const { account, password } = req.body
-    if (!account || !password) {
-      return res.status(400).json({ code: 400, message: '请输入账号和密码', data: null })
+    return ok(res, loginCaptcha.issue(req.ip || 'unknown'))
+  } catch (err) {
+    if (err.statusCode === 429) {
+      res.set('Retry-After', '60')
+      return fail(res, 429, 429, err.message)
     }
+    console.error('captcha generation failed:', err.message)
+    return fail(res, 500, 500, '验证码获取失败，请重试')
+  }
+})
 
-    // Rate limiting
+// 密码登录的验证码必须先消费；账号失败额度按数据库身份合并工号和手机号。
+router.post('/login', async (req, res) => {
+  let attempt
+  try {
     const clientIp = req.ip || 'unknown'
-    const attempts = loginAttempts.get(clientIp) || { count: 0, lastAttempt: 0 }
-    if (attempts.count >= MAX_ATTEMPTS) {
-      const elapsed = Date.now() - attempts.lastAttempt
-      if (elapsed < LOCKOUT_MS) {
-        const remaining = Math.ceil((LOCKOUT_MS - elapsed) / 1000)
-        await safeRecordLoginFailure({ account, failReason: '登录频率限制', result: 'locked', req })
-        return res.status(429).json({ code: 429, message: `登录尝试次数过多，请${remaining}秒后重试`, data: null })
-      }
-      loginAttempts.delete(clientIp)
+    const retryAfter = loginProtection.takeRequest(clientIp)
+    if (retryAfter) {
+      res.set('Retry-After', String(retryAfter))
+      return fail(res, 429, 429, `请求过于频繁，请${retryAfter}秒后重试`)
+    }
+    const { account: rawAccount, password, captcha_id, captcha_code } = req.body || {}
+    if (typeof rawAccount !== 'string' || !rawAccount.trim() || rawAccount.trim().length > 100 || typeof password !== 'string' || !password) {
+      return fail(res, 400, 400, '请输入有效的账号和密码')
+    }
+    const account = rawAccount.trim()
+    if (!loginCaptcha.consume(clientIp, captcha_id, captcha_code)) {
+      return failField(res, 'captcha_code', '验证码错误或已过期，请重新输入')
     }
 
     const row = await db.prepare(
       'SELECT id, employee_no, real_name, phone, avatar_url, password, status, first_login FROM pms_user WHERE (employee_no = ? OR phone = ?) AND is_deleted = 0'
     ).get(account, account)
+    attempt = loginProtection.begin(row ? `user:${row.id}` : account, { knownAccount: Boolean(row) })
+    if (attempt.retryAfter) {
+      res.set('Retry-After', String(attempt.retryAfter))
+      const locked = attempt.reason === 'locked'
+      await safeRecordLoginFailure({ account, failReason: locked ? '账号登录失败次数过多' : '账号登录请求繁忙', result: 'locked', req, user: row })
+      return fail(res, 429, 429, locked
+        ? `该账号登录失败次数过多，请${attempt.retryAfter}秒后重试`
+        : `登录请求繁忙，请${attempt.retryAfter}秒后重试`)
+    }
     if (!row) {
-      attempts.count++
-      attempts.lastAttempt = Date.now()
-      loginAttempts.set(clientIp, attempts)
+      attempt.complete('failure')
       await safeRecordLoginFailure({ account, failReason: '用户不存在', req })
       return fail(res, 401, 401, '账号或密码错误')
     }
 
     const valid = await bcrypt.compare(password, row.password)
     if (!valid) {
-      attempts.count++
-      attempts.lastAttempt = Date.now()
-      loginAttempts.set(clientIp, attempts)
+      attempt.complete('failure')
       await safeRecordLoginFailure({ account, failReason: '密码错误', req, user: row })
       return fail(res, 401, 401, '账号或密码错误')
     }
-
     if (row.status !== 1) {
+      attempt.complete('failure')
       await safeRecordLoginFailure({ account, failReason: '账号已停用', req, user: row })
-      return res.status(403).json({ code: 403, message: '账号已停用', data: null })
+      return fail(res, 403, 403, '账号已停用')
     }
-
-    // Reset attempts on successful login
-    loginAttempts.delete(clientIp)
 
     // Get user menus (auto-include parent dirs for tree rendering)
     const menus = await db.prepare(`
@@ -125,10 +129,13 @@ router.post('/login', async (req, res) => {
       { expiresIn: '24h' }
     )
 
+    attempt.complete('success')
     ok(res, { token, first_login: row.first_login, access_session_id: accessSessionId, user: { id: row.id, employee_no: row.employee_no, real_name: row.real_name, phone: row.phone, avatar_url: row.avatar_url, roles: roles.map(item => item.code) }, menus: resolvedMenus }, '登录成功')
   } catch (err) {
     console.error(err)
     res.status(500).json({ code: 500, message: '登录失败', data: null })
+  } finally {
+    attempt?.complete?.()
   }
 })
 

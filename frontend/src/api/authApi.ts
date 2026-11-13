@@ -7,7 +7,21 @@ import { objectContract } from './responseContract';
 export type LoginParams = {
   account: string;
   password: string;
+  captcha_id: string;
+  captcha_code: string;
 };
+
+export type LoginCaptcha = {
+  captcha_id: string;
+  image: string;
+  expires_in: number;
+};
+
+const captchaContract = objectContract<LoginCaptcha>(['captcha_id', 'image', 'expires_in']);
+
+export function getLoginCaptcha() {
+  return unwrap<LoginCaptcha>(request.get('/auth/captcha'), captchaContract);
+}
 
 export type LoginResult = {
   token: string;
