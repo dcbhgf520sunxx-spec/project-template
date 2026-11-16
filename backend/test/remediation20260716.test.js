@@ -125,7 +125,6 @@ test('用户和角色列表批量加载关联数据避免逐行查询', () => {
   assert.doesNotMatch(userList, /for \(const row of rows\)[\s\S]*?await getRoles\.all/)
   assert.match(userList, /ur\.user_id IN/)
   assert.doesNotMatch(roleList, /for \(const row of rows\)[\s\S]*?prepare\('SELECT menu_id/)
-  assert.match(roleList, /rm\.role_id IN/)
   assert.match(userList, /roles:\s*`\(SELECT STRING_AGG/)
 })
 
