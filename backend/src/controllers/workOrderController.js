@@ -62,7 +62,7 @@ function isProblemDescriptionUniqueViolation(error) {
 
 const WORK_ORDER_SORT_MAP = {
   problem_desc: 'w.problem_desc', system_id: 'sys.name', problem_type: 'pt.name', urgency: 'w.urgency', status: 'w.status',
-  is_overdue: 'w.is_overdue', follower_name: 'w.follower_id', follower_id: 'w.follower_id',
+  is_overdue: 'w.is_overdue', follower_name: 'u3.real_name', follower_id: 'u3.real_name',
   submitter_name: 'w.submitter_name', submitter_dept: 'w.submitter_dept', submit_time: 'w.submit_time',
   expected_resolve_date: 'w.expected_resolve_date', creator_name: 'u1.real_name', created_at: 'w.created_at'
 }
